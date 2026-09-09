@@ -11,6 +11,7 @@ mod canonical;
 mod claim;
 mod descriptive;
 mod determinism;
+mod eso;
 mod fo;
 mod fo_eval;
 mod formal;
@@ -24,6 +25,7 @@ pub use descriptive::{
     OrderedFiniteStructureId, RelationInterpretation, RelationSymbol, Vocabulary,
 };
 pub use determinism::DeterminismLevel;
+pub use eso::{EsoSentence, EsoValidationError};
 pub use fo::{FoAtom, FoFormula, FoValidationError, Variable};
 pub use fo_eval::{FoAssignment, FoEvaluationError, evaluate_ordered, evaluate_unordered};
 pub use formal::{FormalBackend, FormalStatement, FormalStatementId};
