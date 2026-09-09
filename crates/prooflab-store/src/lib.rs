@@ -28,7 +28,9 @@ impl fmt::Display for StoreError {
             Self::IntegrityMismatch(id) => write!(formatter, "proof artifact id mismatch: {id:?}"),
             Self::MissingArtifact(id) => write!(formatter, "proof artifact is missing: {id:?}"),
             Self::MissingDependency(id) => write!(formatter, "proof dependency is missing: {id:?}"),
-            Self::AddressCollision(id) => write!(formatter, "different proof content shares address: {id:?}"),
+            Self::AddressCollision(id) => {
+                write!(formatter, "different proof content shares address: {id:?}")
+            }
         }
     }
 }
@@ -207,14 +209,8 @@ mod tests {
             sha256_bytes(b"stdout"),
             sha256_bytes(b"stderr"),
         );
-        ProofArtifact::new_verified(
-            &formal,
-            source.as_bytes(),
-            dependencies,
-            repro,
-            receipt,
-        )
-        .unwrap()
+        ProofArtifact::new_verified(&formal, source.as_bytes(), dependencies, repro, receipt)
+            .unwrap()
     }
 
     #[test]
@@ -236,7 +232,10 @@ mod tests {
         let missing = ProofArtifactId([9; 32]);
         let child = proof("child", vec![missing]);
         let mut store = MemoryProofStore::default();
-        assert_eq!(store.put(&child), Err(StoreError::MissingDependency(missing)));
+        assert_eq!(
+            store.put(&child),
+            Err(StoreError::MissingDependency(missing))
+        );
     }
 
     #[test]
@@ -263,6 +262,9 @@ mod tests {
         let mut artifact = independent_proof("tampered");
         artifact.body.repro.environment_digest = "modified".into();
         let mut store = MemoryProofStore::default();
-        assert_eq!(store.put(&artifact), Err(StoreError::IntegrityMismatch(artifact.id)));
+        assert_eq!(
+            store.put(&artifact),
+            Err(StoreError::IntegrityMismatch(artifact.id))
+        );
     }
 }
