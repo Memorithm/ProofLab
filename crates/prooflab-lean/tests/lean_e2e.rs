@@ -1,12 +1,18 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use prooflab_core::{Claim, ClaimBody, FormalStatement, ReproMeta};
 use prooflab_lean::{LeanKernel, VerificationJob};
 use prooflab_store::{MemoryProofStore, ProofStore};
 
-fn fixture_path(label: &str) -> PathBuf {
-    std::env::temp_dir().join(format!("prooflab-{label}-{}.lean", std::process::id()))
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
+}
+
+fn rejected_fixture_path(root: &Path) -> PathBuf {
+    let directory = root.join(".prooflab/e2e");
+    fs::create_dir_all(&directory).unwrap();
+    directory.join(format!("rejected-{}.lean", std::process::id()))
 }
 
 fn repro_meta() -> ReproMeta {
@@ -27,19 +33,18 @@ fn claim(statement: &str) -> Claim {
 #[test]
 #[ignore = "requires the pinned Lean/mathlib environment"]
 fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
-    let accepted_source =
-        b"import Mathlib\n\ntheorem prooflabE2EAccepted : (2 : Nat) + 2 = 4 := by decide\n";
+    let root = repo_root();
+    let accepted_path = root.join("ProofLab/Core/Smoke.lean");
+    let accepted_source = fs::read(&accepted_path).unwrap();
+
     let rejected_source =
         b"import Mathlib\n\ntheorem prooflabE2ERejected : (2 : Nat) + 2 = 5 := by decide\n";
-
-    let accepted_path = fixture_path("accepted");
-    let rejected_path = fixture_path("rejected");
-    fs::write(&accepted_path, accepted_source).unwrap();
+    let rejected_path = rejected_fixture_path(&root);
     fs::write(&rejected_path, rejected_source).unwrap();
 
     let accepted_formal = FormalStatement::lean4(
-        claim("2 + 2 = 4").id,
-        accepted_source,
+        claim("forall n : Nat, n = n").id,
+        &accepted_source,
         vec!["Mathlib".into()],
     );
     let rejected_formal = FormalStatement::lean4(
@@ -62,10 +67,14 @@ fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
         )
         .unwrap();
 
-    fs::remove_file(&accepted_path).unwrap();
     fs::remove_file(&rejected_path).unwrap();
 
-    assert!(accepted.result.accepted);
+    assert!(
+        accepted.result.accepted,
+        "Lean rejected the known-valid Smoke theorem. stdout:\n{}\nstderr:\n{}",
+        accepted.result.stdout,
+        accepted.result.stderr
+    );
     assert_eq!(accepted.result.exit_code, Some(0));
     let proof = accepted
         .proof
@@ -77,7 +86,12 @@ fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
     assert_eq!(stored_id, proof.id);
     assert_eq!(store.get(proof.id).unwrap(), Some(proof));
 
-    assert!(!rejected.result.accepted);
+    assert!(
+        !rejected.result.accepted,
+        "Lean unexpectedly accepted the false theorem. stdout:\n{}\nstderr:\n{}",
+        rejected.result.stdout,
+        rejected.result.stderr
+    );
     assert_ne!(rejected.result.exit_code, Some(0));
     assert!(
         rejected.proof.is_none(),
