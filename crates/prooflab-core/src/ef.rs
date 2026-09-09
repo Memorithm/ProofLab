@@ -9,7 +9,8 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
 
-use crate::{FiniteStructure, OrderedFiniteStructure, Vocabulary};
+use crate::partial_iso::{PartialIsoError, ensure_compatible, is_partial_isomorphism};
+use crate::{FiniteStructure, OrderedFiniteStructure};
 
 /// Deterministic result of one finite EF game.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -95,9 +96,7 @@ fn solve(
     right_order: Option<&OrderedFiniteStructure>,
     rounds: u32,
 ) -> Result<EfGameResult, EfGameError> {
-    if left.vocabulary() != right.vocabulary() {
-        return Err(EfGameError::VocabularyMismatch);
-    }
+    ensure_compatible(left, right).map_err(EfGameError::from)?;
 
     let mut solver = Solver {
         left,
@@ -136,7 +135,9 @@ impl Solver<'_> {
             self.left_order,
             self.right_order,
             &state.pebbles,
-        )? {
+        )
+        .map_err(EfGameError::from)?
+        {
             let _ = self.memo.insert(state.clone(), false);
             return Ok(false);
         }
@@ -191,132 +192,6 @@ impl Solver<'_> {
     }
 }
 
-fn is_partial_isomorphism(
-    left: &FiniteStructure,
-    right: &FiniteStructure,
-    left_order: Option<&OrderedFiniteStructure>,
-    right_order: Option<&OrderedFiniteStructure>,
-    pebbles: &[(u64, u64)],
-) -> Result<bool, EfGameError> {
-    if !preserves_equality(pebbles) {
-        return Ok(false);
-    }
-
-    if !preserves_relations(left, right, left.vocabulary(), pebbles)? {
-        return Ok(false);
-    }
-
-    match (left_order, right_order) {
-        (Some(left_order), Some(right_order)) => {
-            Ok(preserves_order(left_order, right_order, pebbles))
-        }
-        (None, None) => Ok(true),
-        _ => Err(EfGameError::OrderModeMismatch),
-    }
-}
-
-fn preserves_equality(pebbles: &[(u64, u64)]) -> bool {
-    for (left_index, &(left_a, right_a)) in pebbles.iter().enumerate() {
-        for &(left_b, right_b) in &pebbles[left_index..] {
-            if (left_a == left_b) != (right_a == right_b) {
-                return false;
-            }
-        }
-    }
-    true
-}
-
-fn preserves_order(
-    left: &OrderedFiniteStructure,
-    right: &OrderedFiniteStructure,
-    pebbles: &[(u64, u64)],
-) -> bool {
-    for &(left_a, right_a) in pebbles {
-        for &(left_b, right_b) in pebbles {
-            if left.less_than(left_a, left_b) != right.less_than(right_a, right_b) {
-                return false;
-            }
-        }
-    }
-    true
-}
-
-fn preserves_relations(
-    left: &FiniteStructure,
-    right: &FiniteStructure,
-    vocabulary: &Vocabulary,
-    pebbles: &[(u64, u64)],
-) -> Result<bool, EfGameError> {
-    for symbol in vocabulary.relations() {
-        let arity =
-            usize::try_from(symbol.arity()).map_err(|_| EfGameError::ArityNotAddressable {
-                relation: symbol.name().to_owned(),
-                arity: symbol.arity(),
-            })?;
-        let left_relation = left
-            .relation(symbol.name())
-            .ok_or_else(|| EfGameError::MissingRelation(symbol.name().to_owned()))?;
-        let right_relation = right
-            .relation(symbol.name())
-            .ok_or_else(|| EfGameError::MissingRelation(symbol.name().to_owned()))?;
-
-        if arity == 0 {
-            if left_relation.contains(&[]) != right_relation.contains(&[]) {
-                return Ok(false);
-            }
-            continue;
-        }
-
-        if pebbles.is_empty() {
-            continue;
-        }
-
-        let mut indices = Vec::new();
-        indices
-            .try_reserve_exact(arity)
-            .map_err(|_| EfGameError::TupleIndexBufferNotAddressable { arity })?;
-        indices.resize(arity, 0usize);
-
-        loop {
-            let mut left_tuple = Vec::new();
-            let mut right_tuple = Vec::new();
-            left_tuple
-                .try_reserve_exact(arity)
-                .map_err(|_| EfGameError::TupleBufferNotAddressable { arity })?;
-            right_tuple
-                .try_reserve_exact(arity)
-                .map_err(|_| EfGameError::TupleBufferNotAddressable { arity })?;
-            for &index in &indices {
-                let (left_element, right_element) = pebbles[index];
-                left_tuple.push(left_element);
-                right_tuple.push(right_element);
-            }
-
-            if left_relation.contains(&left_tuple) != right_relation.contains(&right_tuple) {
-                return Ok(false);
-            }
-
-            let mut position = arity;
-            loop {
-                if position == 0 {
-                    break;
-                }
-                position -= 1;
-                indices[position] += 1;
-                if indices[position] < pebbles.len() {
-                    break;
-                }
-                indices[position] = 0;
-            }
-            if position == 0 && indices[0] == 0 {
-                break;
-            }
-        }
-    }
-
-    Ok(true)
-}
-
 /// Fail-closed errors for exact finite EF games.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EfGameError {
@@ -336,6 +211,25 @@ pub enum EfGameError {
     StateCounterOverflow,
 }
 
+impl From<PartialIsoError> for EfGameError {
+    fn from(error: PartialIsoError) -> Self {
+        match error {
+            PartialIsoError::VocabularyMismatch => Self::VocabularyMismatch,
+            PartialIsoError::OrderModeMismatch => Self::OrderModeMismatch,
+            PartialIsoError::ArityNotAddressable { relation, arity } => {
+                Self::ArityNotAddressable { relation, arity }
+            }
+            PartialIsoError::MissingRelation(name) => Self::MissingRelation(name),
+            PartialIsoError::TupleIndexBufferNotAddressable { arity } => {
+                Self::TupleIndexBufferNotAddressable { arity }
+            }
+            PartialIsoError::TupleBufferNotAddressable { arity } => {
+                Self::TupleBufferNotAddressable { arity }
+            }
+        }
+    }
+}
+
 impl fmt::Display for EfGameError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -349,24 +243,18 @@ impl fmt::Display for EfGameError {
                 formatter,
                 "relation {relation} has EF-unaddressable arity {arity}"
             ),
-            Self::MissingRelation(name) => {
-                write!(
-                    formatter,
-                    "validated relation {name} is missing from EF structure"
-                )
-            }
-            Self::TupleIndexBufferNotAddressable { arity } => {
-                write!(
-                    formatter,
-                    "EF tuple-index arity {arity} cannot be materialized"
-                )
-            }
-            Self::TupleBufferNotAddressable { arity } => {
-                write!(
-                    formatter,
-                    "EF relation tuple arity {arity} cannot be materialized"
-                )
-            }
+            Self::MissingRelation(name) => write!(
+                formatter,
+                "validated relation {name} is missing from EF structure"
+            ),
+            Self::TupleIndexBufferNotAddressable { arity } => write!(
+                formatter,
+                "EF tuple-index arity {arity} cannot be materialized"
+            ),
+            Self::TupleBufferNotAddressable { arity } => write!(
+                formatter,
+                "EF relation tuple arity {arity} cannot be materialized"
+            ),
             Self::StateCounterOverflow => formatter.write_str("EF state counter overflowed"),
         }
     }
