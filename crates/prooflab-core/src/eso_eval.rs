@@ -145,9 +145,11 @@ fn witness_universes(
     let mut universes = Vec::new();
     universes
         .try_reserve_exact(sentence.witness_count())
-        .map_err(|_| EsoEvaluationError::WitnessUniverseBufferNotAddressable {
-            witnesses: sentence.witness_count(),
-        })?;
+        .map_err(
+            |_| EsoEvaluationError::WitnessUniverseBufferNotAddressable {
+                witnesses: sentence.witness_count(),
+            },
+        )?;
 
     for symbol in sentence.witnesses().relations() {
         universes.push(WitnessUniverse {
@@ -183,12 +185,12 @@ fn enumerate_relation_tuples(
     }
 
     let mut tuples = Vec::new();
-    tuples
-        .try_reserve_exact(tuple_count)
-        .map_err(|_| EsoEvaluationError::WitnessTupleSpaceNotAddressable {
+    tuples.try_reserve_exact(tuple_count).map_err(|_| {
+        EsoEvaluationError::WitnessTupleSpaceNotAddressable {
             relation: symbol.name().to_owned(),
             tuples: tuple_count,
-        })?;
+        }
+    })?;
 
     if arity == 0 {
         tuples.push(Vec::new());
@@ -196,22 +198,22 @@ fn enumerate_relation_tuples(
     }
 
     let mut tuple = Vec::new();
-    tuple
-        .try_reserve_exact(arity)
-        .map_err(|_| EsoEvaluationError::WitnessTupleBufferNotAddressable {
+    tuple.try_reserve_exact(arity).map_err(|_| {
+        EsoEvaluationError::WitnessTupleBufferNotAddressable {
             relation: symbol.name().to_owned(),
             arity,
-        })?;
+        }
+    })?;
     tuple.resize(arity, 0);
 
     loop {
         let mut materialized = Vec::new();
-        materialized
-            .try_reserve_exact(arity)
-            .map_err(|_| EsoEvaluationError::WitnessTupleBufferNotAddressable {
+        materialized.try_reserve_exact(arity).map_err(|_| {
+            EsoEvaluationError::WitnessTupleBufferNotAddressable {
                 relation: symbol.name().to_owned(),
                 arity,
-            })?;
+            }
+        })?;
         materialized.extend_from_slice(&tuple);
         tuples.push(materialized);
 
@@ -238,9 +240,11 @@ fn materialize_witness(
     let mut interpretations = Vec::new();
     interpretations
         .try_reserve_exact(universes.len())
-        .map_err(|_| EsoEvaluationError::WitnessInterpretationBufferNotAddressable {
-            witnesses: universes.len(),
-        })?;
+        .map_err(
+            |_| EsoEvaluationError::WitnessInterpretationBufferNotAddressable {
+                witnesses: universes.len(),
+            },
+        )?;
 
     let mut offset = 0usize;
     for universe in universes {
@@ -252,12 +256,12 @@ fn materialize_witness(
             .ok_or(EsoEvaluationError::SelectionInvariant)?;
         let selected_count = bits.iter().filter(|&&selected| selected).count();
         let mut tuples = Vec::new();
-        tuples
-            .try_reserve_exact(selected_count)
-            .map_err(|_| EsoEvaluationError::CandidateTupleBufferNotAddressable {
+        tuples.try_reserve_exact(selected_count).map_err(|_| {
+            EsoEvaluationError::CandidateTupleBufferNotAddressable {
                 relation: universe.symbol.name().to_owned(),
                 tuples: selected_count,
-            })?;
+            }
+        })?;
         for (tuple, &selected) in universe.tuples.iter().zip(bits) {
             if selected {
                 let mut cloned = Vec::new();
@@ -401,7 +405,9 @@ impl fmt::Display for EsoEvaluationError {
                 formatter.write_str("ESO witness-selection indexing invariant failed")
             }
             Self::Structure(error) => write!(formatter, "ESO extended structure failed: {error}"),
-            Self::FirstOrder(error) => write!(formatter, "ESO FO matrix evaluation failed: {error}"),
+            Self::FirstOrder(error) => {
+                write!(formatter, "ESO FO matrix evaluation failed: {error}")
+            }
             Self::AssignmentCounterOverflow => {
                 formatter.write_str("ESO witness-assignment counter overflowed")
             }
@@ -491,7 +497,7 @@ mod tests {
         let result = evaluate_eso_unordered(&sentence, &empty_structure(2)).unwrap();
         assert!(result.satisfied());
         assert_eq!(result.witness_assignments_tested(), 1);
-        assert_eq!(result.witness(), Some([].as_slice()));
+        assert_eq!(result.witness().unwrap().len(), 0);
     }
 
     #[test]
@@ -508,7 +514,11 @@ mod tests {
         let sentence = EsoSentence::new(vec![], body).unwrap();
         let ordered = OrderedFiniteStructure::new(empty_structure(2), vec![1, 0]).unwrap();
 
-        assert!(evaluate_eso_ordered(&sentence, &ordered).unwrap().satisfied());
+        assert!(
+            evaluate_eso_ordered(&sentence, &ordered)
+                .unwrap()
+                .satisfied()
+        );
         assert!(matches!(
             evaluate_eso_unordered(&sentence, ordered.structure()),
             Err(EsoEvaluationError::Validation(EsoValidationError::Body(
