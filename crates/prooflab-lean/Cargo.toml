@@ -9,5 +9,8 @@ description = "Lean verification boundary for ProofLab"
 [dependencies]
 prooflab-core = { path = "../prooflab-core" }
 
+[dev-dependencies]
+prooflab-store = { path = "../prooflab-store" }
+
 [lints]
 workspace = true

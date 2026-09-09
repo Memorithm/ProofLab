@@ -43,7 +43,13 @@ jobs:
         run: |
           lean --version
           lake --version
+      - name: Install pinned Rust toolchain for integration gate
+        run: rustup toolchain install 1.98.1 --profile minimal
       - name: Resolve pinned Lake dependencies
         run: lake update
       - name: Build Lean project
         run: lake build
+      - name: Run Rust-to-Lean trust-boundary integration gate
+        env:
+          PROOFLAB_TEST_REVISION: ${{ github.sha }}
+        run: cargo +1.98.1 test -p prooflab-lean --test lean_e2e -- --ignored --nocapture
