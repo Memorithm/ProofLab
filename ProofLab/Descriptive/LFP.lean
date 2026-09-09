@@ -1,5 +1,5 @@
 import ProofLab.Descriptive.FiniteStructure
-import Mathlib.Data.Finset.Lattice
+import Mathlib.Data.Finset.Basic
 
 namespace ProofLab.Descriptive
 
@@ -50,7 +50,7 @@ namespace Fixtures
 def selectAll (n : Nat) : LfpOperator n where
   step := fun _ => Finset.univ
   monotone := by
-    intro a b hab
+    intro _ _ _
     exact Finset.Subset.rfl
 
 example : (selectAll 3).approximant 0 = ∅ := by
