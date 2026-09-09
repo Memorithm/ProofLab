@@ -264,7 +264,8 @@ mod tests {
             sha256_bytes(b"stdout"),
             sha256_bytes(b"stderr"),
         );
-        ProofArtifact::new_verified(&formal, source.as_bytes(), dependencies, repro, receipt).unwrap()
+        ProofArtifact::new_verified(&formal, source.as_bytes(), dependencies, repro, receipt)
+            .unwrap()
     }
 
     #[test]
@@ -296,8 +297,10 @@ mod tests {
         let path = root
             .join("artifacts")
             .join(format!("{}.json", id_hex(artifact.id)));
-        let mut value: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-        value["body"]["repro"]["environment_digest"] = serde_json::Value::String("modified".into());
+        let mut value: serde_json::Value =
+            serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        value["body"]["repro"]["environment_digest"] =
+            serde_json::Value::String("modified".into());
         fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
 
         assert!(matches!(
