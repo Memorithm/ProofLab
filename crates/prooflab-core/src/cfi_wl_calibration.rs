@@ -3,7 +3,7 @@
 //! Results from this module are finite computational evidence only. They do not
 //! establish a lower bound, non-isomorphism, or any separation of complexity
 //! classes, and they are never promoted to `PROVED` without the formal-kernel
-//! path owned by ProofLab.
+//! path owned by `ProofLab`.
 
 use core::fmt;
 use std::error::Error;
