@@ -76,8 +76,13 @@ impl fmt::Display for VerificationError {
         match self {
             Self::Io(error) => write!(formatter, "Lean verification I/O error: {error}"),
             Self::FormalStatementIntegrity => write!(formatter, "formal statement id mismatch"),
-            Self::SourceDigestMismatch => write!(formatter, "Lean source digest does not match formal statement"),
-            Self::ProofArtifact(error) => write!(formatter, "proof artifact construction failed: {error}"),
+            Self::SourceDigestMismatch => write!(
+                formatter,
+                "Lean source digest does not match formal statement"
+            ),
+            Self::ProofArtifact(error) => {
+                write!(formatter, "proof artifact construction failed: {error}")
+            }
         }
     }
 }
@@ -210,8 +215,8 @@ mod tests {
 
     #[test]
     fn source_mismatch_fails_before_kernel_invocation() {
-        let source = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../ProofLab/Core/Smoke.lean");
+        let source =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ProofLab/Core/Smoke.lean");
         let claim = Claim::new(ClaimBody {
             statement: "1 + 1 = 2".into(),
             assumptions: vec![],
