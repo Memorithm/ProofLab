@@ -33,7 +33,9 @@ pub use bijective_pebble::{
     solve_bijective_pebble_unordered,
 };
 pub use canonical::{Canonical, CanonicalEncoder, sha256_bytes, sha256_canonical};
-pub use cfi::{CfiBaseEdge, CfiBaseGraph, CfiError, CfiTwistAssignment};
+pub use cfi::{
+    CfiBaseEdge, CfiBaseGraph, CfiError, CfiLinkSide, CfiTwistAssignment, CfiVertex, CubicCfiGraph,
+};
 pub use claim::{Claim, ClaimBody, ClaimId, ClaimStatus};
 pub use descriptive::{
     DescriptiveError, FiniteStructure, FiniteStructureId, OrderedFiniteStructure,
