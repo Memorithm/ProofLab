@@ -55,11 +55,7 @@ fn collect_free_variables(
     }
 }
 
-fn collect_atom_variables(
-    atom: &LfpAtom,
-    bound: &[Variable],
-    free: &mut BTreeSet<Variable>,
-) {
+fn collect_atom_variables(atom: &LfpAtom, bound: &[Variable], free: &mut BTreeSet<Variable>) {
     match atom {
         LfpAtom::FirstOrder(atom) => match atom {
             FoAtom::Equal(left, right) | FoAtom::LessThan(left, right) => {
