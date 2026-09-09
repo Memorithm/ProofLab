@@ -115,15 +115,9 @@ mod tests {
         let base = k4();
         let twists = CfiTwistAssignment::new(&base, vec![false; 6]).unwrap();
         let order = natural_order(40);
-        let record = calibrate_cubic_cfi_wl_ordered(
-            &base,
-            &twists,
-            &twists,
-            order.clone(),
-            order,
-            2,
-        )
-        .unwrap();
+        let record =
+            calibrate_cubic_cfi_wl_ordered(&base, &twists, &twists, order.clone(), order, 2)
+                .unwrap();
         assert!(!record.distinguished());
         assert_eq!(record.left_structure(), record.right_structure());
     }
@@ -135,15 +129,9 @@ mod tests {
         let left_order = natural_order(40);
         let mut right_order = left_order.clone();
         right_order.swap(0, 1);
-        let record = calibrate_cubic_cfi_wl_ordered(
-            &base,
-            &twists,
-            &twists,
-            left_order,
-            right_order,
-            2,
-        )
-        .unwrap();
+        let record =
+            calibrate_cubic_cfi_wl_ordered(&base, &twists, &twists, left_order, right_order, 2)
+                .unwrap();
         assert_ne!(record.left_structure(), record.right_structure());
     }
 
