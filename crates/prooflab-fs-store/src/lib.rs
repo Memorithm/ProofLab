@@ -104,8 +104,9 @@ impl FsProofStore {
                     path,
                 });
             }
-            if pending.insert(artifact.id, artifact).is_some() {
-                return Err(StoreError::AddressCollision(artifact.id).into());
+            let artifact_id = artifact.id;
+            if pending.insert(artifact_id, artifact).is_some() {
+                return Err(StoreError::AddressCollision(artifact_id).into());
             }
         }
 
