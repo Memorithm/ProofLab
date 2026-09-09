@@ -37,7 +37,8 @@ impl EsoSentence {
         witnesses: Vec<RelationSymbol>,
         body: FoFormula,
     ) -> Result<Self, EsoValidationError> {
-        let witnesses = Vocabulary::new(witnesses).map_err(EsoValidationError::WitnessVocabulary)?;
+        let witnesses =
+            Vocabulary::new(witnesses).map_err(EsoValidationError::WitnessVocabulary)?;
         let free = body.free_variables();
         if !free.is_empty() {
             return Err(EsoValidationError::FreeFirstOrderVariables(free));
@@ -84,11 +85,7 @@ impl EsoSentence {
     ///
     /// Returns [`EsoValidationError`] for witness/input name collisions,
     /// malformed combined vocabulary, or an invalid first-order body.
-    pub fn validate(
-        &self,
-        input: &Vocabulary,
-        ordered: bool,
-    ) -> Result<(), EsoValidationError> {
+    pub fn validate(&self, input: &Vocabulary, ordered: bool) -> Result<(), EsoValidationError> {
         for witness in self.witnesses.relations() {
             if input.relation(witness.name()).is_some() {
                 return Err(EsoValidationError::WitnessShadowsInput(
@@ -99,8 +96,7 @@ impl EsoSentence {
 
         let mut extended = input.relations().to_vec();
         extended.extend(self.witnesses.relations().iter().cloned());
-        let extended =
-            Vocabulary::new(extended).map_err(EsoValidationError::ExtendedVocabulary)?;
+        let extended = Vocabulary::new(extended).map_err(EsoValidationError::ExtendedVocabulary)?;
         self.body
             .validate(&extended, ordered)
             .map_err(EsoValidationError::Body)
@@ -141,7 +137,10 @@ impl fmt::Display for EsoValidationError {
                 "ESO sentence body contains free first-order variables: {variables:?}"
             ),
             Self::WitnessShadowsInput(name) => {
-                write!(formatter, "ESO witness relation shadows input relation {name}")
+                write!(
+                    formatter,
+                    "ESO witness relation shadows input relation {name}"
+                )
             }
             Self::ExtendedVocabulary(error) => {
                 write!(formatter, "invalid ESO extended vocabulary: {error}")
@@ -191,11 +190,8 @@ mod tests {
 
     #[test]
     fn witness_names_must_be_fresh_relative_to_input() {
-        let sentence = EsoSentence::new(
-            vec![RelationSymbol::new("E", 2).unwrap()],
-            FoFormula::True,
-        )
-        .unwrap();
+        let sentence =
+            EsoSentence::new(vec![RelationSymbol::new("E", 2).unwrap()], FoFormula::True).unwrap();
 
         assert_eq!(
             sentence.validate(&graph_vocabulary(), false),
@@ -238,16 +234,10 @@ mod tests {
 
     #[test]
     fn canonical_encoding_depends_on_witness_signature() {
-        let binary = EsoSentence::new(
-            vec![RelationSymbol::new("H", 2).unwrap()],
-            FoFormula::True,
-        )
-        .unwrap();
-        let unary = EsoSentence::new(
-            vec![RelationSymbol::new("H", 1).unwrap()],
-            FoFormula::True,
-        )
-        .unwrap();
+        let binary =
+            EsoSentence::new(vec![RelationSymbol::new("H", 2).unwrap()], FoFormula::True).unwrap();
+        let unary =
+            EsoSentence::new(vec![RelationSymbol::new("H", 1).unwrap()], FoFormula::True).unwrap();
 
         assert_ne!(binary.canonical_bytes(), unary.canonical_bytes());
     }
