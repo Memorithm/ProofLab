@@ -61,12 +61,52 @@ impl From<CfiBijectivePebbleCalibrationError> for OrderedCfiCrossCalibrationErro
     }
 }
 
-/// Finite cross-oracle evidence for one exact pair of ordered CFI structures.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OrderedCfiCrossCalibration {
+/// Explicit, independently tunable bounds for one finite cross-oracle run.
+///
+/// These parameters are recorded together for reproducibility only. Their
+/// presence in one configuration does not assert a theoretical correspondence
+/// between a WL dimension and a pebble-game resource bound.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OrderedCfiCrossCalibrationConfig {
     wl_dimension: usize,
     pebble_pairs: usize,
     rounds: u32,
+}
+
+impl OrderedCfiCrossCalibrationConfig {
+    /// Construct one finite calibration configuration.
+    #[must_use]
+    pub const fn new(wl_dimension: usize, pebble_pairs: usize, rounds: u32) -> Self {
+        Self {
+            wl_dimension,
+            pebble_pairs,
+            rounds,
+        }
+    }
+
+    /// Dimension supplied to coordinate-wise WL.
+    #[must_use]
+    pub const fn wl_dimension(self) -> usize {
+        self.wl_dimension
+    }
+
+    /// Number of reusable pebble pairs supplied to the bijective game.
+    #[must_use]
+    pub const fn pebble_pairs(self) -> usize {
+        self.pebble_pairs
+    }
+
+    /// Round bound supplied to the bijective game.
+    #[must_use]
+    pub const fn rounds(self) -> u32 {
+        self.rounds
+    }
+}
+
+/// Finite cross-oracle evidence for one exact pair of ordered CFI structures.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OrderedCfiCrossCalibration {
+    config: OrderedCfiCrossCalibrationConfig,
     left_structure: OrderedFiniteStructureId,
     right_structure: OrderedFiniteStructureId,
     wl_distinguished: bool,
@@ -79,22 +119,10 @@ pub struct OrderedCfiCrossCalibration {
 }
 
 impl OrderedCfiCrossCalibration {
-    /// Dimension supplied to coordinate-wise WL.
+    /// Exact finite resource bounds used for both oracle calls.
     #[must_use]
-    pub const fn wl_dimension(&self) -> usize {
-        self.wl_dimension
-    }
-
-    /// Number of reusable pebble pairs supplied to the bijective game.
-    #[must_use]
-    pub const fn pebble_pairs(&self) -> usize {
-        self.pebble_pairs
-    }
-
-    /// Round bound supplied to the bijective game.
-    #[must_use]
-    pub const fn rounds(&self) -> u32 {
-        self.rounds
+    pub const fn config(&self) -> OrderedCfiCrossCalibrationConfig {
+        self.config
     }
 
     /// Content identity of the exact left ordered structure.
@@ -158,9 +186,9 @@ impl OrderedCfiCrossCalibration {
 /// Execute ordered WL and ordered bijective/counting-pebble calibration on the
 /// same exact cubic CFI input pair.
 ///
-/// `wl_dimension`, `pebble_pairs`, and `rounds` are intentionally independent
-/// experimental parameters. Callers must not infer a theoretical equivalence
-/// from equal or unequal outcomes without a separate formal argument.
+/// The fields of `config` are intentionally independent experimental
+/// parameters. Callers must not infer a theoretical equivalence from equal or
+/// unequal outcomes without a separate formal argument.
 ///
 /// # Errors
 ///
@@ -172,9 +200,7 @@ pub fn calibrate_cubic_cfi_ordered_cross_oracle(
     right_twists: &CfiTwistAssignment,
     left_order: Vec<u64>,
     right_order: Vec<u64>,
-    wl_dimension: usize,
-    pebble_pairs: usize,
-    rounds: u32,
+    config: OrderedCfiCrossCalibrationConfig,
 ) -> Result<OrderedCfiCrossCalibration, OrderedCfiCrossCalibrationError> {
     let wl = calibrate_cubic_cfi_wl_ordered(
         base,
@@ -182,7 +208,7 @@ pub fn calibrate_cubic_cfi_ordered_cross_oracle(
         right_twists,
         left_order.clone(),
         right_order.clone(),
-        wl_dimension,
+        config.wl_dimension(),
     )?;
     let pebble = calibrate_cubic_cfi_bijective_pebble_ordered(
         base,
@@ -190,8 +216,8 @@ pub fn calibrate_cubic_cfi_ordered_cross_oracle(
         right_twists,
         left_order,
         right_order,
-        pebble_pairs,
-        rounds,
+        config.pebble_pairs(),
+        config.rounds(),
     )?;
 
     if wl.left_structure() != pebble.left_structure()
@@ -204,9 +230,7 @@ pub fn calibrate_cubic_cfi_ordered_cross_oracle(
     let outcomes_agree = wl_indistinguished == pebble.duplicator_wins();
 
     Ok(OrderedCfiCrossCalibration {
-        wl_dimension,
-        pebble_pairs,
-        rounds,
+        config,
         left_structure: wl.left_structure(),
         right_structure: wl.right_structure(),
         wl_distinguished: wl.distinguished(),
@@ -236,15 +260,14 @@ mod tests {
         let base = k4();
         let twists = CfiTwistAssignment::new(&base, vec![false; 6]).unwrap();
         let order = natural_order(40);
+        let config = OrderedCfiCrossCalibrationConfig::new(2, 1, 1);
         let record = calibrate_cubic_cfi_ordered_cross_oracle(
             &base,
             &twists,
             &twists,
             order.clone(),
             order,
-            2,
-            1,
-            1,
+            config,
         )
         .unwrap();
 
@@ -259,20 +282,19 @@ mod tests {
         let base = k4();
         let twists = CfiTwistAssignment::new(&base, vec![false; 6]).unwrap();
         let order = natural_order(40);
+        let config = OrderedCfiCrossCalibrationConfig::new(3, 1, 0);
         let record = calibrate_cubic_cfi_ordered_cross_oracle(
             &base,
             &twists,
             &twists,
             order.clone(),
             order,
-            3,
-            1,
-            0,
+            config,
         )
         .unwrap();
 
-        assert_eq!(record.wl_dimension(), 3);
-        assert_eq!(record.pebble_pairs(), 1);
-        assert_eq!(record.rounds(), 0);
+        assert_eq!(record.config().wl_dimension(), 3);
+        assert_eq!(record.config().pebble_pairs(), 1);
+        assert_eq!(record.config().rounds(), 0);
     }
 }
