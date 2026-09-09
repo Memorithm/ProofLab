@@ -12,6 +12,7 @@ mod bijective_pebble;
 mod canonical;
 mod cfi;
 mod cfi_relational;
+mod cfi_wl_calibration;
 mod claim;
 mod descriptive;
 mod determinism;
@@ -38,6 +39,7 @@ pub use cfi::{
     CfiBaseEdge, CfiBaseGraph, CfiError, CfiLinkSide, CfiTwistAssignment, CfiVertex, CubicCfiGraph,
 };
 pub use cfi_relational::{CFI_EDGE_RELATION, cubic_cfi_as_relational};
+pub use cfi_wl_calibration::{CfiWlCalibration, CfiWlCalibrationError, calibrate_cubic_cfi_wl};
 pub use claim::{Claim, ClaimBody, ClaimId, ClaimStatus};
 pub use descriptive::{
     DescriptiveError, FiniteStructure, FiniteStructureId, OrderedFiniteStructure,
