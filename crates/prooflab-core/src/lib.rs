@@ -7,6 +7,7 @@
 
 #![forbid(unsafe_code)]
 
+mod bijective_pebble;
 mod canonical;
 mod claim;
 mod descriptive;
@@ -24,6 +25,10 @@ mod pebble;
 mod proof;
 mod repro;
 
+pub use bijective_pebble::{
+    BijectivePebbleGameError, BijectivePebbleGameResult, solve_bijective_pebble_ordered,
+    solve_bijective_pebble_unordered,
+};
 pub use canonical::{Canonical, CanonicalEncoder, sha256_bytes, sha256_canonical};
 pub use claim::{Claim, ClaimBody, ClaimId, ClaimStatus};
 pub use descriptive::{
