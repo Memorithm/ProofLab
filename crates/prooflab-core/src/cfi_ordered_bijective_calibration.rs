@@ -3,7 +3,7 @@
 //! Results from this module are finite computational evidence for exact
 //! caller-supplied ordered expansions only. They do not establish an
 //! order-robust lower bound, non-isomorphism, or any separation of complexity
-//! classes, and they are never promoted to `PROVED` without ProofLab's formal
+//! classes, and they are never promoted to `PROVED` without `ProofLab`'s formal
 //! kernel path.
 
 use crate::{
