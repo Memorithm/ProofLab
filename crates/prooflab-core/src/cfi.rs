@@ -190,8 +190,10 @@ impl CubicCfiGraph {
         for (vertex, neighbours) in incident.iter_mut().enumerate() {
             neighbours.sort_unstable();
             if neighbours.len() != 3 {
+                let vertex = u32::try_from(vertex)
+                    .map_err(|_| CfiError::InternalConstructionInvariant)?;
                 return Err(CfiError::NonCubicVertex {
-                    vertex: vertex as u32,
+                    vertex,
                     degree: neighbours.len(),
                 });
             }
@@ -227,9 +229,11 @@ impl CubicCfiGraph {
         for base_vertex in 0..base.vertex_count {
             let block = base_vertex * 10;
             for (middle_offset, even_mask) in [0_u8, 0b011, 0b101, 0b110].into_iter().enumerate() {
-                let middle = block + 6 + middle_offset as u32;
+                let middle_offset = u32::try_from(middle_offset)
+                    .map_err(|_| CfiError::InternalConstructionInvariant)?;
+                let middle = block + 6 + middle_offset;
                 for slot in 0_u8..3 {
-                    let side_offset = if even_mask & (1 << slot) != 0 { 0 } else { 1 };
+                    let side_offset = u32::from(even_mask & (1 << slot) == 0);
                     let link = block + u32::from(slot) * 2 + side_offset;
                     edges.insert(canonical_pair(middle, link));
                 }
@@ -239,12 +243,14 @@ impl CubicCfiGraph {
         for (edge_index, edge) in base.edges.iter().enumerate() {
             let left_slot = incident[edge.left as usize]
                 .binary_search(&edge.right)
-                .map_err(|_| CfiError::InternalConstructionInvariant)?
-                as u32;
+                .map_err(|_| CfiError::InternalConstructionInvariant)?;
+            let left_slot = u32::try_from(left_slot)
+                .map_err(|_| CfiError::InternalConstructionInvariant)?;
             let right_slot = incident[edge.right as usize]
                 .binary_search(&edge.left)
-                .map_err(|_| CfiError::InternalConstructionInvariant)?
-                as u32;
+                .map_err(|_| CfiError::InternalConstructionInvariant)?;
+            let right_slot = u32::try_from(right_slot)
+                .map_err(|_| CfiError::InternalConstructionInvariant)?;
             let left_a = edge.left * 10 + left_slot * 2;
             let left_b = left_a + 1;
             let right_a = edge.right * 10 + right_slot * 2;
@@ -419,6 +425,7 @@ mod tests {
         let expanded = CubicCfiGraph::new(&base, &twists).unwrap();
         assert_eq!(expanded.vertex_count(), 40);
         assert_eq!(expanded.edge_count(), 60);
+        assert_eq!(expanded.vertices().len(), 40);
 
         let mut degree = vec![0_u8; expanded.vertex_count()];
         for &(left, right) in expanded.edges() {
