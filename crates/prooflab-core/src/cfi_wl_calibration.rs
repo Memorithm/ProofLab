@@ -10,7 +10,7 @@ use std::error::Error;
 
 use crate::{
     CfiBaseGraph, CfiError, CfiTwistAssignment, DescriptiveError, FiniteStructureId,
-    ObliviousWlError, cubic_cfi_as_relational, compare_oblivious_wl_unordered,
+    ObliviousWlError, compare_oblivious_wl_unordered, cubic_cfi_as_relational,
 };
 
 /// Deterministic finite calibration record for one pair of cubic CFI instances.
@@ -30,25 +30,45 @@ pub struct CfiWlCalibration {
 
 impl CfiWlCalibration {
     #[must_use]
-    pub const fn dimension(&self) -> usize { self.dimension }
+    pub const fn dimension(&self) -> usize {
+        self.dimension
+    }
     #[must_use]
-    pub const fn left_structure(&self) -> FiniteStructureId { self.left_structure }
+    pub const fn left_structure(&self) -> FiniteStructureId {
+        self.left_structure
+    }
     #[must_use]
-    pub const fn right_structure(&self) -> FiniteStructureId { self.right_structure }
+    pub const fn right_structure(&self) -> FiniteStructureId {
+        self.right_structure
+    }
     #[must_use]
-    pub const fn left_twist_count(&self) -> usize { self.left_twist_count }
+    pub const fn left_twist_count(&self) -> usize {
+        self.left_twist_count
+    }
     #[must_use]
-    pub const fn right_twist_count(&self) -> usize { self.right_twist_count }
+    pub const fn right_twist_count(&self) -> usize {
+        self.right_twist_count
+    }
     #[must_use]
-    pub const fn left_odd_parity(&self) -> bool { self.left_odd_parity }
+    pub const fn left_odd_parity(&self) -> bool {
+        self.left_odd_parity
+    }
     #[must_use]
-    pub const fn right_odd_parity(&self) -> bool { self.right_odd_parity }
+    pub const fn right_odd_parity(&self) -> bool {
+        self.right_odd_parity
+    }
     #[must_use]
-    pub const fn distinguished(&self) -> bool { self.distinguished }
+    pub const fn distinguished(&self) -> bool {
+        self.distinguished
+    }
     #[must_use]
-    pub const fn refinement_applications(&self) -> usize { self.refinement_applications }
+    pub const fn refinement_applications(&self) -> usize {
+        self.refinement_applications
+    }
     #[must_use]
-    pub const fn stable_color_classes(&self) -> usize { self.stable_color_classes }
+    pub const fn stable_color_classes(&self) -> usize {
+        self.stable_color_classes
+    }
 }
 
 /// Error while constructing or comparing finite CFI calibration instances.
@@ -72,13 +92,19 @@ impl fmt::Display for CfiWlCalibrationError {
 impl Error for CfiWlCalibrationError {}
 
 impl From<CfiError> for CfiWlCalibrationError {
-    fn from(value: CfiError) -> Self { Self::Cfi(value) }
+    fn from(value: CfiError) -> Self {
+        Self::Cfi(value)
+    }
 }
 impl From<DescriptiveError> for CfiWlCalibrationError {
-    fn from(value: DescriptiveError) -> Self { Self::Descriptive(value) }
+    fn from(value: DescriptiveError) -> Self {
+        Self::Descriptive(value)
+    }
 }
 impl From<ObliviousWlError> for CfiWlCalibrationError {
-    fn from(value: ObliviousWlError) -> Self { Self::Wl(value) }
+    fn from(value: ObliviousWlError) -> Self {
+        Self::Wl(value)
+    }
 }
 
 /// Compare two twist assignments on the same cubic base graph with exact
@@ -136,7 +162,8 @@ mod tests {
     fn pair_record_is_deterministic_without_assuming_the_outcome() {
         let base = k4();
         let even = CfiTwistAssignment::new(&base, vec![false; 6]).unwrap();
-        let odd = CfiTwistAssignment::new(&base, vec![true, false, false, false, false, false]).unwrap();
+        let odd =
+            CfiTwistAssignment::new(&base, vec![true, false, false, false, false, false]).unwrap();
         let first = calibrate_cubic_cfi_wl(&base, &even, &odd, 2).unwrap();
         let second = calibrate_cubic_cfi_wl(&base, &even, &odd, 2).unwrap();
         assert_eq!(first, second);
