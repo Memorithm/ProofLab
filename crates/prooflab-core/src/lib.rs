@@ -23,6 +23,7 @@ mod descriptive;
 mod determinism;
 mod ef;
 mod eso;
+mod eso_eval;
 mod fo;
 mod fo_eval;
 mod formal;
@@ -70,6 +71,9 @@ pub use descriptive::{
 pub use determinism::DeterminismLevel;
 pub use ef::{EfGameError, EfGameResult, solve_ef_ordered, solve_ef_unordered};
 pub use eso::{EsoSentence, EsoValidationError};
+pub use eso_eval::{
+    EsoEvaluation, EsoEvaluationError, evaluate_eso_ordered, evaluate_eso_unordered,
+};
 pub use fo::{FoAtom, FoFormula, FoValidationError, Variable};
 pub use fo_eval::{FoAssignment, FoEvaluationError, evaluate_ordered, evaluate_unordered};
 pub use formal::{FormalBackend, FormalStatement, FormalStatementId};
