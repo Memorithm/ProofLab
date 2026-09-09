@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::canonical::{Canonical, CanonicalEncoder, sha256_bytes, sha256_canonical};
 use crate::ClaimId;
+use crate::canonical::{Canonical, CanonicalEncoder, sha256_bytes, sha256_canonical};
 
 const FORMAL_STATEMENT_DOMAIN: &[u8] = b"prooflab-formal-statement:v1\0";
 
@@ -62,11 +62,7 @@ impl FormalStatement {
     /// Return whether the stored content address still matches the fields.
     #[must_use]
     pub fn check_id(&self) -> bool {
-        self.id
-            == FormalStatementId(sha256_canonical(
-                FORMAL_STATEMENT_DOMAIN,
-                &self.identity(),
-            ))
+        self.id == FormalStatementId(sha256_canonical(FORMAL_STATEMENT_DOMAIN, &self.identity()))
     }
 
     /// Return whether `source` is exactly the source committed by this statement.
