@@ -10,10 +10,25 @@ structure RelationalVocabulary where
 /-- An `arity`-tuple over the canonical finite carrier `Fin size`. -/
 abbrev Tuple (size arity : Nat) := Fin arity → Fin size
 
-/-- A finite relational structure with an explicit finite carrier size. -/
+/--
+A finite relational structure with an explicit nonempty finite carrier.
+
+The nonemptiness invariant matches the executable Rust substrate and avoids
+vacuous sentence semantics caused by the absence of any assignment
+`Variable → Fin 0`.
+-/
 structure FiniteStructure (σ : RelationalVocabulary) where
   size : Nat
+  size_pos : 0 < size
   interprets : (r : σ.Relation) → Tuple size (σ.arity r) → Prop
+
+namespace FiniteStructure
+
+/-- Canonical carrier element available for every validated finite structure. -/
+def defaultElement {σ : RelationalVocabulary} (M : FiniteStructure σ) : Fin M.size :=
+  ⟨0, M.size_pos⟩
+
+end FiniteStructure
 
 /--
 A finite relational structure equipped with an arbitrary total ordering.
@@ -77,6 +92,7 @@ abbrev demoVocabulary : RelationalVocabulary where
 /-- A three-element structure with one marked element and a directed path `0 → 1 → 2`. -/
 abbrev demoStructure : FiniteStructure demoVocabulary where
   size := 3
+  size_pos := by decide
   interprets
     | .marked, tuple => tuple 0 = 1
     | .edge, tuple => (tuple 0 = 0 ∧ tuple 1 = 1) ∨ (tuple 0 = 1 ∧ tuple 1 = 2)
@@ -91,6 +107,9 @@ example : demoStructure.interprets .marked (fun _ => 1) := by
 
 example : demoStructure.interprets .edge ![0, 1] := by
   simp [demoStructure]
+
+example : demoStructure.defaultElement = 0 := by
+  rfl
 
 example : demoOrdered.lt 0 2 := by
   simp [OrderedFiniteStructure.lt]
