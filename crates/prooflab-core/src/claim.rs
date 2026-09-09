@@ -85,9 +85,14 @@ mod tests {
 
     #[test]
     fn status_is_not_claim_identity() {
-        let claim = Claim::new(body("n = n"));
-        let statuses = [ClaimStatus::Conjectured, ClaimStatus::Formalized, ClaimStatus::Proved];
-        assert_eq!(claim.id, claim.id);
-        assert_eq!(statuses.len(), 3);
+        let before = Claim::new(body("n = n")).id;
+        let statuses = [
+            ClaimStatus::Conjectured,
+            ClaimStatus::Formalized,
+            ClaimStatus::Proved,
+        ];
+        let after = Claim::new(body("n = n")).id;
+        assert_eq!(before, after);
+        assert!(statuses.contains(&ClaimStatus::Proved));
     }
 }
