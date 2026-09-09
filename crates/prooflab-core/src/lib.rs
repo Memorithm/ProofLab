@@ -11,6 +11,7 @@
 mod bijective_pebble;
 mod canonical;
 mod cfi;
+mod cfi_relational;
 mod claim;
 mod descriptive;
 mod determinism;
@@ -36,6 +37,7 @@ pub use canonical::{Canonical, CanonicalEncoder, sha256_bytes, sha256_canonical}
 pub use cfi::{
     CfiBaseEdge, CfiBaseGraph, CfiError, CfiLinkSide, CfiTwistAssignment, CfiVertex, CubicCfiGraph,
 };
+pub use cfi_relational::{CFI_EDGE_RELATION, cubic_cfi_as_relational};
 pub use claim::{Claim, ClaimBody, ClaimId, ClaimStatus};
 pub use descriptive::{
     DescriptiveError, FiniteStructure, FiniteStructureId, OrderedFiniteStructure,
