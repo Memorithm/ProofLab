@@ -1,4 +1,4 @@
-//! Trusted, backend-independent data types for ProofLab.
+//! Trusted, backend-independent data types for `ProofLab`.
 //!
 //! This crate intentionally contains no theorem prover. It defines immutable
 //! claim identity, mathematical lifecycle state, and reproducibility metadata.
