@@ -77,12 +77,11 @@ fn preserves_relations(
     pebbles: &[(u64, u64)],
 ) -> Result<bool, PartialIsoError> {
     for symbol in vocabulary.relations() {
-        let arity = usize::try_from(symbol.arity()).map_err(|_| {
-            PartialIsoError::ArityNotAddressable {
+        let arity =
+            usize::try_from(symbol.arity()).map_err(|_| PartialIsoError::ArityNotAddressable {
                 relation: symbol.name().to_owned(),
                 arity: symbol.arity(),
-            }
-        })?;
+            })?;
         let left_relation = left
             .relation(symbol.name())
             .ok_or_else(|| PartialIsoError::MissingRelation(symbol.name().to_owned()))?;
