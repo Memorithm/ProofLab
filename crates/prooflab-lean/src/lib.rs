@@ -8,6 +8,7 @@
 
 use std::fmt;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -131,18 +132,26 @@ impl LeanKernel {
         }
     }
 
-    /// Verify a Lean file through the pinned Lake environment.
+    /// Verify a Lean file through the pinned Lake environment that owns it.
+    ///
+    /// The source must live below a directory containing `lakefile.lean` or
+    /// `lakefile.toml`. The kernel command is executed from that directory so
+    /// dependency search paths do not depend on the Rust caller's working directory.
     ///
     /// # Errors
     ///
-    /// Returns an I/O error when the configured `lake` executable cannot be
+    /// Returns an I/O error when the source cannot be canonicalized, no owning
+    /// Lake project can be found, or the configured `lake` executable cannot be
     /// started or its output cannot be collected. A Lean rejection itself is
     /// represented by `KernelResult::accepted == false` and is not an I/O error.
     pub fn verify_file(&self, source: impl AsRef<Path>) -> std::io::Result<KernelResult> {
+        let source = source.as_ref().canonicalize()?;
+        let project_root = lake_project_root(&source)?;
         let output = Command::new(&self.lake_binary)
+            .current_dir(project_root)
             .arg("env")
             .arg("lean")
-            .arg(source.as_ref())
+            .arg(&source)
             .output()?;
 
         Ok(KernelResult {
@@ -202,6 +211,23 @@ impl LeanKernel {
     }
 }
 
+fn lake_project_root(source: &Path) -> io::Result<PathBuf> {
+    let mut directory = source.parent();
+    while let Some(candidate) = directory {
+        if candidate.join("lakefile.lean").is_file() || candidate.join("lakefile.toml").is_file() {
+            return Ok(candidate.to_path_buf());
+        }
+        directory = candidate.parent();
+    }
+    Err(io::Error::new(
+        io::ErrorKind::NotFound,
+        format!(
+            "no Lake project root found above source {}",
+            source.display()
+        ),
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use prooflab_core::{Claim, ClaimBody, FormalStatement, ReproMeta};
@@ -211,6 +237,15 @@ mod tests {
     #[test]
     fn default_boundary_uses_lake() {
         assert_eq!(LeanKernel::default().lake_binary, PathBuf::from("lake"));
+    }
+
+    #[test]
+    fn locates_lake_project_from_source_instead_of_process_cwd() {
+        let source =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ProofLab/Core/Smoke.lean");
+        let source = source.canonicalize().unwrap();
+        let root = lake_project_root(&source).unwrap();
+        assert!(root.join("lakefile.lean").is_file());
     }
 
     #[test]
