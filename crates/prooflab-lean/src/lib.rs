@@ -31,14 +31,18 @@ pub struct LeanKernel {
 
 impl Default for LeanKernel {
     fn default() -> Self {
-        Self { lake_binary: PathBuf::from("lake") }
+        Self {
+            lake_binary: PathBuf::from("lake"),
+        }
     }
 }
 
 impl LeanKernel {
     #[must_use]
     pub fn new(lake_binary: impl Into<PathBuf>) -> Self {
-        Self { lake_binary: lake_binary.into() }
+        Self {
+            lake_binary: lake_binary.into(),
+        }
     }
 
     /// Verify a Lean file through the pinned Lake environment.
