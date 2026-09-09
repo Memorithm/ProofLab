@@ -9,9 +9,7 @@
 //! This module provides a finite semantic control only. It does not formalize
 //! Fagin's theorem and has no direct implication for `P` versus `NP`.
 
-use crate::{
-    EsoSentence, EsoValidationError, FoAtom, FoFormula, RelationSymbol, Variable,
-};
+use crate::{EsoSentence, EsoValidationError, FoAtom, FoFormula, RelationSymbol, Variable};
 
 /// Input edge relation expected by the Hamiltonian-cycle control.
 pub const HAMILTONIAN_EDGE_RELATION: &str = "E";
@@ -85,10 +83,7 @@ pub fn directed_hamiltonian_cycle_eso() -> Result<EsoSentence, EsoValidationErro
             y,
             forall(
                 z,
-                implies(
-                    FoFormula::And(vec![order(x, y), order(y, z)]),
-                    order(x, z),
-                ),
+                implies(FoFormula::And(vec![order(x, y), order(y, z)]), order(x, z)),
             ),
         ),
     );
@@ -101,10 +96,7 @@ pub fn directed_hamiltonian_cycle_eso() -> Result<EsoSentence, EsoValidationErro
         ),
     );
 
-    let has_between = exists(
-        z,
-        FoFormula::And(vec![order(x, z), order(z, y)]),
-    );
+    let has_between = exists(z, FoFormula::And(vec![order(x, z), order(z, y)]));
     let consecutive = FoFormula::And(vec![order(x, y), not(has_between)]);
     let consecutive_edges = forall(x, forall(y, implies(consecutive, edge(x, y))));
 
@@ -137,16 +129,17 @@ pub fn directed_hamiltonian_cycle_eso() -> Result<EsoSentence, EsoValidationErro
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        FiniteStructure, RelationInterpretation, Vocabulary, evaluate_eso_unordered,
-    };
+    use crate::{FiniteStructure, RelationInterpretation, Vocabulary, evaluate_eso_unordered};
 
     fn graph(edges: &[(u64, u64)]) -> FiniteStructure {
         let edge_symbol = RelationSymbol::new(HAMILTONIAN_EDGE_RELATION, 2).unwrap();
         let vocabulary = Vocabulary::new(vec![edge_symbol.clone()]).unwrap();
         let interpretation = RelationInterpretation::new(
             edge_symbol,
-            edges.iter().map(|&(left, right)| vec![left, right]).collect(),
+            edges
+                .iter()
+                .map(|&(left, right)| vec![left, right])
+                .collect(),
         )
         .unwrap();
         FiniteStructure::new(3, vocabulary, vec![interpretation]).unwrap()
@@ -192,8 +185,10 @@ mod tests {
         let cycle = graph(&[(0, 2), (2, 1), (1, 0)]);
         let sentence = directed_hamiltonian_cycle_eso().unwrap();
 
-        assert!(evaluate_eso_unordered(&sentence, &cycle)
-            .unwrap()
-            .satisfied());
+        assert!(
+            evaluate_eso_unordered(&sentence, &cycle)
+                .unwrap()
+                .satisfied()
+        );
     }
 }
