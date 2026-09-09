@@ -258,8 +258,7 @@ pub fn search_cubic_cfi_order_sensitivity(
 
     let baseline_wl_distinguished = wl.distinguished();
     let baseline_bijective_duplicator_wins = bijective.duplicator_wins();
-    let baseline_outcomes_agree =
-        baseline_wl_distinguished != baseline_bijective_duplicator_wins;
+    let baseline_outcomes_agree = baseline_wl_distinguished != baseline_bijective_duplicator_wins;
 
     let mut tested_pairs = 0usize;
     let mut first_wl_change = None;
