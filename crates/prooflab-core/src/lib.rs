@@ -2,8 +2,8 @@
 //!
 //! This crate intentionally contains no theorem prover. It defines immutable
 //! claim identity, formal statements, proof artifacts, mathematical lifecycle
-//! state, and reproducibility metadata. Proof status is never inferred from
-//! reproducibility.
+//! state, reproducibility metadata, and finite descriptive-complexity syntax.
+//! Proof status is never inferred from reproducibility.
 
 #![forbid(unsafe_code)]
 
