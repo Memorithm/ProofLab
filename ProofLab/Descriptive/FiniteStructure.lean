@@ -93,10 +93,10 @@ example : demoStructure.interprets .edge ![0, 1] := by
   simp [demoStructure]
 
 example : demoOrdered.lt 0 2 := by
-  decide
+  simp [OrderedFiniteStructure.lt]
 
 example : ¬ demoOrdered.lt 2 0 := by
-  decide
+  simp [OrderedFiniteStructure.lt]
 
 end Fixtures
 
