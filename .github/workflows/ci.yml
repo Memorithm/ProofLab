@@ -49,6 +49,8 @@ jobs:
         run: lake update
       - name: Build Lean project
         run: lake build
+      - name: Replay ProofLab through a fresh Lean kernel environment
+        run: lake env leanchecker --fresh ProofLab
       - name: Run Rust-to-Lean trust-boundary integration gate
         env:
           PROOFLAB_TEST_REVISION: ${{ github.sha }}
