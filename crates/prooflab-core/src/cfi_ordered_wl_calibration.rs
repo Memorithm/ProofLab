@@ -6,9 +6,8 @@
 //! exact ordered-structure identities that were compared.
 
 use crate::{
-    CfiBaseGraph, CfiTwistAssignment, CfiWlCalibrationError, DescriptiveError,
-    OrderedFiniteStructure, OrderedFiniteStructureId, compare_oblivious_wl_ordered,
-    cubic_cfi_as_relational,
+    CfiBaseGraph, CfiTwistAssignment, CfiWlCalibrationError, OrderedFiniteStructure,
+    OrderedFiniteStructureId, compare_oblivious_wl_ordered, cubic_cfi_as_relational,
 };
 
 /// Finite computational evidence for one exact pair of ordered CFI structures.
@@ -101,6 +100,7 @@ pub fn calibrate_cubic_cfi_wl_ordered(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::DescriptiveError;
 
     fn k4() -> CfiBaseGraph {
         CfiBaseGraph::new(4, &[(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]).unwrap()
