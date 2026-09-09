@@ -13,6 +13,7 @@ mod canonical;
 mod cfi;
 mod cfi_bijective_calibration;
 mod cfi_ordered_bijective_calibration;
+mod cfi_ordered_cross_calibration;
 mod cfi_ordered_wl_calibration;
 mod cfi_relational;
 mod cfi_wl_calibration;
@@ -47,6 +48,10 @@ pub use cfi_bijective_calibration::{
 };
 pub use cfi_ordered_bijective_calibration::{
     OrderedCfiBijectivePebbleCalibration, calibrate_cubic_cfi_bijective_pebble_ordered,
+};
+pub use cfi_ordered_cross_calibration::{
+    OrderedCfiCrossCalibration, OrderedCfiCrossCalibrationConfig, OrderedCfiCrossCalibrationError,
+    calibrate_cubic_cfi_ordered_cross_oracle,
 };
 pub use cfi_ordered_wl_calibration::{OrderedCfiWlCalibration, calibrate_cubic_cfi_wl_ordered};
 pub use cfi_relational::{CFI_EDGE_RELATION, cubic_cfi_as_relational};
