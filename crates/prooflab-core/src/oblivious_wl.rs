@@ -143,18 +143,10 @@ fn compare(
     let mut refinement_applications = 0usize;
     loop {
         let old_class_count = joint_color_class_count(&left_colors, &right_colors);
-        let left_refined = refinement_signatures(
-            &left_tuples,
-            &left_colors,
-            left.domain_size(),
-            dimension,
-        )?;
-        let right_refined = refinement_signatures(
-            &right_tuples,
-            &right_colors,
-            right.domain_size(),
-            dimension,
-        )?;
+        let left_refined =
+            refinement_signatures(&left_tuples, &left_colors, left.domain_size(), dimension)?;
+        let right_refined =
+            refinement_signatures(&right_tuples, &right_colors, right.domain_size(), dimension)?;
         let (next_left, next_right) = assign_joint_colors(&left_refined, &right_refined)?;
         refinement_applications = refinement_applications
             .checked_add(1)
@@ -206,12 +198,12 @@ fn enumerate_tuples(
     tuple_count: usize,
 ) -> Result<Vec<Vec<u64>>, ObliviousWlError> {
     let mut tuples = Vec::new();
-    tuples
-        .try_reserve_exact(tuple_count)
-        .map_err(|_| ObliviousWlError::TupleSpaceNotAddressable {
+    tuples.try_reserve_exact(tuple_count).map_err(|_| {
+        ObliviousWlError::TupleSpaceNotAddressable {
             domain_size,
             dimension,
-        })?;
+        }
+    })?;
 
     let mut tuple = Vec::new();
     tuple
@@ -274,9 +266,9 @@ fn atomic_signatures(
             })?;
             for_each_coordinate_tuple(dimension, arity, |indices| {
                 let mut relation_tuple = Vec::new();
-                relation_tuple.try_reserve_exact(arity).map_err(|_| {
-                    ObliviousWlError::RelationTupleBufferNotAddressable { arity }
-                })?;
+                relation_tuple
+                    .try_reserve_exact(arity)
+                    .map_err(|_| ObliviousWlError::RelationTupleBufferNotAddressable { arity })?;
                 relation_tuple.extend(indices.iter().map(|&index| tuple[index]));
                 bits.push(relation.contains(&relation_tuple));
                 Ok(())
@@ -362,20 +354,17 @@ fn refinement_signatures(
             let mut multiset = Vec::new();
             multiset
                 .try_reserve_exact(domain)
-                .map_err(|_| ObliviousWlError::NeighborhoodBufferNotAddressable {
-                    domain_size,
-                })?;
+                .map_err(|_| ObliviousWlError::NeighborhoodBufferNotAddressable { domain_size })?;
             for replacement in 0..domain_size {
                 let mut neighbor = tuple.clone();
                 neighbor[coordinate] = replacement;
                 let neighbor_index = tuple_linear_index(&neighbor, domain_size)?;
-                let color = colors
-                    .get(neighbor_index)
-                    .copied()
-                    .ok_or(ObliviousWlError::TupleIndexInvariant {
+                let color = colors.get(neighbor_index).copied().ok_or(
+                    ObliviousWlError::TupleIndexInvariant {
                         index: neighbor_index,
                         tuple_count: colors.len(),
-                    })?;
+                    },
+                )?;
                 multiset.push(color);
             }
             multiset.sort_unstable();
@@ -522,7 +511,9 @@ impl fmt::Display for ObliviousWlError {
             Self::VocabularyMismatch => {
                 formatter.write_str("k-WL structures use different vocabularies")
             }
-            Self::OrderModeMismatch => formatter.write_str("k-WL mixed ordered and unordered modes"),
+            Self::OrderModeMismatch => {
+                formatter.write_str("k-WL mixed ordered and unordered modes")
+            }
             Self::DomainNotAddressable { domain_size } => write!(
                 formatter,
                 "k-WL domain size {domain_size} cannot be indexed on this platform"
@@ -547,7 +538,10 @@ impl fmt::Display for ObliviousWlError {
                 "relation {relation} has k-WL-unaddressable arity {arity}"
             ),
             Self::MissingRelation(name) => {
-                write!(formatter, "validated relation {name} is missing from k-WL structure")
+                write!(
+                    formatter,
+                    "validated relation {name} is missing from k-WL structure"
+                )
             }
             Self::CoordinateTupleBufferNotAddressable { arity } => write!(
                 formatter,
@@ -572,10 +566,9 @@ impl fmt::Display for ObliviousWlError {
             Self::ColorAssignmentInvariant => {
                 formatter.write_str("k-WL signature vanished during color assignment")
             }
-            Self::ColorCardinalityInvariant { tuples, colors } => write!(
-                formatter,
-                "k-WL has {tuples} tuples but {colors} colors"
-            ),
+            Self::ColorCardinalityInvariant { tuples, colors } => {
+                write!(formatter, "k-WL has {tuples} tuples but {colors} colors")
+            }
             Self::NeighborhoodBufferNotAddressable { domain_size } => write!(
                 formatter,
                 "k-WL replacement multiset for domain size {domain_size} cannot be represented"
@@ -647,7 +640,11 @@ mod tests {
         let two = empty_structure(2);
         let three = empty_structure(3);
 
-        assert!(compare_oblivious_wl_unordered(&two, &three, 2).unwrap().distinguished());
+        assert!(
+            compare_oblivious_wl_unordered(&two, &three, 2)
+                .unwrap()
+                .distinguished()
+        );
     }
 
     #[test]
@@ -667,7 +664,11 @@ mod tests {
         let left = OrderedFiniteStructure::new(empty_structure(3), vec![0, 1, 2]).unwrap();
         let right = OrderedFiniteStructure::new(empty_structure(3), vec![2, 0, 1]).unwrap();
 
-        assert!(!compare_oblivious_wl_ordered(&left, &right, 2).unwrap().distinguished());
+        assert!(
+            !compare_oblivious_wl_ordered(&left, &right, 2)
+                .unwrap()
+                .distinguished()
+        );
     }
 
     #[test]
