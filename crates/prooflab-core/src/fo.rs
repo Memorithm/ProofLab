@@ -71,15 +71,9 @@ pub enum FoFormula {
     /// Disjunction. The empty disjunction denotes falsehood.
     Or(Vec<Self>),
     /// Existential first-order quantification.
-    Exists {
-        variable: Variable,
-        body: Box<Self>,
-    },
+    Exists { variable: Variable, body: Box<Self> },
     /// Universal first-order quantification.
-    ForAll {
-        variable: Variable,
-        body: Box<Self>,
-    },
+    ForAll { variable: Variable, body: Box<Self> },
 }
 
 impl FoFormula {
@@ -89,11 +83,9 @@ impl FoFormula {
         match self {
             Self::True | Self::False | Self::Atom(_) => 0,
             Self::Not(body) => body.quantifier_rank(),
-            Self::And(parts) | Self::Or(parts) => parts
-                .iter()
-                .map(Self::quantifier_rank)
-                .max()
-                .unwrap_or(0),
+            Self::And(parts) | Self::Or(parts) => {
+                parts.iter().map(Self::quantifier_rank).max().unwrap_or(0)
+            }
             Self::Exists { body, .. } | Self::ForAll { body, .. } => {
                 body.quantifier_rank().saturating_add(1)
             }
@@ -175,11 +167,7 @@ impl FoFormula {
         }
     }
 
-    fn collect_free_variables(
-        &self,
-        bound: &mut Vec<Variable>,
-        free: &mut BTreeSet<Variable>,
-    ) {
+    fn collect_free_variables(&self, bound: &mut Vec<Variable>, free: &mut BTreeSet<Variable>) {
         match self {
             Self::True | Self::False => {}
             Self::Atom(atom) => atom.collect_free_variables(bound, free),
@@ -315,9 +303,8 @@ impl fmt::Display for FoValidationError {
                 formatter,
                 "relation {relation} expects arity {expected}, atom has {actual} arguments"
             ),
-            Self::OrderNotAvailable => formatter.write_str(
-                "distinguished order atom is not available for an unordered structure",
-            ),
+            Self::OrderNotAvailable => formatter
+                .write_str("distinguished order atom is not available for an unordered structure"),
         }
     }
 }
