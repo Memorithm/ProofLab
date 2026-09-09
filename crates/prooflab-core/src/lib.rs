@@ -11,6 +11,7 @@ mod canonical;
 mod claim;
 mod descriptive;
 mod determinism;
+mod fo;
 mod formal;
 mod proof;
 mod repro;
@@ -22,6 +23,7 @@ pub use descriptive::{
     OrderedFiniteStructureId, RelationInterpretation, RelationSymbol, Vocabulary,
 };
 pub use determinism::DeterminismLevel;
+pub use fo::{FoAtom, FoFormula, FoValidationError, Variable};
 pub use formal::{FormalBackend, FormalStatement, FormalStatementId};
 pub use proof::{
     KernelReceipt, ProofArtifact, ProofArtifactBody, ProofArtifactError, ProofArtifactId,
