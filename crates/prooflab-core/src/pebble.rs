@@ -173,12 +173,8 @@ impl Solver<'_> {
             for left_element in 0..self.left.domain_size() {
                 let mut has_reply = false;
                 for right_element in 0..self.right.domain_size() {
-                    let child = replace_slot(
-                        state,
-                        slot,
-                        (left_element, right_element),
-                        next_remaining,
-                    );
+                    let child =
+                        replace_slot(state, slot, (left_element, right_element), next_remaining);
                     if self.wins(&child)? {
                         has_reply = true;
                         break;
@@ -193,12 +189,8 @@ impl Solver<'_> {
             for right_element in 0..self.right.domain_size() {
                 let mut has_reply = false;
                 for left_element in 0..self.left.domain_size() {
-                    let child = replace_slot(
-                        state,
-                        slot,
-                        (left_element, right_element),
-                        next_remaining,
-                    );
+                    let child =
+                        replace_slot(state, slot, (left_element, right_element), next_remaining);
                     if self.wins(&child)? {
                         has_reply = true;
                         break;
@@ -216,12 +208,7 @@ impl Solver<'_> {
     }
 }
 
-fn replace_slot(
-    state: &PebbleState,
-    slot: usize,
-    pair: (u64, u64),
-    remaining: u32,
-) -> PebbleState {
+fn replace_slot(state: &PebbleState, slot: usize, pair: (u64, u64), remaining: u32) -> PebbleState {
     let mut slots = state.slots.clone();
     slots[slot] = Some(pair);
     PebbleState { remaining, slots }
@@ -229,11 +216,11 @@ fn replace_slot(
 
 fn active_pairs(slots: &[Option<(u64, u64)>]) -> Result<Vec<(u64, u64)>, PebbleGameError> {
     let mut active = Vec::new();
-    active
-        .try_reserve_exact(slots.len())
-        .map_err(|_| PebbleGameError::ActivePebblesNotAddressable {
+    active.try_reserve_exact(slots.len()).map_err(|_| {
+        PebbleGameError::ActivePebblesNotAddressable {
             pebble_pairs: slots.len(),
-        })?;
+        }
+    })?;
     active.extend(slots.iter().flatten().copied());
     Ok(active)
 }
