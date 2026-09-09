@@ -46,6 +46,12 @@ impl LeanKernel {
     }
 
     /// Verify a Lean file through the pinned Lake environment.
+    ///
+    /// # Errors
+    ///
+    /// Returns an I/O error when the configured `lake` executable cannot be
+    /// started or its output cannot be collected. A Lean rejection itself is
+    /// represented by `KernelResult::accepted == false` and is not an I/O error.
     pub fn verify_file(&self, source: impl AsRef<Path>) -> std::io::Result<KernelResult> {
         let output = Command::new(&self.lake_binary)
             .arg("env")
