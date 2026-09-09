@@ -20,8 +20,8 @@ inductive FOFormula (σ : RelationalVocabulary) where
   | neg (body : FOFormula σ)
   | and (left right : FOFormula σ)
   | or (left right : FOFormula σ)
-  | exists (variable : Variable) (body : FOFormula σ)
-  | forall (variable : Variable) (body : FOFormula σ)
+  | exists (x : Variable) (body : FOFormula σ)
+  | forall (x : Variable) (body : FOFormula σ)
 
 namespace FOFormula
 
@@ -33,13 +33,13 @@ def quantifierRank {σ : RelationalVocabulary} : FOFormula σ → Nat
   | .exists _ body | .forall _ body => quantifierRank body + 1
 
 /-- All syntactic variable identifiers occurring in a formula. -/
-def variables {σ : RelationalVocabulary} : FOFormula σ → Finset Variable
+def usedVars {σ : RelationalVocabulary} : FOFormula σ → Finset Variable
   | .top | .bottom => ∅
   | .equal left right | .lessThan left right => {left, right}
   | .relation _ args => Finset.univ.image args
-  | .neg body => variables body
-  | .and left right | .or left right => variables left ∪ variables right
-  | .exists variable body | .forall variable body => insert variable (variables body)
+  | .neg body => usedVars body
+  | .and left right | .or left right => usedVars left ∪ usedVars right
+  | .exists x body | .forall x body => insert x (usedVars body)
 
 /-- Free syntactic variable identifiers occurring in a formula. -/
 def freeVariables {σ : RelationalVocabulary} : FOFormula σ → Finset Variable
@@ -48,11 +48,11 @@ def freeVariables {σ : RelationalVocabulary} : FOFormula σ → Finset Variable
   | .relation _ args => Finset.univ.image args
   | .neg body => freeVariables body
   | .and left right | .or left right => freeVariables left ∪ freeVariables right
-  | .exists variable body | .forall variable body => (freeVariables body).erase variable
+  | .exists x body | .forall x body => (freeVariables body).erase x
 
 /-- Number of distinct syntactic variable identifiers used by the formula. -/
 def variableCount {σ : RelationalVocabulary} (formula : FOFormula σ) : Nat :=
-  formula.variables.card
+  (usedVars formula).card
 
 /--
 Tarskian semantics on a finite ordered structure. Quantifiers range over the
@@ -69,10 +69,10 @@ def Holds {σ : RelationalVocabulary} (M : OrderedFiniteStructure σ)
   | .neg body => ¬ Holds M assignment body
   | .and left right => Holds M assignment left ∧ Holds M assignment right
   | .or left right => Holds M assignment left ∨ Holds M assignment right
-  | .exists variable body =>
-      ∃ value : Fin M.base.size, Holds M (Function.update assignment variable value) body
-  | .forall variable body =>
-      ∀ value : Fin M.base.size, Holds M (Function.update assignment variable value) body
+  | .exists x body =>
+      ∃ value : Fin M.base.size, Holds M (Function.update assignment x value) body
+  | .forall x body =>
+      ∀ value : Fin M.base.size, Holds M (Function.update assignment x value) body
 
 /-- Quantification increases syntactic quantifier rank by exactly one. -/
 theorem quantifierRank_exists {σ : RelationalVocabulary} (x : Variable) (body : FOFormula σ) :
@@ -113,7 +113,7 @@ example : markedZero.freeVariables = {0} := by
   simp [markedZero, FOFormula.freeVariables]
 
 example : zeroBeforeOne.variableCount = 2 := by
-  simp [zeroBeforeOne, FOFormula.variableCount, FOFormula.variables]
+  simp [zeroBeforeOne, FOFormula.variableCount, FOFormula.usedVars]
 
 end Fixtures
 
