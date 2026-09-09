@@ -34,7 +34,10 @@ impl fmt::Display for OrderedCfiCrossCalibrationError {
         match self {
             Self::Wl(error) => write!(formatter, "ordered CFI WL calibration failed: {error}"),
             Self::Bijective(error) => {
-                write!(formatter, "ordered CFI bijective-pebble calibration failed: {error}")
+                write!(
+                    formatter,
+                    "ordered CFI bijective-pebble calibration failed: {error}"
+                )
             }
             Self::StructureIdentityMismatch => write!(
                 formatter,
