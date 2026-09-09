@@ -45,7 +45,10 @@ impl fmt::Display for OrderFamilyError {
                 write!(formatter, "order contains duplicate element {element}")
             }
             Self::FamilyNotAddressable { members } => {
-                write!(formatter, "order family with {members} members cannot be represented")
+                write!(
+                    formatter,
+                    "order family with {members} members cannot be represented"
+                )
             }
         }
     }
