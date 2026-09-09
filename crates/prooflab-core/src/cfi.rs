@@ -137,16 +137,27 @@ impl CfiTwistAssignment {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CfiError {
     SelfLoop(u32),
-    EndpointOutOfRange { endpoint: u32, vertex_count: u32 },
+    EndpointOutOfRange {
+        endpoint: u32,
+        vertex_count: u32,
+    },
     DuplicateEdge(CfiBaseEdge),
-    TwistCardinalityMismatch { edges: usize, twists: usize },
+    TwistCardinalityMismatch {
+        edges: usize,
+        twists: usize,
+    },
 }
 
 impl fmt::Display for CfiError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::SelfLoop(vertex) => write!(formatter, "CFI base graph contains self-loop at {vertex}"),
-            Self::EndpointOutOfRange { endpoint, vertex_count } => write!(
+            Self::SelfLoop(vertex) => {
+                write!(formatter, "CFI base graph contains self-loop at {vertex}")
+            }
+            Self::EndpointOutOfRange {
+                endpoint,
+                vertex_count,
+            } => write!(
                 formatter,
                 "CFI base endpoint {endpoint} is outside carrier size {vertex_count}"
             ),
@@ -186,7 +197,10 @@ mod tests {
 
     #[test]
     fn invalid_base_graphs_fail_closed() {
-        assert_eq!(CfiBaseGraph::new(2, &[(0, 0)]), Err(CfiError::SelfLoop(0)));
+        assert_eq!(
+            CfiBaseGraph::new(2, &[(0, 0)]),
+            Err(CfiError::SelfLoop(0))
+        );
         assert_eq!(
             CfiBaseGraph::new(2, &[(0, 2)]),
             Err(CfiError::EndpointOutOfRange {
