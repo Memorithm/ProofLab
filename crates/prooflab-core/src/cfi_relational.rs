@@ -47,11 +47,7 @@ mod tests {
     use super::*;
 
     fn k4(twists: Vec<bool>) -> CubicCfiGraph {
-        let base = CfiBaseGraph::new(
-            4,
-            &[(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)],
-        )
-        .unwrap();
+        let base = CfiBaseGraph::new(4, &[(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]).unwrap();
         let twists = CfiTwistAssignment::new(&base, twists).unwrap();
         CubicCfiGraph::new(&base, &twists).unwrap()
     }
@@ -76,8 +72,8 @@ mod tests {
     #[test]
     fn twist_changes_content_address_without_changing_signature() {
         let untwisted = cubic_cfi_as_relational(&k4(vec![false; 6])).unwrap();
-        let twisted = cubic_cfi_as_relational(&k4(vec![true, false, false, false, false, false]))
-            .unwrap();
+        let twisted =
+            cubic_cfi_as_relational(&k4(vec![true, false, false, false, false, false])).unwrap();
 
         assert_eq!(untwisted.domain_size(), twisted.domain_size());
         assert_eq!(untwisted.vocabulary(), twisted.vocabulary());
