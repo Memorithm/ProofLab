@@ -137,15 +137,9 @@ impl CfiTwistAssignment {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CfiError {
     SelfLoop(u32),
-    EndpointOutOfRange {
-        endpoint: u32,
-        vertex_count: u32,
-    },
+    EndpointOutOfRange { endpoint: u32, vertex_count: u32 },
     DuplicateEdge(CfiBaseEdge),
-    TwistCardinalityMismatch {
-        edges: usize,
-        twists: usize,
-    },
+    TwistCardinalityMismatch { edges: usize, twists: usize },
 }
 
 impl fmt::Display for CfiError {
@@ -197,10 +191,7 @@ mod tests {
 
     #[test]
     fn invalid_base_graphs_fail_closed() {
-        assert_eq!(
-            CfiBaseGraph::new(2, &[(0, 0)]),
-            Err(CfiError::SelfLoop(0))
-        );
+        assert_eq!(CfiBaseGraph::new(2, &[(0, 0)]), Err(CfiError::SelfLoop(0)));
         assert_eq!(
             CfiBaseGraph::new(2, &[(0, 2)]),
             Err(CfiError::EndpointOutOfRange {
