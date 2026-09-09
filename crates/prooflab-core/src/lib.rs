@@ -2,11 +2,13 @@
 //!
 //! This crate intentionally contains no theorem prover. It defines immutable
 //! claim identity, formal statements, proof artifacts, mathematical lifecycle
-//! state, reproducibility metadata, and finite descriptive-complexity syntax
-//! and evaluation. Proof status is never inferred from reproducibility.
+//! state, reproducibility metadata, finite descriptive-complexity syntax and
+//! evaluation, and exact finite model-comparison game oracles. Proof status is
+//! never inferred from reproducibility.
 
 #![forbid(unsafe_code)]
 
+mod bijective_pebble;
 mod canonical;
 mod claim;
 mod descriptive;
@@ -24,6 +26,10 @@ mod pebble;
 mod proof;
 mod repro;
 
+pub use bijective_pebble::{
+    BijectivePebbleGameError, BijectivePebbleGameResult, solve_bijective_pebble_ordered,
+    solve_bijective_pebble_unordered,
+};
 pub use canonical::{Canonical, CanonicalEncoder, sha256_bytes, sha256_canonical};
 pub use claim::{Claim, ClaimBody, ClaimId, ClaimStatus};
 pub use descriptive::{
