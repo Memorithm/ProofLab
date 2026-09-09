@@ -202,7 +202,10 @@ mod tests {
 
     #[test]
     fn canonical_encoding_is_deterministic_and_type_tagged() {
-        assert_eq!("proof".canonical_bytes(), String::from("proof").canonical_bytes());
+        assert_eq!(
+            "proof".canonical_bytes(),
+            String::from("proof").canonical_bytes()
+        );
         assert_ne!(1u64.canonical_bytes(), String::from("1").canonical_bytes());
         assert_ne!(
             vec![String::from("a"), String::from("b")].canonical_bytes(),
