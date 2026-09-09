@@ -15,6 +15,7 @@ mod eso;
 mod fo;
 mod fo_eval;
 mod formal;
+mod lfp;
 mod proof;
 mod repro;
 
@@ -29,6 +30,7 @@ pub use eso::{EsoSentence, EsoValidationError};
 pub use fo::{FoAtom, FoFormula, FoValidationError, Variable};
 pub use fo_eval::{FoAssignment, FoEvaluationError, evaluate_ordered, evaluate_unordered};
 pub use formal::{FormalBackend, FormalStatement, FormalStatementId};
+pub use lfp::{LfpAtom, LfpBody, LfpDefinition, LfpValidationError};
 pub use proof::{
     KernelReceipt, ProofArtifact, ProofArtifactBody, ProofArtifactError, ProofArtifactId,
 };
