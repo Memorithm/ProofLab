@@ -186,7 +186,9 @@ impl fmt::Display for CfiOrderSensitivityError {
             Self::CandidatePairCountOverflow => {
                 formatter.write_str("CFI order-family Cartesian product overflows usize")
             }
-            Self::WlBaseline(error) => write!(formatter, "unordered CFI WL baseline failed: {error}"),
+            Self::WlBaseline(error) => {
+                write!(formatter, "unordered CFI WL baseline failed: {error}")
+            }
             Self::BijectiveBaseline(error) => write!(
                 formatter,
                 "unordered CFI bijective-pebble baseline failed: {error}"
@@ -257,7 +259,7 @@ pub fn search_cubic_cfi_order_sensitivity(
     let baseline_wl_distinguished = wl.distinguished();
     let baseline_bijective_duplicator_wins = bijective.duplicator_wins();
     let baseline_outcomes_agree =
-        !baseline_wl_distinguished == baseline_bijective_duplicator_wins;
+        baseline_wl_distinguished != baseline_bijective_duplicator_wins;
 
     let mut tested_pairs = 0usize;
     let mut first_wl_change = None;
@@ -399,7 +401,10 @@ mod tests {
         assert_eq!(first.left_order_count(), 2);
         assert_eq!(first.right_order_count(), 1);
         assert_eq!(first.tested_pairs(), 2);
-        assert_ne!(first.baseline_left_structure(), first.baseline_right_structure());
+        assert_ne!(
+            first.baseline_left_structure(),
+            first.baseline_right_structure()
+        );
     }
 
     #[test]
@@ -428,8 +433,14 @@ mod tests {
         .into_iter()
         .flatten()
         {
-            assert_eq!(witness.left_order(), left_orders[witness.left_order_index()]);
-            assert_eq!(witness.right_order(), right_orders[witness.right_order_index()]);
+            assert_eq!(
+                witness.left_order(),
+                left_orders[witness.left_order_index()]
+            );
+            assert_eq!(
+                witness.right_order(),
+                right_orders[witness.right_order_index()]
+            );
             let replay = calibrate_cubic_cfi_ordered_cross_oracle(
                 &base,
                 &twists,
