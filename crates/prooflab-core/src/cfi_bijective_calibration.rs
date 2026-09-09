@@ -110,7 +110,10 @@ impl fmt::Display for CfiBijectivePebbleCalibrationError {
         match self {
             Self::Cfi(error) => write!(formatter, "CFI construction failed: {error}"),
             Self::Descriptive(error) => write!(formatter, "CFI relational bridge failed: {error}"),
-            Self::Game(error) => write!(formatter, "CFI bijective-pebble calibration failed: {error}"),
+            Self::Game(error) => write!(
+                formatter,
+                "CFI bijective-pebble calibration failed: {error}"
+            ),
         }
     }
 }
