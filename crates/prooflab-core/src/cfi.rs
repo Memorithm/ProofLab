@@ -180,8 +180,8 @@ impl CubicCfiGraph {
             });
         }
 
-        let vertex_count = usize::try_from(base.vertex_count)
-            .map_err(|_| CfiError::ExpandedGraphTooLarge)?;
+        let vertex_count =
+            usize::try_from(base.vertex_count).map_err(|_| CfiError::ExpandedGraphTooLarge)?;
         let mut incident = vec![Vec::<u32>::new(); vertex_count];
         for edge in &base.edges {
             incident[edge.left as usize].push(edge.right);
@@ -226,10 +226,7 @@ impl CubicCfiGraph {
         let mut edges = BTreeSet::new();
         for base_vertex in 0..base.vertex_count {
             let block = base_vertex * 10;
-            for (middle_offset, even_mask) in [0_u8, 0b011, 0b101, 0b110]
-                .into_iter()
-                .enumerate()
-            {
+            for (middle_offset, even_mask) in [0_u8, 0b011, 0b101, 0b110].into_iter().enumerate() {
                 let middle = block + 6 + middle_offset as u32;
                 for slot in 0_u8..3 {
                     let side_offset = if even_mask & (1 << slot) != 0 { 0 } else { 1 };
@@ -335,10 +332,16 @@ impl fmt::Display for CfiError {
                 "CFI cubic calibration requires degree 3, vertex {vertex} has degree {degree}"
             ),
             Self::ExpandedGraphTooLarge => {
-                write!(formatter, "CFI expanded graph exceeds bootstrap size limits")
+                write!(
+                    formatter,
+                    "CFI expanded graph exceeds bootstrap size limits"
+                )
             }
             Self::InternalConstructionInvariant => {
-                write!(formatter, "CFI construction violated an internal incidence invariant")
+                write!(
+                    formatter,
+                    "CFI construction violated an internal incidence invariant"
+                )
             }
         }
     }
@@ -351,11 +354,7 @@ mod tests {
     use super::*;
 
     fn k4_base() -> CfiBaseGraph {
-        CfiBaseGraph::new(
-            4,
-            &[(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)],
-        )
-        .unwrap()
+        CfiBaseGraph::new(4, &[(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]).unwrap()
     }
 
     #[test]
