@@ -27,6 +27,7 @@ mod eso_eval;
 mod fo;
 mod fo_eval;
 mod formal;
+mod hamiltonian_eso;
 mod lfp;
 mod lfp_eval;
 mod lfp_scope;
@@ -77,6 +78,9 @@ pub use eso_eval::{
 pub use fo::{FoAtom, FoFormula, FoValidationError, Variable};
 pub use fo_eval::{FoAssignment, FoEvaluationError, evaluate_ordered, evaluate_unordered};
 pub use formal::{FormalBackend, FormalStatement, FormalStatementId};
+pub use hamiltonian_eso::{
+    HAMILTONIAN_EDGE_RELATION, HAMILTONIAN_ORDER_WITNESS, directed_hamiltonian_cycle_eso,
+};
 pub use lfp::{LfpAtom, LfpBody, LfpDefinition, LfpValidationError};
 pub use lfp_eval::{
     LeastFixedPoint, LfpEvaluationError, evaluate_lfp_ordered, evaluate_lfp_unordered,
