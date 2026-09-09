@@ -43,7 +43,7 @@ theorem order_trans {σ : RelationalVocabulary} (M : OrderedFiniteStructure σ)
     {x y z : Fin M.base.size} (hxy : M.lt x y) (hyz : M.lt y z) : M.lt x z := by
   exact lt_trans hxy hyz
 
-/-- Any two distinct carrier elements are comparable in the induced order. -/
+/-- Any two carrier elements satisfy strict-order trichotomy. -/
 theorem order_trichotomy {σ : RelationalVocabulary} (M : OrderedFiniteStructure σ)
     (x y : Fin M.base.size) : M.lt x y ∨ x = y ∨ M.lt y x := by
   rcases lt_trichotomy (M.rank x) (M.rank y) with hxy | hxy | hyx
@@ -54,7 +54,8 @@ theorem order_trichotomy {σ : RelationalVocabulary} (M : OrderedFiniteStructure
 /-- The induced strict order is asymmetric. -/
 theorem order_asymm {σ : RelationalVocabulary} (M : OrderedFiniteStructure σ)
     {x y : Fin M.base.size} (hxy : M.lt x y) : ¬ M.lt y x := by
-  exact LT.lt.not_le hxy ∘ le_of_lt
+  intro hyx
+  exact order_irrefl M x (order_trans M hxy hyx)
 
 end OrderedFiniteStructure
 
@@ -67,21 +68,21 @@ inductive DemoRelation
   deriving DecidableEq, Repr
 
 /-- Unary `marked` plus binary `edge`. -/
-def demoVocabulary : RelationalVocabulary where
+abbrev demoVocabulary : RelationalVocabulary where
   Relation := DemoRelation
   arity
     | .marked => 1
     | .edge => 2
 
 /-- A three-element structure with one marked element and a directed path `0 → 1 → 2`. -/
-def demoStructure : FiniteStructure demoVocabulary where
+abbrev demoStructure : FiniteStructure demoVocabulary where
   size := 3
   interprets
     | .marked, tuple => tuple 0 = 1
     | .edge, tuple => (tuple 0 = 0 ∧ tuple 1 = 1) ∨ (tuple 0 = 1 ∧ tuple 1 = 2)
 
 /-- The canonical identity ranking gives one concrete ordered expansion. -/
-def demoOrdered : OrderedFiniteStructure demoVocabulary where
+abbrev demoOrdered : OrderedFiniteStructure demoVocabulary where
   base := demoStructure
   rank := Equiv.refl _
 
