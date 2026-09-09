@@ -55,3 +55,11 @@ Every PL-2 claim must clearly distinguish:
 - formal statement;
 - verified theorem;
 - attempted but unproved statement.
+
+## PL-DC — Descriptive complexity
+
+ProofLab also hosts a dedicated finite descriptive-complexity programme whose long-term target is the ordered finite-structure formulation of P versus NP through `FO(LFP)` versus `ESO`.
+
+This programme begins with known-theorem controls, semantic infrastructure, games, Weisfeiler-Leman and CFI calibration before any original separation mechanism is considered. In particular, unordered CFI/FPC lower bounds are treated as calibration results rather than evidence that P differs from NP.
+
+See [`PL-DC-DESCRIPTIVE-COMPLEXITY-PROGRAMME.md`](PL-DC-DESCRIPTIVE-COMPLEXITY-PROGRAMME.md).
