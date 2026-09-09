@@ -130,12 +130,11 @@ impl RelationInterpretation {
         symbol: RelationSymbol,
         mut tuples: Vec<Vec<u64>>,
     ) -> Result<Self, DescriptiveError> {
-        let expected = usize::try_from(symbol.arity).map_err(|_| {
-            DescriptiveError::ArityNotAddressable {
+        let expected =
+            usize::try_from(symbol.arity).map_err(|_| DescriptiveError::ArityNotAddressable {
                 relation: symbol.name.clone(),
                 arity: symbol.arity,
-            }
-        })?;
+            })?;
 
         for tuple in &tuples {
             if tuple.len() != expected {
@@ -329,9 +328,8 @@ impl OrderedFiniteStructure {
     ///
     /// Returns an error unless `order` is a permutation of the complete domain.
     pub fn new(structure: FiniteStructure, order: Vec<u64>) -> Result<Self, DescriptiveError> {
-        let expected = usize::try_from(structure.domain_size).map_err(|_| {
-            DescriptiveError::DomainNotAddressable(structure.domain_size)
-        })?;
+        let expected = usize::try_from(structure.domain_size)
+            .map_err(|_| DescriptiveError::DomainNotAddressable(structure.domain_size))?;
         if order.len() != expected {
             return Err(DescriptiveError::OrderCardinality {
                 expected: structure.domain_size,
@@ -461,7 +459,10 @@ impl fmt::Display for DescriptiveError {
                 "relation {relation} expects arity {expected}, tuple has {actual} components"
             ),
             Self::DuplicateTuple { relation, tuple } => {
-                write!(formatter, "relation {relation} contains duplicate tuple {tuple:?}")
+                write!(
+                    formatter,
+                    "relation {relation} contains duplicate tuple {tuple:?}"
+                )
             }
             Self::EmptyDomain => formatter.write_str("finite structure domain must not be empty"),
             Self::DomainNotAddressable(size) => write!(
