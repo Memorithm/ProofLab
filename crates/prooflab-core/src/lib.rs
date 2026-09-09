@@ -11,6 +11,7 @@
 mod bijective_pebble;
 mod canonical;
 mod cfi;
+mod cfi_bijective_calibration;
 mod cfi_ordered_wl_calibration;
 mod cfi_relational;
 mod cfi_wl_calibration;
@@ -38,6 +39,10 @@ pub use bijective_pebble::{
 pub use canonical::{Canonical, CanonicalEncoder, sha256_bytes, sha256_canonical};
 pub use cfi::{
     CfiBaseEdge, CfiBaseGraph, CfiError, CfiLinkSide, CfiTwistAssignment, CfiVertex, CubicCfiGraph,
+};
+pub use cfi_bijective_calibration::{
+    CfiBijectivePebbleCalibration, CfiBijectivePebbleCalibrationError,
+    calibrate_cubic_cfi_bijective_pebble,
 };
 pub use cfi_ordered_wl_calibration::{OrderedCfiWlCalibration, calibrate_cubic_cfi_wl_ordered};
 pub use cfi_relational::{CFI_EDGE_RELATION, cubic_cfi_as_relational};
