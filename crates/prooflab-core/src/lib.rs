@@ -12,6 +12,7 @@ mod bijective_pebble;
 mod canonical;
 mod cfi;
 mod cfi_bijective_calibration;
+mod cfi_order_sensitivity;
 mod cfi_ordered_bijective_calibration;
 mod cfi_ordered_cross_calibration;
 mod cfi_ordered_wl_calibration;
@@ -45,6 +46,10 @@ pub use cfi::{
 pub use cfi_bijective_calibration::{
     CfiBijectivePebbleCalibration, CfiBijectivePebbleCalibrationError,
     calibrate_cubic_cfi_bijective_pebble,
+};
+pub use cfi_order_sensitivity::{
+    CfiOrderSensitivityError, CfiOrderSensitivitySearch, CfiOrderSensitivityWitness,
+    search_cubic_cfi_order_sensitivity,
 };
 pub use cfi_ordered_bijective_calibration::{
     OrderedCfiBijectivePebbleCalibration, calibrate_cubic_cfi_bijective_pebble_ordered,
