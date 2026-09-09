@@ -90,22 +90,18 @@ fn evaluate_lfp(
 
     loop {
         let mut next = BTreeSet::new();
-        for_each_tuple(
-            structure.domain_size(),
-            definition.arity(),
-            |candidate| {
-                let mut bindings = BTreeMap::new();
-                for (&variable, &value) in definition.parameters().iter().zip(candidate.iter()) {
-                    let previous = bindings.insert(variable, value);
-                    debug_assert!(previous.is_none());
-                }
+        for_each_tuple(structure.domain_size(), definition.arity(), |candidate| {
+            let mut bindings = BTreeMap::new();
+            for (&variable, &value) in definition.parameters().iter().zip(candidate.iter()) {
+                let previous = bindings.insert(variable, value);
+                debug_assert!(previous.is_none());
+            }
 
-                if evaluate_body(definition.body(), structure, order, &current, &mut bindings)? {
-                    let _ = next.insert(candidate.to_vec());
-                }
-                Ok(())
-            },
-        )?;
+            if evaluate_body(definition.body(), structure, order, &current, &mut bindings)? {
+                let _ = next.insert(candidate.to_vec());
+            }
+            Ok(())
+        })?;
 
         iterations = iterations.saturating_add(1);
         if next == current {
@@ -131,20 +127,13 @@ fn evaluate_lfp(
 }
 
 fn checked_state_space(domain_size: u64, arity: usize) -> Result<usize, LfpEvaluationError> {
-    let domain = usize::try_from(domain_size).map_err(|_| {
-        LfpEvaluationError::StateSpaceNotAddressable {
-            domain_size,
-            arity,
-        }
-    })?;
+    let domain = usize::try_from(domain_size)
+        .map_err(|_| LfpEvaluationError::StateSpaceNotAddressable { domain_size, arity })?;
     let mut total = 1usize;
     for _ in 0..arity {
-        total = total.checked_mul(domain).ok_or(
-            LfpEvaluationError::StateSpaceNotAddressable {
-                domain_size,
-                arity,
-            },
-        )?;
+        total = total
+            .checked_mul(domain)
+            .ok_or(LfpEvaluationError::StateSpaceNotAddressable { domain_size, arity })?;
     }
     Ok(total)
 }
@@ -157,11 +146,7 @@ fn ensure_tuple_buffer_addressable(arity: usize) -> Result<(), LfpEvaluationErro
     Ok(())
 }
 
-fn for_each_tuple<F>(
-    domain_size: u64,
-    arity: usize,
-    mut visit: F,
-) -> Result<(), LfpEvaluationError>
+fn for_each_tuple<F>(domain_size: u64, arity: usize, mut visit: F) -> Result<(), LfpEvaluationError>
 where
     F: FnMut(&[u64]) -> Result<(), LfpEvaluationError>,
 {
@@ -204,7 +189,9 @@ fn evaluate_body(
         LfpBody::True => Ok(true),
         LfpBody::False => Ok(false),
         LfpBody::Atom(atom) => evaluate_atom(atom, structure, order, recursive, bindings),
-        LfpBody::Not(inner) => Ok(!evaluate_body(inner, structure, order, recursive, bindings)?),
+        LfpBody::Not(inner) => Ok(!evaluate_body(
+            inner, structure, order, recursive, bindings,
+        )?),
         LfpBody::And(parts) => {
             for part in parts {
                 if !evaluate_body(part, structure, order, recursive, bindings)? {
@@ -354,7 +341,10 @@ impl fmt::Display for LfpEvaluationError {
                 formatter.write_str("order atom evaluated without an ordered structure")
             }
             Self::MissingRelation(name) => {
-                write!(formatter, "validated relation {name} is missing from structure")
+                write!(
+                    formatter,
+                    "validated relation {name} is missing from structure"
+                )
             }
             Self::MonotonicityInvariantViolated => formatter.write_str(
                 "validated positive LFP operator violated the monotonicity runtime invariant",
