@@ -1,0 +1,15 @@
+[package]
+name = "prooflab-fs-store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Durable content-addressed proof artifact store for ProofLab"
+
+[dependencies]
+prooflab-core = { path = "../prooflab-core" }
+prooflab-store = { path = "../prooflab-store" }
+serde_json.workspace = true
+
+[lints]
+workspace = true
