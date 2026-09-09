@@ -30,14 +30,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Install pinned Lean toolchain
-        uses: leanprover/lean-action@96e06131c0e9943c780388fd166f55d1e2fa0433
-        with:
-          auto-config: false
-          build: false
-          test: false
-          lint: false
-          use-github-cache: false
+      - name: Install Elan v4.2.4
+        run: |
+          curl -L --fail --silent --show-error \
+            -o elan.tar.gz \
+            https://github.com/leanprover/elan/releases/download/v4.2.4/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo "42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63  elan.tar.gz" | sha256sum -c -
+          tar -xzf elan.tar.gz
+          ./elan-init -y --no-modify-path
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Verify pinned Lean toolchain
+        run: |
+          lean --version
+          lake --version
       - name: Resolve pinned Lake dependencies
         run: lake update
       - name: Build Lean project
