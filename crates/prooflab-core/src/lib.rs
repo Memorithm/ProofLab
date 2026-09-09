@@ -2,8 +2,8 @@
 //!
 //! This crate intentionally contains no theorem prover. It defines immutable
 //! claim identity, formal statements, proof artifacts, mathematical lifecycle
-//! state, and reproducibility metadata. Proof status is never inferred from
-//! reproducibility.
+//! state, reproducibility metadata, and finite descriptive-complexity syntax.
+//! Proof status is never inferred from reproducibility.
 
 #![forbid(unsafe_code)]
 
@@ -11,6 +11,7 @@ mod canonical;
 mod claim;
 mod descriptive;
 mod determinism;
+mod fo;
 mod formal;
 mod proof;
 mod repro;
@@ -22,6 +23,7 @@ pub use descriptive::{
     OrderedFiniteStructureId, RelationInterpretation, RelationSymbol, Vocabulary,
 };
 pub use determinism::DeterminismLevel;
+pub use fo::{FoAtom, FoFormula, FoValidationError, Variable};
 pub use formal::{FormalBackend, FormalStatement, FormalStatementId};
 pub use proof::{
     KernelReceipt, ProofArtifact, ProofArtifactBody, ProofArtifactError, ProofArtifactId,
