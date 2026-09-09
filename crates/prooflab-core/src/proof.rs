@@ -3,7 +3,9 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::canonical::{Canonical, CanonicalEncoder, sha256_bytes, sha256_canonical};
-use crate::{ClaimId, DeterminismLevel, FormalBackend, FormalStatement, FormalStatementId, ReproMeta};
+use crate::{
+    ClaimId, DeterminismLevel, FormalBackend, FormalStatement, FormalStatementId, ReproMeta,
+};
 
 const PROOF_ARTIFACT_DOMAIN: &[u8] = b"prooflab-proof-artifact:v1\0";
 
@@ -78,11 +80,19 @@ impl fmt::Display for ProofArtifactError {
             Self::FormalStatementIntegrity => write!(formatter, "formal statement id mismatch"),
             Self::KernelRejected => write!(formatter, "formal kernel rejected the proof"),
             Self::KernelExitNotZero(code) => {
-                write!(formatter, "formal kernel did not exit successfully: {code:?}")
+                write!(
+                    formatter,
+                    "formal kernel did not exit successfully: {code:?}"
+                )
             }
-            Self::BackendMismatch => write!(formatter, "kernel backend does not match formal statement"),
+            Self::BackendMismatch => {
+                write!(formatter, "kernel backend does not match formal statement")
+            }
             Self::MissingReproField(field) => {
-                write!(formatter, "required reproducibility field is empty: {field}")
+                write!(
+                    formatter,
+                    "required reproducibility field is empty: {field}"
+                )
             }
         }
     }
@@ -240,8 +250,22 @@ mod tests {
     #[test]
     fn verified_artifact_is_deterministic() {
         let formal = formal();
-        let a = ProofArtifact::new_verified(&formal, b"proof source", vec![], repro(), receipt(true, Some(0))).unwrap();
-        let b = ProofArtifact::new_verified(&formal, b"proof source", vec![], repro(), receipt(true, Some(0))).unwrap();
+        let a = ProofArtifact::new_verified(
+            &formal,
+            b"proof source",
+            vec![],
+            repro(),
+            receipt(true, Some(0)),
+        )
+        .unwrap();
+        let b = ProofArtifact::new_verified(
+            &formal,
+            b"proof source",
+            vec![],
+            repro(),
+            receipt(true, Some(0)),
+        )
+        .unwrap();
         assert_eq!(a, b);
         assert!(a.check_id());
     }
