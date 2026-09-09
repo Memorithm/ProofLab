@@ -1,4 +1,4 @@
-import Mathlib
+import Mathlib.Data.Nat.Basic
 
 namespace ProofLab
 
