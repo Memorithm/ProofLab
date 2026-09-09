@@ -13,8 +13,8 @@ abbrev Tuple (size arity : Nat) := Fin arity → Fin size
 /--
 A finite relational structure with an explicit nonempty finite carrier.
 
-The nonemptiness invariant matches the executable Rust substrate and avoids
-vacuous sentence semantics caused by the absence of any assignment
+The nonemptiness invariant matches the executable Rust substrate exactly and
+avoids vacuous sentence semantics caused by the absence of any assignment
 `Variable → Fin 0`.
 -/
 structure FiniteStructure (σ : RelationalVocabulary) where
