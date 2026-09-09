@@ -255,7 +255,10 @@ impl fmt::Display for FoEvaluationError {
                 formatter.write_str("order atom evaluated without an ordered structure")
             }
             Self::MissingRelation(name) => {
-                write!(formatter, "validated relation {name} is missing from structure")
+                write!(
+                    formatter,
+                    "validated relation {name} is missing from structure"
+                )
             }
         }
     }
@@ -325,11 +328,7 @@ mod tests {
             Ok(true)
         );
         assert_eq!(
-            evaluate_unordered(
-                &formula,
-                ordered.structure(),
-                &FoAssignment::default()
-            ),
+            evaluate_unordered(&formula, ordered.structure(), &FoAssignment::default()),
             Err(FoEvaluationError::Formula(
                 FoValidationError::OrderNotAvailable
             ))
