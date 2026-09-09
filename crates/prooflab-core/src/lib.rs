@@ -34,8 +34,7 @@ pub use bijective_pebble::{
 };
 pub use canonical::{Canonical, CanonicalEncoder, sha256_bytes, sha256_canonical};
 pub use cfi::{
-    CfiBaseEdge, CfiBaseGraph, CfiError, CfiLinkSide, CfiTwistAssignment, CfiVertex,
-    CubicCfiGraph,
+    CfiBaseEdge, CfiBaseGraph, CfiError, CfiLinkSide, CfiTwistAssignment, CfiVertex, CubicCfiGraph,
 };
 pub use claim::{Claim, ClaimBody, ClaimId, ClaimStatus};
 pub use descriptive::{
