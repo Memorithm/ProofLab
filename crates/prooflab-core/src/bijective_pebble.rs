@@ -325,9 +325,7 @@ fn replace_slot(
     BijectiveState { remaining, slots }
 }
 
-fn active_pairs(
-    slots: &[Option<(u64, u64)>],
-) -> Result<Vec<(u64, u64)>, BijectivePebbleGameError> {
+fn active_pairs(slots: &[Option<(u64, u64)>]) -> Result<Vec<(u64, u64)>, BijectivePebbleGameError> {
     let mut active = Vec::new();
     active.try_reserve_exact(slots.len()).map_err(|_| {
         BijectivePebbleGameError::ActivePebblesNotAddressable {
