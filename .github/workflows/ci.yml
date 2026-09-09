@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy
+      - name: Format
+        run: cargo +1.98.1 fmt --all -- --check
+      - name: Clippy
+        run: cargo +1.98.1 clippy --workspace --all-targets -- -D warnings
+      - name: Tests
+        run: cargo +1.98.1 test --workspace
+
+  lean:
+    name: Lean
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Install Elan v4.2.4
+        run: |
+          curl -L --fail --silent --show-error \
+            -o elan.tar.gz \
+            https://github.com/leanprover/elan/releases/download/v4.2.4/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo "42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63  elan.tar.gz" | sha256sum -c -
+          tar -xzf elan.tar.gz
+          ./elan-init -y --no-modify-path
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Verify pinned Lean toolchain
+        run: |
+          lean --version
+          lake --version
+      - name: Resolve pinned Lake dependencies
+        run: lake update
+      - name: Build Lean project
+        run: lake build

@@ -1,0 +1,1 @@
+import ProofLab.Core.Smoke
