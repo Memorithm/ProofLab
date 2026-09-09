@@ -1,4 +1,4 @@
-//! Durable content-addressed storage for verified ProofLab artifacts.
+//! Durable content-addressed storage for verified `ProofLab` artifacts.
 //!
 //! This crate layers atomic filesystem persistence over `prooflab-store`'s
 //! integrity-checked in-memory oracle. It does not create proof artifacts and
@@ -25,6 +25,7 @@ pub enum FsStoreError {
         expected: ProofArtifactId,
         path: PathBuf,
     },
+    InternalInvariant(&'static str),
 }
 
 impl fmt::Display for FsStoreError {
@@ -39,6 +40,7 @@ impl fmt::Display for FsStoreError {
                 expected,
                 path.display()
             ),
+            Self::InternalInvariant(message) => write!(formatter, "proof store invariant failure: {message}"),
         }
     }
 }
@@ -76,7 +78,8 @@ impl FsProofStore {
     /// # Errors
     ///
     /// Fails closed on I/O errors, malformed records, path/address mismatch,
-    /// content-integrity failure, collisions, or missing proof dependencies.
+    /// content-integrity failure, collisions, missing proof dependencies, or
+    /// an internal reconstruction invariant failure.
     pub fn open(root: impl AsRef<Path>) -> Result<Self, FsStoreError> {
         let root = root.as_ref().to_path_buf();
         let artifacts_dir = root.join("artifacts");
@@ -125,19 +128,28 @@ impl FsProofStore {
                 .collect();
 
             if ready.is_empty() {
-                let artifact = pending.values().next().expect("pending is non-empty");
+                let artifact = pending
+                    .values()
+                    .next()
+                    .ok_or(FsStoreError::InternalInvariant(
+                        "non-empty pending map unexpectedly had no first artifact",
+                    ))?;
                 let missing = artifact
                     .body
                     .dependencies
                     .iter()
                     .find(|dependency| !memory.has(**dependency))
                     .copied()
-                    .unwrap_or(artifact.id);
+                    .ok_or(FsStoreError::InternalInvariant(
+                        "blocked artifact had no unresolved dependency",
+                    ))?;
                 return Err(StoreError::MissingDependency(missing).into());
             }
 
             for id in ready {
-                let artifact = pending.remove(&id).expect("ready id exists");
+                let artifact = pending.remove(&id).ok_or(FsStoreError::InternalInvariant(
+                    "ready artifact disappeared during reconstruction",
+                ))?;
                 memory.put(&artifact)?;
             }
         }
@@ -192,6 +204,11 @@ impl FsProofStore {
     }
 
     /// Read a verified artifact from the validated in-memory index.
+    ///
+    /// # Errors
+    ///
+    /// Returns an integrity error if the indexed artifact no longer matches
+    /// its content address.
     pub fn get(&self, id: ProofArtifactId) -> Result<Option<ProofArtifact>, FsStoreError> {
         Ok(self.memory.get(id)?)
     }
@@ -203,11 +220,21 @@ impl FsProofStore {
     }
 
     /// Return transitive proof dependencies in deterministic order.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the root/dependency graph is incomplete or any indexed artifact
+    /// fails its content-integrity check.
     pub fn ancestors(&self, root: ProofArtifactId) -> Result<Vec<ProofArtifactId>, FsStoreError> {
         Ok(self.memory.ancestors(root)?)
     }
 
     /// Return transitive dependants in deterministic order.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the root is missing or any indexed artifact fails its
+    /// content-integrity check.
     pub fn descendants(&self, root: ProofArtifactId) -> Result<Vec<ProofArtifactId>, FsStoreError> {
         Ok(self.memory.descendants(root)?)
     }
