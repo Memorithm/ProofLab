@@ -189,8 +189,7 @@ fn validate_recursive_shape(
     positive: bool,
 ) -> Result<(), LfpValidationError> {
     match body {
-        LfpBody::True | LfpBody::False => Ok(()),
-        LfpBody::Atom(LfpAtom::FirstOrder(_)) => Ok(()),
+        LfpBody::True | LfpBody::False | LfpBody::Atom(LfpAtom::FirstOrder(_)) => Ok(()),
         LfpBody::Atom(LfpAtom::Recursive(args)) => {
             if args.len() != expected_arity {
                 return Err(LfpValidationError::RecursiveArity {
