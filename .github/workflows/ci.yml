@@ -15,23 +15,30 @@ jobs:
     name: Rust
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Select stable Rust
-        run: |
-          rustup update stable
-          rustup default stable
-          rustup component add rustfmt clippy
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy
       - name: Format
-        run: cargo fmt --all -- --check
+        run: cargo +1.98.1 fmt --all -- --check
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo +1.98.1 clippy --workspace --all-targets -- -D warnings
       - name: Tests
-        run: cargo test --workspace
+        run: cargo +1.98.1 test --workspace
 
   lean:
     name: Lean
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Build pinned Lean project
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Install pinned Lean toolchain
         uses: leanprover/lean-action@96e06131c0e9943c780388fd166f55d1e2fa0433
+        with:
+          auto-config: false
+          build: false
+          test: false
+          lint: false
+          use-github-cache: false
+      - name: Resolve pinned Lake dependencies
+        run: lake update
+      - name: Build Lean project
+        run: lake build
