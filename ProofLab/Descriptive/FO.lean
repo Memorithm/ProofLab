@@ -1,5 +1,5 @@
 import ProofLab.Descriptive.FiniteStructure
-import Mathlib
+import Mathlib.Data.Finset.Card
 
 namespace ProofLab.Descriptive
 
