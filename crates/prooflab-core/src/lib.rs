@@ -25,9 +25,7 @@ pub use descriptive::{
 };
 pub use determinism::DeterminismLevel;
 pub use fo::{FoAtom, FoFormula, FoValidationError, Variable};
-pub use fo_eval::{
-    FoAssignment, FoEvaluationError, evaluate_ordered, evaluate_unordered,
-};
+pub use fo_eval::{FoAssignment, FoEvaluationError, evaluate_ordered, evaluate_unordered};
 pub use formal::{FormalBackend, FormalStatement, FormalStatementId};
 pub use proof::{
     KernelReceipt, ProofArtifact, ProofArtifactBody, ProofArtifactError, ProofArtifactId,
