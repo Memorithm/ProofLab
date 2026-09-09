@@ -190,8 +190,8 @@ impl CubicCfiGraph {
         for (vertex, neighbours) in incident.iter_mut().enumerate() {
             neighbours.sort_unstable();
             if neighbours.len() != 3 {
-                let vertex = u32::try_from(vertex)
-                    .map_err(|_| CfiError::InternalConstructionInvariant)?;
+                let vertex =
+                    u32::try_from(vertex).map_err(|_| CfiError::InternalConstructionInvariant)?;
                 return Err(CfiError::NonCubicVertex {
                     vertex,
                     degree: neighbours.len(),
@@ -244,13 +244,13 @@ impl CubicCfiGraph {
             let left_slot = incident[edge.left as usize]
                 .binary_search(&edge.right)
                 .map_err(|_| CfiError::InternalConstructionInvariant)?;
-            let left_slot = u32::try_from(left_slot)
-                .map_err(|_| CfiError::InternalConstructionInvariant)?;
+            let left_slot =
+                u32::try_from(left_slot).map_err(|_| CfiError::InternalConstructionInvariant)?;
             let right_slot = incident[edge.right as usize]
                 .binary_search(&edge.left)
                 .map_err(|_| CfiError::InternalConstructionInvariant)?;
-            let right_slot = u32::try_from(right_slot)
-                .map_err(|_| CfiError::InternalConstructionInvariant)?;
+            let right_slot =
+                u32::try_from(right_slot).map_err(|_| CfiError::InternalConstructionInvariant)?;
             let left_a = edge.left * 10 + left_slot * 2;
             let left_b = left_a + 1;
             let right_a = edge.right * 10 + right_slot * 2;
