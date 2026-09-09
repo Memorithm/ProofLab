@@ -19,6 +19,7 @@ mod formal;
 mod lfp;
 mod lfp_eval;
 mod lfp_scope;
+mod oblivious_wl;
 mod partial_iso;
 mod pebble;
 mod proof;
@@ -41,6 +42,10 @@ pub use lfp_eval::{
     LeastFixedPoint, LfpEvaluationError, evaluate_lfp_ordered, evaluate_lfp_unordered,
 };
 pub use lfp_scope::LfpScopeError;
+pub use oblivious_wl::{
+    ObliviousWlComparison, ObliviousWlError, compare_oblivious_wl_ordered,
+    compare_oblivious_wl_unordered,
+};
 pub use pebble::{PebbleGameError, PebbleGameResult, solve_pebble_ordered, solve_pebble_unordered};
 pub use proof::{
     KernelReceipt, ProofArtifact, ProofArtifactBody, ProofArtifactError, ProofArtifactId,
