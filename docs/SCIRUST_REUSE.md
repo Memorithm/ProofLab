@@ -21,11 +21,13 @@ Relevant concepts:
 - reproducibility/environment metadata;
 - provenance references.
 
-ProofLab has already adopted the `L0..L3` determinism vocabulary in `prooflab-core`, with source attribution. The claim lifecycle remains ProofLab-specific.
+ProofLab has adopted the `L0..L3` determinism vocabulary in `prooflab-core`, with source attribution. The claim lifecycle remains ProofLab-specific.
+
+PL-0.1 also selectively adapts the deterministic canonical-encoding contract from `sos/sos-core/src/canonical.rs`: type tags, fixed-width integers, length-prefixed byte/string values, deterministic ordered sequences and domain-separated hashing. ProofLab uses these rules for formal-statement and proof-artifact identity while retaining its own proof semantics.
 
 ### `sos-store`
 
-Relevant concepts for the next increment:
+Relevant concepts:
 
 - append-only content-addressed storage;
 - integrity verification on read/write;
@@ -33,7 +35,14 @@ Relevant concepts for the next increment:
 - deterministic object enumeration;
 - explicit garbage collection from named roots.
 
-Recommendation: selectively transplant/adapt this design into `prooflab-store`, preserving required notices and tests, rather than depending on the full SciRust workspace.
+PL-0.1 implements the first narrow `prooflab-store` backend rather than importing the whole SOS storage system. It adapts the following contracts from `sos/sos-store/src/store.rs`:
+
+- idempotent first-wins writes;
+- integrity verification before acceptance and on read;
+- deterministic sorted enumeration;
+- fail-closed handling of missing provenance dependencies.
+
+The bootstrap store is intentionally in-memory. Filesystem persistence, named roots and garbage collection remain future work and must not be added until a tested ProofLab responsibility requires them.
 
 ### `sos-provenance`
 
@@ -43,7 +52,7 @@ Relevant concepts:
 - descendant/impact queries: "what breaks if this lemma is retracted?";
 - deterministic environment capture.
 
-Recommendation: adapt into a theorem/claim dependency graph rather than duplicate graph code from scratch.
+PL-0.1 establishes proof dependencies as explicit `ProofArtifactId` edges and provides deterministic transitive ancestry and descendant-impact queries. This is a theorem/proof DAG, not a copy of the general SOS knowledge graph.
 
 ### `sos-repro`
 
@@ -54,7 +63,7 @@ Relevant concepts:
 - level-aware reproduction contracts;
 - refusal to guess when provenance is ambiguous.
 
-Recommendation: adapt the lock model to pin Lean, mathlib, ProofLab, imported modules and proof-source digests.
+Proof artifacts require non-empty ProofLab revision, Lean version, mathlib revision and environment digest before construction succeeds. The stronger environment-lock/drift model remains a later increment.
 
 ## What must not be copied wholesale
 

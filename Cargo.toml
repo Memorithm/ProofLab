@@ -2,6 +2,7 @@
 members = [
     "crates/prooflab-core",
     "crates/prooflab-lean",
+    "crates/prooflab-store",
 ]
 resolver = "2"
 
