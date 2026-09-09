@@ -16,6 +16,7 @@ mod fo;
 mod fo_eval;
 mod formal;
 mod lfp;
+mod lfp_eval;
 mod lfp_scope;
 mod proof;
 mod repro;
@@ -32,6 +33,9 @@ pub use fo::{FoAtom, FoFormula, FoValidationError, Variable};
 pub use fo_eval::{FoAssignment, FoEvaluationError, evaluate_ordered, evaluate_unordered};
 pub use formal::{FormalBackend, FormalStatement, FormalStatementId};
 pub use lfp::{LfpAtom, LfpBody, LfpDefinition, LfpValidationError};
+pub use lfp_eval::{
+    LeastFixedPoint, LfpEvaluationError, evaluate_lfp_ordered, evaluate_lfp_unordered,
+};
 pub use lfp_scope::LfpScopeError;
 pub use proof::{
     KernelReceipt, ProofArtifact, ProofArtifactBody, ProofArtifactError, ProofArtifactId,
