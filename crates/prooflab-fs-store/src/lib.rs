@@ -40,7 +40,9 @@ impl fmt::Display for FsStoreError {
                 expected,
                 path.display()
             ),
-            Self::InternalInvariant(message) => write!(formatter, "proof store invariant failure: {message}"),
+            Self::InternalInvariant(message) => {
+                write!(formatter, "proof store invariant failure: {message}")
+            }
         }
     }
 }
