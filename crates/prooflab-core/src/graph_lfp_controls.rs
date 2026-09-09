@@ -83,7 +83,10 @@ mod tests {
         let vocabulary = Vocabulary::new(vec![edge_symbol.clone()]).unwrap();
         let interpretation = RelationInterpretation::new(
             edge_symbol,
-            edges.iter().map(|&(left, right)| vec![left, right]).collect(),
+            edges
+                .iter()
+                .map(|&(left, right)| vec![left, right])
+                .collect(),
         )
         .unwrap();
         FiniteStructure::new(domain_size, vocabulary, vec![interpretation]).unwrap()
