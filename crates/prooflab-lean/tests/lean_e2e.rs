@@ -72,8 +72,7 @@ fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
     assert!(
         accepted.result.accepted,
         "Lean rejected the known-valid Smoke theorem. stdout:\n{}\nstderr:\n{}",
-        accepted.result.stdout,
-        accepted.result.stderr
+        accepted.result.stdout, accepted.result.stderr
     );
     assert_eq!(accepted.result.exit_code, Some(0));
     let proof = accepted
@@ -89,8 +88,7 @@ fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
     assert!(
         !rejected.result.accepted,
         "Lean unexpectedly accepted the false theorem. stdout:\n{}\nstderr:\n{}",
-        rejected.result.stdout,
-        rejected.result.stderr
+        rejected.result.stdout, rejected.result.stderr
     );
     assert_ne!(rejected.result.exit_code, Some(0));
     assert!(
