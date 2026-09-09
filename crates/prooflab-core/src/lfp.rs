@@ -10,7 +10,9 @@ use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt;
 
-use crate::{Canonical, CanonicalEncoder, FoAtom, FoFormula, FoValidationError, Variable, Vocabulary};
+use crate::{
+    Canonical, CanonicalEncoder, FoAtom, FoFormula, FoValidationError, Variable, Vocabulary,
+};
 
 /// Atomic formulas allowed inside a single positive LFP definition.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -53,15 +55,9 @@ pub enum LfpBody {
     /// Disjunction.
     Or(Vec<Self>),
     /// Existential first-order quantification.
-    Exists {
-        variable: Variable,
-        body: Box<Self>,
-    },
+    Exists { variable: Variable, body: Box<Self> },
     /// Universal first-order quantification.
-    ForAll {
-        variable: Variable,
-        body: Box<Self>,
-    },
+    ForAll { variable: Variable, body: Box<Self> },
 }
 
 impl Canonical for LfpBody {
@@ -268,8 +264,9 @@ impl fmt::Display for LfpValidationError {
                 formatter,
                 "recursive LFP atom expects arity {expected}, found {actual} arguments"
             ),
-            Self::NegativeRecursiveOccurrence => formatter
-                .write_str("recursive LFP relation occurs negatively in its defining body"),
+            Self::NegativeRecursiveOccurrence => {
+                formatter.write_str("recursive LFP relation occurs negatively in its defining body")
+            }
             Self::FirstOrder(error) => write!(formatter, "invalid FO atom in LFP body: {error}"),
             Self::ApplicationArity { expected, actual } => write!(
                 formatter,
