@@ -207,7 +207,9 @@ fn is_partial_isomorphism(
     }
 
     match (left_order, right_order) {
-        (Some(left_order), Some(right_order)) => Ok(preserves_order(left_order, right_order, pebbles)),
+        (Some(left_order), Some(right_order)) => {
+            Ok(preserves_order(left_order, right_order, pebbles))
+        }
         (None, None) => Ok(true),
         _ => Err(EfGameError::OrderModeMismatch),
     }
@@ -246,10 +248,11 @@ fn preserves_relations(
     pebbles: &[(u64, u64)],
 ) -> Result<bool, EfGameError> {
     for symbol in vocabulary.relations() {
-        let arity = usize::try_from(symbol.arity()).map_err(|_| EfGameError::ArityNotAddressable {
-            relation: symbol.name().to_owned(),
-            arity: symbol.arity(),
-        })?;
+        let arity =
+            usize::try_from(symbol.arity()).map_err(|_| EfGameError::ArityNotAddressable {
+                relation: symbol.name().to_owned(),
+                arity: symbol.arity(),
+            })?;
         let left_relation = left
             .relation(symbol.name())
             .ok_or_else(|| EfGameError::MissingRelation(symbol.name().to_owned()))?;
@@ -336,20 +339,33 @@ pub enum EfGameError {
 impl fmt::Display for EfGameError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::VocabularyMismatch => formatter.write_str("EF structures use different vocabularies"),
-            Self::OrderModeMismatch => formatter.write_str("EF solver mixed ordered and unordered modes"),
+            Self::VocabularyMismatch => {
+                formatter.write_str("EF structures use different vocabularies")
+            }
+            Self::OrderModeMismatch => {
+                formatter.write_str("EF solver mixed ordered and unordered modes")
+            }
             Self::ArityNotAddressable { relation, arity } => write!(
                 formatter,
                 "relation {relation} has EF-unaddressable arity {arity}"
             ),
             Self::MissingRelation(name) => {
-                write!(formatter, "validated relation {name} is missing from EF structure")
+                write!(
+                    formatter,
+                    "validated relation {name} is missing from EF structure"
+                )
             }
             Self::TupleIndexBufferNotAddressable { arity } => {
-                write!(formatter, "EF tuple-index arity {arity} cannot be materialized")
+                write!(
+                    formatter,
+                    "EF tuple-index arity {arity} cannot be materialized"
+                )
             }
             Self::TupleBufferNotAddressable { arity } => {
-                write!(formatter, "EF relation tuple arity {arity} cannot be materialized")
+                write!(
+                    formatter,
+                    "EF relation tuple arity {arity} cannot be materialized"
+                )
             }
             Self::StateCounterOverflow => formatter.write_str("EF state counter overflowed"),
         }
@@ -389,7 +405,11 @@ mod tests {
         let right = empty_structure(3);
 
         for rounds in 0..=4 {
-            assert!(solve_ef_unordered(&left, &right, rounds).unwrap().duplicator_wins());
+            assert!(
+                solve_ef_unordered(&left, &right, rounds)
+                    .unwrap()
+                    .duplicator_wins()
+            );
         }
     }
 
@@ -407,7 +427,11 @@ mod tests {
         let marked = unary_structure(2, vec![0]).unwrap();
         let unmarked = unary_structure(2, vec![]).unwrap();
 
-        assert!(!solve_ef_unordered(&marked, &unmarked, 1).unwrap().duplicator_wins());
+        assert!(
+            !solve_ef_unordered(&marked, &unmarked, 1)
+                .unwrap()
+                .duplicator_wins()
+        );
     }
 
     #[test]
@@ -415,7 +439,11 @@ mod tests {
         let truth = nullary_structure(true).unwrap();
         let falsity = nullary_structure(false).unwrap();
 
-        assert!(!solve_ef_unordered(&truth, &falsity, 0).unwrap().duplicator_wins());
+        assert!(
+            !solve_ef_unordered(&truth, &falsity, 0)
+                .unwrap()
+                .duplicator_wins()
+        );
     }
 
     #[test]
@@ -423,8 +451,16 @@ mod tests {
         let left = OrderedFiniteStructure::new(empty_structure(2), vec![0, 1]).unwrap();
         let right = OrderedFiniteStructure::new(empty_structure(3), vec![2, 0, 1]).unwrap();
 
-        assert!(solve_ef_ordered(&left, &right, 1).unwrap().duplicator_wins());
-        assert!(!solve_ef_ordered(&left, &right, 3).unwrap().duplicator_wins());
+        assert!(
+            solve_ef_ordered(&left, &right, 1)
+                .unwrap()
+                .duplicator_wins()
+        );
+        assert!(
+            !solve_ef_ordered(&left, &right, 3)
+                .unwrap()
+                .duplicator_wins()
+        );
     }
 
     #[test]
