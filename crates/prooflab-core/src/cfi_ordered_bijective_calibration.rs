@@ -7,9 +7,8 @@
 //! kernel path.
 
 use crate::{
-    CfiBaseGraph, CfiBijectivePebbleCalibrationError, CfiTwistAssignment,
-    OrderedFiniteStructure, OrderedFiniteStructureId, cubic_cfi_as_relational,
-    solve_bijective_pebble_ordered,
+    CfiBaseGraph, CfiBijectivePebbleCalibrationError, CfiTwistAssignment, OrderedFiniteStructure,
+    OrderedFiniteStructureId, cubic_cfi_as_relational, solve_bijective_pebble_ordered,
 };
 
 /// Deterministic finite calibration record for one exact pair of ordered CFI
@@ -172,7 +171,13 @@ mod tests {
         )
         .unwrap();
         let second = calibrate_cubic_cfi_bijective_pebble_ordered(
-            &base, &twists, &twists, order.clone(), order, 1, 1,
+            &base,
+            &twists,
+            &twists,
+            order.clone(),
+            order,
+            1,
+            1,
         )
         .unwrap();
         assert_eq!(first, second);
