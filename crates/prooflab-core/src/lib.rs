@@ -29,6 +29,7 @@ mod lfp;
 mod lfp_eval;
 mod lfp_scope;
 mod oblivious_wl;
+mod order_family;
 mod partial_iso;
 mod pebble;
 mod proof;
@@ -75,6 +76,9 @@ pub use lfp_scope::LfpScopeError;
 pub use oblivious_wl::{
     ObliviousWlComparison, ObliviousWlError, compare_oblivious_wl_ordered,
     compare_oblivious_wl_unordered,
+};
+pub use order_family::{
+    OrderFamilyError, adjacent_transposition_order_family, validate_total_order,
 };
 pub use pebble::{PebbleGameError, PebbleGameResult, solve_pebble_ordered, solve_pebble_unordered};
 pub use proof::{
