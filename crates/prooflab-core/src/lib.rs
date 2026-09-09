@@ -50,7 +50,7 @@ pub use cfi_ordered_bijective_calibration::{
     OrderedCfiBijectivePebbleCalibration, calibrate_cubic_cfi_bijective_pebble_ordered,
 };
 pub use cfi_ordered_cross_calibration::{
-    OrderedCfiCrossCalibration, OrderedCfiCrossCalibrationError,
+    OrderedCfiCrossCalibration, OrderedCfiCrossCalibrationConfig, OrderedCfiCrossCalibrationError,
     calibrate_cubic_cfi_ordered_cross_oracle,
 };
 pub use cfi_ordered_wl_calibration::{OrderedCfiWlCalibration, calibrate_cubic_cfi_wl_ordered};
