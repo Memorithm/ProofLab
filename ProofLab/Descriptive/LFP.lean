@@ -1,5 +1,6 @@
 import ProofLab.Descriptive.FiniteStructure
-import Mathlib.Data.Finset.Basic
+import Mathlib.Data.Finset.Card
+import Mathlib.Data.Fintype.Basic
 
 namespace ProofLab.Descriptive
 
@@ -27,16 +28,18 @@ theorem approximant_one {n : Nat} (op : LfpOperator n) :
   rfl
 
 /--
-If the operator is inflationary at the current approximation, the next
-approximation contains the current one.
+Successive bottom-up approximants form an increasing chain.
 
-This deliberately records the local hypothesis instead of silently assuming
-all monotone operators are inflationary.
+No global inflationarity assumption is required: the base inclusion
+`∅ ⊆ step ∅` is automatic, and every later inclusion follows from monotonicity.
 -/
-theorem approximant_subset_next {n : Nat} (op : LfpOperator n) (k : Nat)
-    (h : op.approximant k ⊆ op.step (op.approximant k)) :
+theorem approximant_subset_next {n : Nat} (op : LfpOperator n) (k : Nat) :
     op.approximant k ⊆ op.approximant (k + 1) := by
-  simpa [approximant] using h
+  induction k with
+  | zero =>
+      simp [approximant]
+  | succ k ih =>
+      simpa [approximant] using op.monotone ih
 
 /-- Membership in a finite approximation is an executable proposition. -/
 def ContainsAt {n : Nat} (op : LfpOperator n) (round : Nat) (x : Fin n) : Prop :=
@@ -61,6 +64,9 @@ example : (selectAll 3).approximant 1 = Finset.univ := by
 
 example : (0 : Fin 3) ∈ (selectAll 3).approximant 1 := by
   simp [selectAll, LfpOperator.approximant]
+
+example : (selectAll 3).approximant 1 ⊆ (selectAll 3).approximant 2 := by
+  exact LfpOperator.approximant_subset_next (selectAll 3) 1
 
 end Fixtures
 
