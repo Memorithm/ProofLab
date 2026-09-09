@@ -299,8 +299,7 @@ mod tests {
             .join(format!("{}.json", id_hex(artifact.id)));
         let mut value: serde_json::Value =
             serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-        value["body"]["repro"]["environment_digest"] =
-            serde_json::Value::String("modified".into());
+        value["body"]["repro"]["environment_digest"] = serde_json::Value::String("modified".into());
         fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
 
         assert!(matches!(
