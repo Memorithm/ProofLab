@@ -6,16 +6,13 @@ use prooflab_lean::{LeanKernel, VerificationJob};
 use prooflab_store::{MemoryProofStore, ProofStore};
 
 fn fixture_path(label: &str) -> PathBuf {
-    std::env::temp_dir().join(format!(
-        "prooflab-{label}-{}.lean",
-        std::process::id()
-    ))
+    std::env::temp_dir().join(format!("prooflab-{label}-{}.lean", std::process::id()))
 }
 
 fn repro_meta() -> ReproMeta {
     let mut repro = ReproMeta::bootstrap("pl-0.2-pinned-ci-environment");
-    repro.prooflab_revision = std::env::var("PROOFLAB_TEST_REVISION")
-        .unwrap_or_else(|_| "local-integration-test".into());
+    repro.prooflab_revision =
+        std::env::var("PROOFLAB_TEST_REVISION").unwrap_or_else(|_| "local-integration-test".into());
     repro
 }
 
@@ -30,8 +27,10 @@ fn claim(statement: &str) -> Claim {
 #[test]
 #[ignore = "requires the pinned Lean/mathlib environment"]
 fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
-    let accepted_source = b"import Mathlib\n\ntheorem prooflabE2EAccepted : (2 : Nat) + 2 = 4 := by decide\n";
-    let rejected_source = b"import Mathlib\n\ntheorem prooflabE2ERejected : (2 : Nat) + 2 = 5 := by decide\n";
+    let accepted_source =
+        b"import Mathlib\n\ntheorem prooflabE2EAccepted : (2 : Nat) + 2 = 4 := by decide\n";
+    let rejected_source =
+        b"import Mathlib\n\ntheorem prooflabE2ERejected : (2 : Nat) + 2 = 5 := by decide\n";
 
     let accepted_path = fixture_path("accepted");
     let rejected_path = fixture_path("rejected");
