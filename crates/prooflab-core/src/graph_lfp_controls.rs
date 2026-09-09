@@ -1,7 +1,7 @@
 //! Positive-LFP controls for finite directed graphs.
 //!
 //! These helpers reuse the exact finite LFP evaluator already present in
-//! ProofLab. They are calibration controls for PL-DC-1 and do not constitute a
+//! `ProofLab`. They are calibration controls for PL-DC-1 and do not constitute a
 //! complexity-class characterization.
 
 use crate::{
