@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::DeterminismLevel;
 
-/// Minimal reproducibility envelope for a ProofLab computational artifact.
+/// Minimal reproducibility envelope for a `ProofLab` computational artifact.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReproMeta {
     pub level: DeterminismLevel,
