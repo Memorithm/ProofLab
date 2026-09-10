@@ -28,6 +28,7 @@ mod fo;
 mod fo_eval;
 mod formal;
 mod graph_lfp_controls;
+mod hamiltonian_eso;
 mod lfp;
 mod lfp_eval;
 mod lfp_scope;
@@ -81,6 +82,9 @@ pub use fo_eval::{FoAssignment, FoEvaluationError, evaluate_ordered, evaluate_un
 pub use formal::{FormalBackend, FormalStatement, FormalStatementId};
 pub use graph_lfp_controls::{
     LFP_GRAPH_EDGE_RELATION, directed_reachability_lfp, is_strongly_connected_via_lfp,
+};
+pub use hamiltonian_eso::{
+    HAMILTONIAN_EDGE_RELATION, HAMILTONIAN_ORDER_WITNESS, directed_hamiltonian_cycle_eso,
 };
 pub use lfp::{LfpAtom, LfpBody, LfpDefinition, LfpValidationError};
 pub use lfp_eval::{
