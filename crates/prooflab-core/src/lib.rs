@@ -96,7 +96,8 @@ pub use oblivious_wl::{
     compare_oblivious_wl_unordered,
 };
 pub use order_family::{
-    OrderFamilyError, adjacent_transposition_order_family, validate_total_order,
+    ExhaustiveOrderFamily, OrderFamilyError, adjacent_transposition_order_family,
+    exhaustive_total_order_family, validate_total_order,
 };
 pub use parity_ef::{ParityEfCalibration, calibrate_parity_pure_equality};
 pub use pebble::{PebbleGameError, PebbleGameResult, solve_pebble_ordered, solve_pebble_unordered};
