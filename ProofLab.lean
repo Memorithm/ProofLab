@@ -7,4 +7,5 @@ import ProofLab.Descriptive.LFP
 import ProofLab.Descriptive.LFPMeta
 import ProofLab.Descriptive.LFPConvergence
 import ProofLab.Descriptive.RelationalLFP
+import ProofLab.Descriptive.RelationalLFPConvergence
 import ProofLab.Descriptive.Reachability
