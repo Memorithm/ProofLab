@@ -33,6 +33,7 @@ mod lfp_eval;
 mod lfp_scope;
 mod oblivious_wl;
 mod order_family;
+mod parity_ef;
 mod partial_iso;
 mod pebble;
 mod proof;
@@ -93,6 +94,7 @@ pub use oblivious_wl::{
 pub use order_family::{
     OrderFamilyError, adjacent_transposition_order_family, validate_total_order,
 };
+pub use parity_ef::{ParityEfCalibration, calibrate_parity_pure_equality};
 pub use pebble::{PebbleGameError, PebbleGameResult, solve_pebble_ordered, solve_pebble_unordered};
 pub use proof::{
     KernelReceipt, ProofArtifact, ProofArtifactBody, ProofArtifactError, ProofArtifactId,
