@@ -1,5 +1,6 @@
 import ProofLab.Descriptive.LFPMeta
 import Lean.Elab.Tactic.Omega
+import Mathlib.Data.Fintype.Card
 
 namespace ProofLab.Descriptive
 
