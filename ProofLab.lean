@@ -9,4 +9,5 @@ import ProofLab.Descriptive.LFPConvergence
 import ProofLab.Descriptive.RelationalLFP
 import ProofLab.Descriptive.RelationalLFPConvergence
 import ProofLab.Descriptive.PositiveLFP
+import ProofLab.Descriptive.PositiveLFPOperator
 import ProofLab.Descriptive.Reachability
