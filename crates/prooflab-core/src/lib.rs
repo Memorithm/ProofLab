@@ -26,6 +26,7 @@ mod eso;
 mod eso_eval;
 mod fo;
 mod fo_eval;
+mod fo_order_invariance;
 mod formal;
 mod graph_lfp_controls;
 mod hamiltonian_eso;
@@ -79,6 +80,10 @@ pub use eso_eval::{
 };
 pub use fo::{FoAtom, FoFormula, FoValidationError, Variable};
 pub use fo_eval::{FoAssignment, FoEvaluationError, evaluate_ordered, evaluate_unordered};
+pub use fo_order_invariance::{
+    FoOrderInvarianceCheck, FoOrderInvarianceError, FoOrderInvarianceWitness,
+    check_fo_order_invariance,
+};
 pub use formal::{FormalBackend, FormalStatement, FormalStatementId};
 pub use graph_lfp_controls::{
     LFP_GRAPH_EDGE_RELATION, directed_reachability_lfp, is_strongly_connected_via_lfp,
