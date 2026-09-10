@@ -76,7 +76,8 @@ pub use determinism::DeterminismLevel;
 pub use ef::{EfGameError, EfGameResult, solve_ef_ordered, solve_ef_unordered};
 pub use eso::{EsoSentence, EsoValidationError};
 pub use eso_eval::{
-    EsoEvaluation, EsoEvaluationError, evaluate_eso_ordered, evaluate_eso_unordered,
+    EsoEvaluation, EsoEvaluationBudget, EsoEvaluationError, evaluate_eso_ordered,
+    evaluate_eso_ordered_bounded, evaluate_eso_unordered, evaluate_eso_unordered_bounded,
 };
 pub use fo::{FoAtom, FoFormula, FoValidationError, Variable};
 pub use fo_eval::{FoAssignment, FoEvaluationError, evaluate_ordered, evaluate_unordered};

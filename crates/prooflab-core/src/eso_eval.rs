@@ -6,9 +6,10 @@
 //! returned as a replayable witness.
 //!
 //! The search is inherently exponential in the total number of possible witness
-//! tuples. No heuristic cutoff is silently introduced: the evaluator either
-//! completes the exact finite search or fails closed when the required explicit
-//! state space / instrumentation is not addressable.
+//! tuples. No heuristic cutoff is silently introduced: the legacy evaluator
+//! either completes the exact finite search or fails closed on representational
+//! errors, while the bounded entry points reject before allocation/enumeration
+//! unless the caller-supplied budget can cover the complete exact witness space.
 
 use core::fmt;
 
@@ -17,6 +18,41 @@ use crate::{
     FoEvaluationError, OrderedFiniteStructure, RelationInterpretation, RelationSymbol, Vocabulary,
     evaluate_ordered, evaluate_unordered,
 };
+
+/// Explicit preflight budget for complete finite ESO witness enumeration.
+///
+/// The tuple-slot limit bounds `Σ domain^arity` over existential witness
+/// relations. The assignment limit bounds the complete Boolean interpretation
+/// space `2^slots`. Bounded evaluation is admitted only when both exact bounds
+/// fit before any witness tuple universe is allocated.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EsoEvaluationBudget {
+    max_witness_tuple_slots: usize,
+    max_witness_assignments: u64,
+}
+
+impl EsoEvaluationBudget {
+    /// Construct an explicit complete-search budget.
+    #[must_use]
+    pub const fn new(max_witness_tuple_slots: usize, max_witness_assignments: u64) -> Self {
+        Self {
+            max_witness_tuple_slots,
+            max_witness_assignments,
+        }
+    }
+
+    /// Maximum admitted number of candidate tuples across all witness relations.
+    #[must_use]
+    pub const fn max_witness_tuple_slots(self) -> usize {
+        self.max_witness_tuple_slots
+    }
+
+    /// Maximum admitted number of complete witness assignments.
+    #[must_use]
+    pub const fn max_witness_assignments(self) -> u64 {
+        self.max_witness_assignments
+    }
+}
 
 /// Deterministic outcome of one exact finite ESO evaluation.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,7 +93,25 @@ pub fn evaluate_eso_unordered(
     sentence: &EsoSentence,
     structure: &FiniteStructure,
 ) -> Result<EsoEvaluation, EsoEvaluationError> {
-    evaluate(sentence, structure, None)
+    evaluate(sentence, structure, None, None)
+}
+
+/// Evaluate a closed relational ESO sentence on an unordered structure under
+/// an explicit complete-search budget.
+///
+/// Budget validation occurs before witness universes are allocated and before
+/// the first assignment is enumerated. Rejection never returns a partial result.
+///
+/// # Errors
+///
+/// Returns [`EsoEvaluationError`] for semantic/representation failures or when
+/// the complete witness search cannot be certified to fit the supplied budget.
+pub fn evaluate_eso_unordered_bounded(
+    sentence: &EsoSentence,
+    structure: &FiniteStructure,
+    budget: EsoEvaluationBudget,
+) -> Result<EsoEvaluation, EsoEvaluationError> {
+    evaluate(sentence, structure, None, Some(budget))
 }
 
 /// Evaluate a closed relational ESO sentence on a finite structure with its
@@ -71,7 +125,26 @@ pub fn evaluate_eso_ordered(
     sentence: &EsoSentence,
     structure: &OrderedFiniteStructure,
 ) -> Result<EsoEvaluation, EsoEvaluationError> {
-    evaluate(sentence, structure.structure(), Some(structure))
+    evaluate(sentence, structure.structure(), Some(structure), None)
+}
+
+/// Evaluate an ordered relational ESO sentence under an explicit complete-search budget.
+///
+/// # Errors
+///
+/// Returns [`EsoEvaluationError`] for semantic/representation failures or a
+/// preflight budget violation.
+pub fn evaluate_eso_ordered_bounded(
+    sentence: &EsoSentence,
+    structure: &OrderedFiniteStructure,
+    budget: EsoEvaluationBudget,
+) -> Result<EsoEvaluation, EsoEvaluationError> {
+    evaluate(
+        sentence,
+        structure.structure(),
+        Some(structure),
+        Some(budget),
+    )
 }
 
 #[derive(Debug, Clone)]
@@ -84,17 +157,25 @@ fn evaluate(
     sentence: &EsoSentence,
     input: &FiniteStructure,
     order: Option<&OrderedFiniteStructure>,
+    budget: Option<EsoEvaluationBudget>,
 ) -> Result<EsoEvaluation, EsoEvaluationError> {
     sentence
         .validate(input.vocabulary(), order.is_some())
         .map_err(EsoEvaluationError::Validation)?;
 
+    let total_slots = total_witness_tuple_slots(sentence, input.domain_size())?;
+    if let Some(budget) = budget {
+        validate_budget(total_slots, budget)?;
+    }
+
     let universes = witness_universes(sentence, input.domain_size())?;
-    let total_slots = universes.iter().try_fold(0usize, |total, universe| {
-        total
-            .checked_add(universe.tuples.len())
-            .ok_or(EsoEvaluationError::TotalWitnessTupleSlotsOverflow)
-    })?;
+    debug_assert_eq!(
+        universes
+            .iter()
+            .map(|universe| universe.tuples.len())
+            .sum::<usize>(),
+        total_slots
+    );
 
     let mut selection = Vec::new();
     selection
@@ -138,6 +219,47 @@ fn evaluate(
     }
 }
 
+fn total_witness_tuple_slots(
+    sentence: &EsoSentence,
+    domain_size: u64,
+) -> Result<usize, EsoEvaluationError> {
+    sentence
+        .witnesses()
+        .relations()
+        .iter()
+        .try_fold(0usize, |total, symbol| {
+            total
+                .checked_add(checked_witness_tuple_count(symbol, domain_size)?)
+                .ok_or(EsoEvaluationError::TotalWitnessTupleSlotsOverflow)
+        })
+}
+
+fn validate_budget(
+    total_slots: usize,
+    budget: EsoEvaluationBudget,
+) -> Result<(), EsoEvaluationError> {
+    if total_slots > budget.max_witness_tuple_slots {
+        return Err(EsoEvaluationError::WitnessTupleSlotBudgetExceeded {
+            required: total_slots,
+            limit: budget.max_witness_tuple_slots,
+        });
+    }
+
+    if total_slots >= u64::BITS as usize {
+        return Err(EsoEvaluationError::WitnessAssignmentSpaceNotAddressable {
+            tuple_slots: total_slots,
+        });
+    }
+    let assignments = 1u64 << total_slots;
+    if assignments > budget.max_witness_assignments {
+        return Err(EsoEvaluationError::WitnessAssignmentBudgetExceeded {
+            required: assignments,
+            limit: budget.max_witness_assignments,
+        });
+    }
+    Ok(())
+}
+
 fn witness_universes(
     sentence: &EsoSentence,
     domain_size: u64,
@@ -160,10 +282,10 @@ fn witness_universes(
     Ok(universes)
 }
 
-fn enumerate_relation_tuples(
+fn checked_witness_tuple_count(
     symbol: &RelationSymbol,
     domain_size: u64,
-) -> Result<Vec<Vec<u64>>, EsoEvaluationError> {
+) -> Result<usize, EsoEvaluationError> {
     let domain = usize::try_from(domain_size)
         .map_err(|_| EsoEvaluationError::DomainNotAddressable { domain_size })?;
     let arity = usize::try_from(symbol.arity()).map_err(|_| {
@@ -183,6 +305,20 @@ fn enumerate_relation_tuples(
             }
         })?;
     }
+    Ok(tuple_count)
+}
+
+fn enumerate_relation_tuples(
+    symbol: &RelationSymbol,
+    domain_size: u64,
+) -> Result<Vec<Vec<u64>>, EsoEvaluationError> {
+    let arity = usize::try_from(symbol.arity()).map_err(|_| {
+        EsoEvaluationError::WitnessArityNotAddressable {
+            relation: symbol.name().to_owned(),
+            arity: symbol.arity(),
+        }
+    })?;
+    let tuple_count = checked_witness_tuple_count(symbol, domain_size)?;
 
     let mut tuples = Vec::new();
     tuples.try_reserve_exact(tuple_count).map_err(|_| {
@@ -338,6 +474,12 @@ pub enum EsoEvaluationError {
     WitnessUniverseBufferNotAddressable { witnesses: usize },
     /// Summing all witness tuple slots overflowed `usize`.
     TotalWitnessTupleSlotsOverflow,
+    /// The bounded evaluator's total witness tuple-slot budget is insufficient.
+    WitnessTupleSlotBudgetExceeded { required: usize, limit: usize },
+    /// `2^tuple_slots` cannot be represented by the exact assignment counter.
+    WitnessAssignmentSpaceNotAddressable { tuple_slots: usize },
+    /// The bounded evaluator cannot cover the complete witness assignment space.
+    WitnessAssignmentBudgetExceeded { required: u64, limit: u64 },
     /// The Boolean witness-selection vector cannot be allocated.
     SelectionBufferNotAddressable { slots: usize },
     /// The vector of witness interpretations cannot be allocated.
@@ -389,6 +531,18 @@ impl fmt::Display for EsoEvaluationError {
             Self::TotalWitnessTupleSlotsOverflow => {
                 formatter.write_str("ESO total witness tuple-slot count overflows usize")
             }
+            Self::WitnessTupleSlotBudgetExceeded { required, limit } => write!(
+                formatter,
+                "ESO witness universe requires {required} tuple slots, exceeding budget {limit}"
+            ),
+            Self::WitnessAssignmentSpaceNotAddressable { tuple_slots } => write!(
+                formatter,
+                "ESO complete witness space 2^{tuple_slots} is not representable by the exact assignment counter"
+            ),
+            Self::WitnessAssignmentBudgetExceeded { required, limit } => write!(
+                formatter,
+                "ESO complete witness search requires {required} assignments, exceeding budget {limit}"
+            ),
             Self::SelectionBufferNotAddressable { slots } => write!(
                 formatter,
                 "ESO witness-selection vector with {slots} slots cannot be allocated"
@@ -452,6 +606,75 @@ mod tests {
         assert_eq!(witness.len(), 1);
         assert_eq!(witness[0].symbol().name(), "H");
         assert_eq!(witness[0].tuples(), &[vec![0]]);
+    }
+
+    #[test]
+    fn bounded_unary_witness_matches_unbounded_at_exact_space_boundary() {
+        let x = Variable(0);
+        let sentence = EsoSentence::new(
+            vec![RelationSymbol::new("H", 1).unwrap()],
+            FoFormula::Exists {
+                variable: x,
+                body: Box::new(witness_atom("H", vec![x])),
+            },
+        )
+        .unwrap();
+        let structure = empty_structure(2);
+        let budget = EsoEvaluationBudget::new(2, 4);
+
+        let bounded = evaluate_eso_unordered_bounded(&sentence, &structure, budget).unwrap();
+        let unbounded = evaluate_eso_unordered(&sentence, &structure).unwrap();
+        assert_eq!(bounded, unbounded);
+    }
+
+    #[test]
+    fn bounded_evaluation_rejects_tuple_slots_before_allocation() {
+        let x = Variable(0);
+        let sentence = EsoSentence::new(
+            vec![RelationSymbol::new("H", 1).unwrap()],
+            FoFormula::Exists {
+                variable: x,
+                body: Box::new(witness_atom("H", vec![x])),
+            },
+        )
+        .unwrap();
+
+        assert!(matches!(
+            evaluate_eso_unordered_bounded(
+                &sentence,
+                &empty_structure(2),
+                EsoEvaluationBudget::new(1, u64::MAX),
+            ),
+            Err(EsoEvaluationError::WitnessTupleSlotBudgetExceeded {
+                required: 2,
+                limit: 1
+            })
+        ));
+    }
+
+    #[test]
+    fn bounded_evaluation_requires_complete_assignment_budget() {
+        let x = Variable(0);
+        let sentence = EsoSentence::new(
+            vec![RelationSymbol::new("H", 1).unwrap()],
+            FoFormula::Exists {
+                variable: x,
+                body: Box::new(witness_atom("H", vec![x])),
+            },
+        )
+        .unwrap();
+
+        assert!(matches!(
+            evaluate_eso_unordered_bounded(
+                &sentence,
+                &empty_structure(2),
+                EsoEvaluationBudget::new(2, 3),
+            ),
+            Err(EsoEvaluationError::WitnessAssignmentBudgetExceeded {
+                required: 4,
+                limit: 3
+            })
+        ));
     }
 
     #[test]
