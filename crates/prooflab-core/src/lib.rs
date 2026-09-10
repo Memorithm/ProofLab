@@ -94,7 +94,8 @@ pub use hamiltonian_eso::{
 };
 pub use lfp::{LfpAtom, LfpBody, LfpDefinition, LfpValidationError};
 pub use lfp_eval::{
-    LeastFixedPoint, LfpEvaluationError, evaluate_lfp_ordered, evaluate_lfp_unordered,
+    LeastFixedPoint, LfpEvaluationBudget, LfpEvaluationError, evaluate_lfp_ordered,
+    evaluate_lfp_ordered_bounded, evaluate_lfp_unordered, evaluate_lfp_unordered_bounded,
 };
 pub use lfp_scope::LfpScopeError;
 pub use oblivious_wl::{
