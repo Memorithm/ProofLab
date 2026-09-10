@@ -30,6 +30,14 @@ def quantifierRank {σ : RelationalVocabulary} {arity : Nat} :
   | .and left right | .or left right => max (quantifierRank left) (quantifierRank right)
   | .exists _ body | .forall _ body => quantifierRank body + 1
 
+/-- Free first-order variables, including variables used by recursive atoms. -/
+def freeVariables {σ : RelationalVocabulary} {arity : Nat} :
+    PositiveLfpBody σ arity → Finset Variable
+  | .firstOrder formula => formula.freeVariables
+  | .recursive args => Finset.univ.image args
+  | .and left right | .or left right => freeVariables left ∪ freeVariables right
+  | .exists x body | .forall x body => (freeVariables body).erase x
+
 /--
 Semantics of one positive LFP body for a supplied interpretation of the
 recursive relation.
@@ -97,6 +105,35 @@ theorem holds_mono_recursive {σ : RelationalVocabulary} {arity : Nat}
 
 end PositiveLfpBody
 
+/--
+One positive relation-valued LFP definition with an explicit tuple-parameter
+vector.
+
+Tuple parameters are pairwise distinct and are the only variables allowed to
+remain free in the body. This mirrors the executable Rust `LfpDefinition`
+scope invariant while making both conditions proof fields on the Lean side.
+-/
+structure PositiveLfpDefinition (σ : RelationalVocabulary) (arity : Nat) where
+  parameters : Fin arity → Variable
+  parameters_injective : Function.Injective parameters
+  body : PositiveLfpBody σ arity
+  scoped : PositiveLfpBody.freeVariables body ⊆ Finset.univ.image parameters
+
+namespace PositiveLfpDefinition
+
+/-- The exact set of tuple-parameter variable identifiers. -/
+def parameterVariables {σ : RelationalVocabulary} {arity : Nat}
+    (definition : PositiveLfpDefinition σ arity) : Finset Variable :=
+  Finset.univ.image definition.parameters
+
+/-- Every free variable of a validated definition is a tuple parameter. -/
+theorem freeVariables_subset_parameters {σ : RelationalVocabulary} {arity : Nat}
+    (definition : PositiveLfpDefinition σ arity) :
+    definition.body.freeVariables ⊆ definition.parameterVariables := by
+  exact definition.scoped
+
+end PositiveLfpDefinition
+
 namespace Fixtures
 
 open PositiveLfpBody
@@ -114,6 +151,10 @@ example : recursiveZero.quantifierRank = 0 := by
 
 example : markedOrRecursiveZero.quantifierRank = 0 := by
   rfl
+
+example : markedOrRecursiveZero.freeVariables = {0} := by
+  simp [markedOrRecursiveZero, recursiveZero, PositiveLfpBody.freeVariables, markedZero,
+    FOFormula.freeVariables]
 
 example (assignment : Variable → Fin demoOrdered.base.size)
     (R S : Tuple demoOrdered.base.size 1 → Prop)
