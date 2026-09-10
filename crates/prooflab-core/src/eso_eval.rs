@@ -170,7 +170,10 @@ fn evaluate(
 
     let universes = witness_universes(sentence, input.domain_size())?;
     debug_assert_eq!(
-        universes.iter().map(|universe| universe.tuples.len()).sum::<usize>(),
+        universes
+            .iter()
+            .map(|universe| universe.tuples.len())
+            .sum::<usize>(),
         total_slots
     );
 
@@ -220,11 +223,15 @@ fn total_witness_tuple_slots(
     sentence: &EsoSentence,
     domain_size: u64,
 ) -> Result<usize, EsoEvaluationError> {
-    sentence.witnesses().relations().iter().try_fold(0usize, |total, symbol| {
-        total
-            .checked_add(checked_witness_tuple_count(symbol, domain_size)?)
-            .ok_or(EsoEvaluationError::TotalWitnessTupleSlotsOverflow)
-    })
+    sentence
+        .witnesses()
+        .relations()
+        .iter()
+        .try_fold(0usize, |total, symbol| {
+            total
+                .checked_add(checked_witness_tuple_count(symbol, domain_size)?)
+                .ok_or(EsoEvaluationError::TotalWitnessTupleSlotsOverflow)
+        })
 }
 
 fn validate_budget(
