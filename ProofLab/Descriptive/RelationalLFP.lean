@@ -43,7 +43,7 @@ def ContainsAt {size arity : Nat} (op : RelationalLfpOperator size arity)
 /-- The complete `arity`-ary tuple carrier has exactly `size ^ arity` tuples. -/
 theorem tuple_univ_card (size arity : Nat) :
     (Finset.univ : Finset (Tuple size arity)).card = size ^ arity := by
-  simp [Tuple, Fintype.card_fun]
+  simp [Tuple]
 
 end RelationalLfpOperator
 
@@ -63,7 +63,7 @@ example : (selectAllTuples 2 2).approximant 1 = Finset.univ := by
   rfl
 
 example : ((selectAllTuples 2 2).approximant 1).card = 4 := by
-  simpa using RelationalLfpOperator.tuple_univ_card 2 2
+  simp [selectAllTuples, RelationalLfpOperator.approximant, Tuple]
 
 end Fixtures
 
