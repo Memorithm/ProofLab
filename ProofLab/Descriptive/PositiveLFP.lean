@@ -156,6 +156,10 @@ example : markedOrRecursiveZero.freeVariables = {0} := by
   simp [markedOrRecursiveZero, recursiveZero, PositiveLfpBody.freeVariables, markedZero,
     FOFormula.freeVariables]
 
+/-- Binding the recursive tuple variable removes it from the free-variable set. -/
+example : (.existsQ 0 recursiveZero : PositiveLfpBody demoVocabulary 1).freeVariables = ∅ := by
+  simp [recursiveZero, PositiveLfpBody.freeVariables]
+
 example (assignment : Variable → Fin demoOrdered.base.size)
     (R S : Tuple demoOrdered.base.size 1 → Prop)
     (hRS : ∀ tuple, R tuple → S tuple) :
