@@ -17,8 +17,8 @@ inductive PositiveLfpBody (σ : RelationalVocabulary) (arity : Nat) where
   | recursive (args : Fin arity → Variable)
   | and (left right : PositiveLfpBody σ arity)
   | or (left right : PositiveLfpBody σ arity)
-  | exists (x : Variable) (body : PositiveLfpBody σ arity)
-  | forall (x : Variable) (body : PositiveLfpBody σ arity)
+  | existsQ (x : Variable) (body : PositiveLfpBody σ arity)
+  | forallQ (x : Variable) (body : PositiveLfpBody σ arity)
 
 namespace PositiveLfpBody
 
@@ -28,7 +28,7 @@ def quantifierRank {σ : RelationalVocabulary} {arity : Nat} :
   | .firstOrder formula => formula.quantifierRank
   | .recursive _ => 0
   | .and left right | .or left right => max (quantifierRank left) (quantifierRank right)
-  | .exists _ body | .forall _ body => quantifierRank body + 1
+  | .existsQ _ body | .forallQ _ body => quantifierRank body + 1
 
 /-- Free first-order variables, including variables used by recursive atoms. -/
 def freeVariables {σ : RelationalVocabulary} {arity : Nat} :
@@ -36,7 +36,7 @@ def freeVariables {σ : RelationalVocabulary} {arity : Nat} :
   | .firstOrder formula => formula.freeVariables
   | .recursive args => Finset.univ.image args
   | .and left right | .or left right => freeVariables left ∪ freeVariables right
-  | .exists x body | .forall x body => (freeVariables body).erase x
+  | .existsQ x body | .forallQ x body => (freeVariables body).erase x
 
 /--
 Semantics of one positive LFP body for a supplied interpretation of the
@@ -59,10 +59,10 @@ def Holds {σ : RelationalVocabulary} {arity : Nat}
   | .or left right =>
       Holds M assignment recursiveRelation left ∨
         Holds M assignment recursiveRelation right
-  | .exists x body =>
+  | .existsQ x body =>
       ∃ value : Fin M.base.size,
         Holds M (Function.update assignment x value) recursiveRelation body
-  | .forall x body =>
+  | .forallQ x body =>
       ∀ value : Fin M.base.size,
         Holds M (Function.update assignment x value) recursiveRelation body
 
@@ -95,11 +95,11 @@ theorem holds_mono_recursive {σ : RelationalVocabulary} {arity : Nat}
       rcases h with h | h
       · exact Or.inl (ihLeft assignment h)
       · exact Or.inr (ihRight assignment h)
-  | exists x body ih =>
+  | existsQ x body ih =>
       intro h
       rcases h with ⟨value, hvalue⟩
       exact ⟨value, ih (Function.update assignment x value) hvalue⟩
-  | forall x body ih =>
+  | forallQ x body ih =>
       intro h value
       exact ih (Function.update assignment x value) (h value)
 
