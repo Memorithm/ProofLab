@@ -5,5 +5,6 @@ import ProofLab.Descriptive.FOSentence
 import ProofLab.Descriptive.ESO
 import ProofLab.Descriptive.LFP
 import ProofLab.Descriptive.LFPMeta
+import ProofLab.Descriptive.LFPConvergence
 import ProofLab.Descriptive.RelationalLFP
 import ProofLab.Descriptive.Reachability
