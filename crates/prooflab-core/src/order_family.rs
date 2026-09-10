@@ -1,9 +1,10 @@
 //! Deterministic finite total-order families for PL-DC order stress tests.
 //!
-//! The constructors in this module generate explicit finite families only. They
-//! are search heuristics, not surrogates for quantification over all total
-//! orders. Every returned member is a validated permutation of the exact runtime
-//! domain `0..domain_size`.
+//! The constructors in this module generate explicit finite families only. The
+//! adjacent-transposition family is a search heuristic; the exhaustive family
+//! is exhaustive only when its explicit factorial budget admits every order.
+//! Every returned member is a validated permutation of the exact runtime domain
+//! `0..domain_size`.
 
 use core::fmt;
 use std::collections::BTreeSet;
@@ -21,6 +22,8 @@ pub enum OrderFamilyError {
     DuplicateElement(u64),
     /// The generated family cannot be reserved on this platform.
     FamilyNotAddressable { members: usize },
+    /// Exhaustive enumeration would exceed the caller-declared order budget.
+    ExhaustiveLimitExceeded { domain_size: u64, max_orders: usize },
 }
 
 impl fmt::Display for OrderFamilyError {
@@ -50,11 +53,57 @@ impl fmt::Display for OrderFamilyError {
                     "order family with {members} members cannot be represented"
                 )
             }
+            Self::ExhaustiveLimitExceeded {
+                domain_size,
+                max_orders,
+            } => write!(
+                formatter,
+                "exhaustive order family for domain size {domain_size} exceeds explicit budget {max_orders}"
+            ),
         }
     }
 }
 
 impl std::error::Error for OrderFamilyError {}
+
+/// Exact all-orders family for one finite runtime carrier.
+///
+/// Values of this type are created only after the factorial budget check has
+/// succeeded and every permutation has been generated. The wrapper preserves
+/// the distinction between a genuinely exhaustive small-carrier family and an
+/// arbitrary or heuristic `Vec<Vec<u64>>` supplied elsewhere in the research
+/// pipeline.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExhaustiveOrderFamily {
+    domain_size: u64,
+    orders: Vec<Vec<u64>>,
+}
+
+impl ExhaustiveOrderFamily {
+    /// Exact finite carrier size for which every total order was generated.
+    #[must_use]
+    pub const fn domain_size(&self) -> u64 {
+        self.domain_size
+    }
+
+    /// Number of total orders in the exhaustive family.
+    #[must_use]
+    pub const fn order_count(&self) -> usize {
+        self.orders.len()
+    }
+
+    /// Every total order of the exact finite carrier, in lexicographic order.
+    #[must_use]
+    pub fn orders(&self) -> &[Vec<u64>] {
+        &self.orders
+    }
+
+    /// Consume the provenance wrapper and return the exact generated orders.
+    #[must_use]
+    pub fn into_orders(self) -> Vec<Vec<u64>> {
+        self.orders
+    }
+}
 
 /// Validate one explicit runtime-sized total order.
 ///
@@ -126,6 +175,89 @@ pub fn adjacent_transposition_order_family(
     Ok(family)
 }
 
+/// Enumerate every total order of `0..domain_size` in deterministic lexicographic order.
+///
+/// Exhaustiveness is permitted only when `domain_size! <= max_orders`. The
+/// factorial bound is checked before the family is allocated or any permutation
+/// is generated, so callers cannot accidentally turn a bounded PL-DC experiment
+/// into an unbounded factorial search. A successful result is exhaustive for the
+/// exact finite carrier, including the singleton empty order when `domain_size = 0`.
+/// The returned [`ExhaustiveOrderFamily`] retains that provenance explicitly.
+///
+/// # Errors
+///
+/// Fails closed when the runtime domain is not addressable, the exhaustive
+/// factorial family exceeds `max_orders`, or the exact result vector cannot be
+/// reserved on this platform.
+pub fn exhaustive_total_order_family(
+    domain_size: u64,
+    max_orders: usize,
+) -> Result<ExhaustiveOrderFamily, OrderFamilyError> {
+    let domain_len = usize::try_from(domain_size)
+        .map_err(|_| OrderFamilyError::DomainNotAddressable(domain_size))?;
+    let members = factorial_with_limit(domain_size, domain_len, max_orders)?;
+
+    let mut orders = Vec::new();
+    orders
+        .try_reserve_exact(members)
+        .map_err(|_| OrderFamilyError::FamilyNotAddressable { members })?;
+
+    let mut current: Vec<u64> = (0..domain_size).collect();
+    loop {
+        orders.push(current.clone());
+        if !next_lexicographic_permutation(&mut current) {
+            break;
+        }
+    }
+
+    debug_assert_eq!(orders.len(), members);
+    Ok(ExhaustiveOrderFamily {
+        domain_size,
+        orders,
+    })
+}
+
+fn factorial_with_limit(
+    domain_size: u64,
+    domain_len: usize,
+    max_orders: usize,
+) -> Result<usize, OrderFamilyError> {
+    let mut count = 1usize;
+    for factor in 2..=domain_len {
+        if count > max_orders / factor {
+            return Err(OrderFamilyError::ExhaustiveLimitExceeded {
+                domain_size,
+                max_orders,
+            });
+        }
+        count *= factor;
+    }
+    if count > max_orders {
+        return Err(OrderFamilyError::ExhaustiveLimitExceeded {
+            domain_size,
+            max_orders,
+        });
+    }
+    Ok(count)
+}
+
+fn next_lexicographic_permutation(values: &mut [u64]) -> bool {
+    let Some(pivot) = (0..values.len().saturating_sub(1))
+        .rev()
+        .find(|&index| values[index] < values[index + 1])
+    else {
+        return false;
+    };
+
+    let successor = ((pivot + 1)..values.len())
+        .rev()
+        .find(|&index| values[pivot] < values[index])
+        .expect("a lexicographic pivot always has a larger suffix element");
+    values.swap(pivot, successor);
+    values[(pivot + 1)..].reverse();
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -195,5 +327,82 @@ mod tests {
         let first = adjacent_transposition_order_family(4, &reference).unwrap();
         let second = adjacent_transposition_order_family(4, &reference).unwrap();
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn exhaustive_three_element_family_is_complete_and_lexicographic() {
+        let family = exhaustive_total_order_family(3, 6).unwrap();
+        assert_eq!(family.domain_size(), 3);
+        assert_eq!(family.order_count(), 6);
+        assert_eq!(
+            family.orders(),
+            &[
+                vec![0, 1, 2],
+                vec![0, 2, 1],
+                vec![1, 0, 2],
+                vec![1, 2, 0],
+                vec![2, 0, 1],
+                vec![2, 1, 0],
+            ]
+        );
+        for order in family.orders() {
+            validate_total_order(3, order).unwrap();
+        }
+    }
+
+    #[test]
+    fn exhaustive_family_contains_no_duplicate_orders() {
+        let family = exhaustive_total_order_family(5, 120).unwrap();
+        let unique: BTreeSet<_> = family.orders().iter().cloned().collect();
+        assert_eq!(unique.len(), family.order_count());
+    }
+
+    #[test]
+    fn exhaustive_family_requires_explicit_factorial_budget() {
+        assert_eq!(
+            exhaustive_total_order_family(4, 23),
+            Err(OrderFamilyError::ExhaustiveLimitExceeded {
+                domain_size: 4,
+                max_orders: 23,
+            })
+        );
+        assert_eq!(
+            exhaustive_total_order_family(4, 24).unwrap().order_count(),
+            24
+        );
+    }
+
+    #[test]
+    fn exhaustive_empty_and_singleton_families_are_exact() {
+        assert_eq!(
+            exhaustive_total_order_family(0, 1).unwrap().orders(),
+            &[Vec::<u64>::new()]
+        );
+        assert_eq!(
+            exhaustive_total_order_family(1, 1).unwrap().orders(),
+            &[vec![0]]
+        );
+        assert_eq!(
+            exhaustive_total_order_family(0, 0),
+            Err(OrderFamilyError::ExhaustiveLimitExceeded {
+                domain_size: 0,
+                max_orders: 0,
+            })
+        );
+    }
+
+    #[test]
+    fn exhaustive_generation_is_deterministic() {
+        let first = exhaustive_total_order_family(5, 120).unwrap();
+        let second = exhaustive_total_order_family(5, 120).unwrap();
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn exhaustive_provenance_survives_until_explicit_consumption() {
+        let family = exhaustive_total_order_family(3, 6).unwrap();
+        assert_eq!(family.domain_size(), 3);
+        assert_eq!(family.order_count(), 6);
+        assert_eq!(family.into_orders().len(), 6);
     }
 }
