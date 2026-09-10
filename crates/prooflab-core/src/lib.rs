@@ -27,6 +27,7 @@ mod eso_eval;
 mod fo;
 mod fo_eval;
 mod formal;
+mod graph_lfp_controls;
 mod lfp;
 mod lfp_eval;
 mod lfp_scope;
@@ -77,6 +78,9 @@ pub use eso_eval::{
 pub use fo::{FoAtom, FoFormula, FoValidationError, Variable};
 pub use fo_eval::{FoAssignment, FoEvaluationError, evaluate_ordered, evaluate_unordered};
 pub use formal::{FormalBackend, FormalStatement, FormalStatementId};
+pub use graph_lfp_controls::{
+    LFP_GRAPH_EDGE_RELATION, directed_reachability_lfp, is_strongly_connected_via_lfp,
+};
 pub use lfp::{LfpAtom, LfpBody, LfpDefinition, LfpValidationError};
 pub use lfp_eval::{
     LeastFixedPoint, LfpEvaluationError, evaluate_lfp_ordered, evaluate_lfp_unordered,
