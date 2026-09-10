@@ -83,9 +83,7 @@ fn pure_equality_structure(size: u64) -> FiniteStructure {
 /// # Errors
 ///
 /// Propagates exact EF solver failures, including instrumentation overflow.
-pub fn calibrate_parity_pure_equality(
-    rounds: u32,
-) -> Result<ParityEfCalibration, EfGameError> {
+pub fn calibrate_parity_pure_equality(rounds: u32) -> Result<ParityEfCalibration, EfGameError> {
     let (even_size, odd_size) = calibration_sizes(rounds);
     let even = pure_equality_structure(even_size);
     let odd = pure_equality_structure(odd_size);
@@ -137,15 +135,7 @@ mod tests {
     fn one_more_round_can_expose_a_too_small_pair_outside_the_adapter_contract() {
         let two = pure_equality_structure(2);
         let three = pure_equality_structure(3);
-        assert!(
-            solve_ef_unordered(&two, &three, 2)
-                .unwrap()
-                .duplicator_wins()
-        );
-        assert!(
-            !solve_ef_unordered(&two, &three, 3)
-                .unwrap()
-                .duplicator_wins()
-        );
+        assert!(solve_ef_unordered(&two, &three, 2).unwrap().duplicator_wins());
+        assert!(!solve_ef_unordered(&two, &three, 3).unwrap().duplicator_wins());
     }
 }
