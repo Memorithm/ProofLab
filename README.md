@@ -28,11 +28,8 @@ ProofLab/
     prooflab-lean/       trusted Lean invocation boundary
   ProofLab/
     Core/                Lean definitions and trusted smoke fixtures
-    Corpus/              future formal theorem corpus
-    Experiments/         future formal experiment modules
-  experiments/
-    PL-0/                trust/reproducibility infrastructure
-    PL-1/                known-theorem and false-conjecture controls
+    Descriptive/         finite-model-theory and descriptive-complexity substrate
+  experiments/           preregistered/calibration research artifacts
   adapters/              future SciRust/TDI/Riemann bridges
   docs/
 ```
@@ -45,7 +42,7 @@ Proof status and reproducibility are separate dimensions.
 
 A run may be `L3` bit-reproducible and still compute a false statement. Conversely, successful Lean verification is a mathematical status; the corresponding environment and artifact still need reproducibility metadata.
 
-The first end-to-end target is:
+The end-to-end trust path is:
 
 ```text
 Claim -> FormalStatement -> VerificationJob -> Lean -> KernelResult -> ProofArtifact
@@ -87,7 +84,23 @@ Combined:
 
 ## Research status
 
-ProofLab is at **PL-0 bootstrap**. The repository currently establishes the trust boundary and initial executable substrate; it does not claim autonomous theorem discovery or new mathematical results.
+ProofLab is beyond its original PL-0 bootstrap, but it remains a research substrate rather than a source of new complexity-theoretic claims.
+
+Current `main` includes:
+
+- stable claim/formal-statement/proof-artifact and reproducibility types;
+- the configured Lean verification boundary and fresh-kernel qualification path;
+- finite relational and ordered structures;
+- FO syntax/evaluation with syntactic quantifier rank and distinct-variable count;
+- ESO syntax/evaluation and a finite Hamiltonian-cycle calibration;
+- monotone LFP syntax/evaluation with reachability and SCC controls;
+- exact finite EF, pebble, and bijective-pebble game oracles;
+- oblivious Weisfeiler-Leman comparison;
+- deterministic CFI construction and unordered/ordered calibration utilities, including order-sensitivity searches.
+
+These facilities are controls and calibration infrastructure. CFI, WL/pebble indistinguishability, solver output, experiments, numerical evidence, and failed counterexample searches are never promoted to proof status. Only an artifact accepted by the configured formal kernel may be classified as `PROVED`.
+
+The PL-DC programme uses this substrate to study finite ordered FO/ESO/LFP, model-comparison games, CFI calibration, and order robustness. It does **not** claim a proof of `P = NP`, `P != NP`, Immerman-Vardi, Fagin's theorem, or a new lower bound merely from finite experiments.
 
 ## Non-claims
 
@@ -97,5 +110,6 @@ ProofLab does not claim that:
 - absence of a found counterexample establishes truth;
 - an LLM can certify a theorem;
 - an external solver result is automatically kernel-verified;
-- the current bootstrap is a novel theorem-proving algorithm;
+- CFI, WL, EF, pebble-game, or order-sensitivity calibration establishes `P = NP` or `P != NP`;
+- the current substrate is itself a novel theorem-proving algorithm;
 - any future result generalizes beyond its recorded assumptions and proof artifact.
