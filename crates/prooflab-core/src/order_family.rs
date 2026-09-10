@@ -351,6 +351,13 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_family_contains_no_duplicate_orders() {
+        let family = exhaustive_total_order_family(5, 120).unwrap();
+        let unique: BTreeSet<_> = family.orders().iter().cloned().collect();
+        assert_eq!(unique.len(), family.order_count());
+    }
+
+    #[test]
     fn exhaustive_family_requires_explicit_factorial_budget() {
         assert_eq!(
             exhaustive_total_order_family(4, 23),
