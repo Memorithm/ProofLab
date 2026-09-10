@@ -117,7 +117,7 @@ structure PositiveLfpDefinition (σ : RelationalVocabulary) (arity : Nat) where
   parameters : Fin arity → Variable
   parameters_injective : Function.Injective parameters
   body : PositiveLfpBody σ arity
-  scoped : PositiveLfpBody.freeVariables body ⊆ Finset.univ.image parameters
+  free_variables_scoped : PositiveLfpBody.freeVariables body ⊆ Finset.univ.image parameters
 
 namespace PositiveLfpDefinition
 
@@ -130,7 +130,7 @@ def parameterVariables {σ : RelationalVocabulary} {arity : Nat}
 theorem freeVariables_subset_parameters {σ : RelationalVocabulary} {arity : Nat}
     (definition : PositiveLfpDefinition σ arity) :
     definition.body.freeVariables ⊆ definition.parameterVariables := by
-  exact definition.scoped
+  exact definition.free_variables_scoped
 
 end PositiveLfpDefinition
 
