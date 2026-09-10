@@ -135,7 +135,15 @@ mod tests {
     fn one_more_round_can_expose_a_too_small_pair_outside_the_adapter_contract() {
         let two = pure_equality_structure(2);
         let three = pure_equality_structure(3);
-        assert!(solve_ef_unordered(&two, &three, 2).unwrap().duplicator_wins());
-        assert!(!solve_ef_unordered(&two, &three, 3).unwrap().duplicator_wins());
+        assert!(
+            solve_ef_unordered(&two, &three, 2)
+                .unwrap()
+                .duplicator_wins()
+        );
+        assert!(
+            !solve_ef_unordered(&two, &three, 3)
+                .unwrap()
+                .duplicator_wins()
+        );
     }
 }
