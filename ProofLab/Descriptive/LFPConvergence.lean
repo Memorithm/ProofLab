@@ -18,7 +18,7 @@ of `Fin n`.
 theorem exists_stable_approximant_le_card {n : Nat} (op : LfpOperator n) :
     ∃ k ≤ n, op.approximant k = op.approximant (k + 1) := by
   by_contra hstable
-  push_neg at hstable
+  push Not at hstable
   have hstrict : ∀ k, k ≤ n →
       (op.approximant k).card < (op.approximant (k + 1)).card := by
     intro k hk
@@ -40,7 +40,10 @@ theorem exists_stable_approximant_le_card {n : Nat} (op : LfpOperator n) :
   have hcarrier_bound : (op.approximant (n + 1)).card ≤ n := by
     have hsubset : op.approximant (n + 1) ⊆ (Finset.univ : Finset (Fin n)) :=
       Finset.subset_univ _
-    simpa using Finset.card_le_card hsubset
+    calc
+      (op.approximant (n + 1)).card ≤ (Finset.univ : Finset (Fin n)).card :=
+        Finset.card_le_card hsubset
+      _ = n := by simp [Fintype.card_fin]
   omega
 
 /--
