@@ -3,9 +3,9 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::canonical::{Canonical, CanonicalEncoder, sha256_bytes, sha256_canonical};
-use crate::{FormalBackend, FormalStatement, FormalStatementId, ReproMeta};
+use crate::{FormalBackend, FormalStatement, FormalStatementId, ProofArtifactId, ReproMeta};
 
-const VERIFICATION_JOB_DOMAIN: &[u8] = b"prooflab-verification-job:v1\0";
+const VERIFICATION_JOB_DOMAIN: &[u8] = b"prooflab-verification-job:v2\0";
 
 /// Stable identity of an immutable trusted-kernel verification request.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -18,6 +18,7 @@ pub struct VerificationJob {
     pub formal_statement_id: FormalStatementId,
     pub backend: FormalBackend,
     pub proof_source_digest: [u8; 32],
+    pub dependencies: Vec<ProofArtifactId>,
     pub invocation: String,
     pub repro: ReproMeta,
 }
@@ -27,6 +28,7 @@ struct VerificationJobBody {
     formal_statement_id: FormalStatementId,
     backend: FormalBackend,
     proof_source_digest: [u8; 32],
+    dependencies: Vec<ProofArtifactId>,
     invocation: String,
     repro: ReproMeta,
 }
@@ -56,7 +58,7 @@ impl fmt::Display for VerificationJobError {
 impl std::error::Error for VerificationJobError {}
 
 impl VerificationJob {
-    /// Build a content-addressed kernel verification request.
+    /// Build a content-addressed kernel verification request with no prior proof dependencies.
     ///
     /// This does not execute Lean and cannot confer `PROVED` status. A later
     /// kernel receipt must still be accepted by [`crate::ProofArtifact::new_verified`].
@@ -73,6 +75,26 @@ impl VerificationJob {
         invocation: impl Into<String>,
         repro: ReproMeta,
     ) -> Result<Self, VerificationJobError> {
+        Self::new_with_dependencies(formal, proof_source, Vec::new(), invocation, repro)
+    }
+
+    /// Build a content-addressed kernel verification request whose identity also
+    /// binds the normalized set of prerequisite proof artifacts.
+    ///
+    /// Dependencies are sorted and deduplicated before identity calculation so
+    /// callers cannot create distinct job identities by reordering equivalent
+    /// prerequisite sets.
+    ///
+    /// # Errors
+    ///
+    /// The same integrity and reproducibility checks as [`Self::new`] apply.
+    pub fn new_with_dependencies(
+        formal: &FormalStatement,
+        proof_source: &[u8],
+        mut dependencies: Vec<ProofArtifactId>,
+        invocation: impl Into<String>,
+        repro: ReproMeta,
+    ) -> Result<Self, VerificationJobError> {
         if !formal.check_id() {
             return Err(VerificationJobError::FormalStatementIntegrity);
         }
@@ -81,10 +103,13 @@ impl VerificationJob {
             return Err(VerificationJobError::EmptyInvocation);
         }
         validate_repro(&repro)?;
+        dependencies.sort_unstable();
+        dependencies.dedup();
         let body = VerificationJobBody {
             formal_statement_id: formal.id,
             backend: formal.backend,
             proof_source_digest: sha256_bytes(proof_source),
+            dependencies,
             invocation,
             repro,
         };
@@ -93,6 +118,7 @@ impl VerificationJob {
             formal_statement_id: body.formal_statement_id,
             backend: body.backend,
             proof_source_digest: body.proof_source_digest,
+            dependencies: body.dependencies,
             invocation: body.invocation,
             repro: body.repro,
         })
@@ -104,6 +130,7 @@ impl VerificationJob {
             formal_statement_id: self.formal_statement_id,
             backend: self.backend,
             proof_source_digest: self.proof_source_digest,
+            dependencies: self.dependencies.clone(),
             invocation: self.invocation.clone(),
             repro: self.repro.clone(),
         };
@@ -141,6 +168,7 @@ impl Canonical for VerificationJobBody {
         encoder.value(&self.formal_statement_id);
         encoder.value(&self.backend);
         encoder.value(&self.proof_source_digest);
+        encoder.value(&self.dependencies);
         encoder.value(&self.invocation);
         encoder.value(&self.repro);
     }
@@ -181,10 +209,11 @@ mod tests {
         assert!(a.check_id());
         assert!(a.matches_proof_source(b"by rfl"));
         assert!(!a.matches_proof_source(b"by simp"));
+        assert!(a.dependencies.is_empty());
     }
 
     #[test]
-    fn proof_source_or_invocation_changes_job_identity() {
+    fn proof_source_invocation_or_dependencies_change_job_identity() {
         let formal = formal();
         let a =
             VerificationJob::new(&formal, b"by rfl", "lake env lean A.lean", repro()).expect("job");
@@ -192,8 +221,43 @@ mod tests {
             .expect("job");
         let c =
             VerificationJob::new(&formal, b"by rfl", "lake env lean B.lean", repro()).expect("job");
+        let dependency = ProofArtifactId([7; 32]);
+        let d = VerificationJob::new_with_dependencies(
+            &formal,
+            b"by rfl",
+            vec![dependency],
+            "lake env lean A.lean",
+            repro(),
+        )
+        .expect("job");
         assert_ne!(a.id, b.id);
         assert_ne!(a.id, c.id);
+        assert_ne!(a.id, d.id);
+    }
+
+    #[test]
+    fn dependencies_are_normalized_before_identity() {
+        let formal = formal();
+        let a = ProofArtifactId([1; 32]);
+        let b = ProofArtifactId([2; 32]);
+        let first = VerificationJob::new_with_dependencies(
+            &formal,
+            b"by rfl",
+            vec![b, a, a],
+            "lake env lean A.lean",
+            repro(),
+        )
+        .expect("job");
+        let second = VerificationJob::new_with_dependencies(
+            &formal,
+            b"by rfl",
+            vec![a, b],
+            "lake env lean A.lean",
+            repro(),
+        )
+        .expect("job");
+        assert_eq!(first, second);
+        assert_eq!(first.dependencies, vec![a, b]);
     }
 
     #[test]
