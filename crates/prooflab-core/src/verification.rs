@@ -44,7 +44,10 @@ impl fmt::Display for VerificationJobError {
             Self::FormalStatementIntegrity => write!(formatter, "formal statement id mismatch"),
             Self::EmptyInvocation => write!(formatter, "kernel invocation is empty"),
             Self::MissingReproField(field) => {
-                write!(formatter, "required reproducibility field is empty: {field}")
+                write!(
+                    formatter,
+                    "required reproducibility field is empty: {field}"
+                )
             }
         }
     }
@@ -163,20 +166,10 @@ mod tests {
     #[test]
     fn verification_job_is_deterministic_and_source_bound() {
         let formal = formal();
-        let a = VerificationJob::new(
-            &formal,
-            b"by rfl",
-            "lake env lean Main.lean",
-            repro(),
-        )
-        .expect("job");
-        let b = VerificationJob::new(
-            &formal,
-            b"by rfl",
-            "lake env lean Main.lean",
-            repro(),
-        )
-        .expect("job");
+        let a = VerificationJob::new(&formal, b"by rfl", "lake env lean Main.lean", repro())
+            .expect("job");
+        let b = VerificationJob::new(&formal, b"by rfl", "lake env lean Main.lean", repro())
+            .expect("job");
         assert_eq!(a, b);
         assert!(a.check_id());
         assert!(a.matches_proof_source(b"by rfl"));
@@ -186,12 +179,12 @@ mod tests {
     #[test]
     fn proof_source_or_invocation_changes_job_identity() {
         let formal = formal();
-        let a = VerificationJob::new(&formal, b"by rfl", "lake env lean A.lean", repro())
-            .expect("job");
+        let a =
+            VerificationJob::new(&formal, b"by rfl", "lake env lean A.lean", repro()).expect("job");
         let b = VerificationJob::new(&formal, b"by simp", "lake env lean A.lean", repro())
             .expect("job");
-        let c = VerificationJob::new(&formal, b"by rfl", "lake env lean B.lean", repro())
-            .expect("job");
+        let c =
+            VerificationJob::new(&formal, b"by rfl", "lake env lean B.lean", repro()).expect("job");
         assert_ne!(a.id, b.id);
         assert_ne!(a.id, c.id);
     }
@@ -210,9 +203,7 @@ mod tests {
                 "lake env lean A.lean",
                 ReproMeta::bootstrap("env"),
             ),
-            Err(VerificationJobError::MissingReproField(
-                "prooflab_revision"
-            ))
+            Err(VerificationJobError::MissingReproField("prooflab_revision"))
         );
     }
 }
