@@ -1,8 +1,9 @@
 //! Explicit process boundary to the configured Lean environment.
 //!
 //! A successful process result is necessary for kernel acceptance. The higher
-//! level [`LeanKernel::verify_job`] path additionally checks formal-source
-//! integrity and emits a [`prooflab_core::ProofArtifact`] only after acceptance.
+//! level [`LeanKernel::verify_job`] path additionally checks the content-addressed
+//! core verification contract, formal-source integrity, and emits a
+//! [`prooflab_core::ProofArtifact`] only after acceptance.
 
 #![forbid(unsafe_code)]
 
@@ -13,37 +14,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use prooflab_core::{
-    FormalBackend, FormalStatement, KernelReceipt, ProofArtifact, ProofArtifactError,
-    ProofArtifactId, ReproMeta, sha256_bytes,
+    FormalBackend, FormalStatement, KernelReceipt, ProofArtifact, ProofArtifactError, sha256_bytes,
 };
+pub use prooflab_core::VerificationJob;
 
 const LEAN_INVOCATION: &str = "lake env lean";
-
-/// A verification request binding an exact formal statement to a source file.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VerificationJob {
-    pub formal_statement: FormalStatement,
-    pub source: PathBuf,
-    pub dependencies: Vec<ProofArtifactId>,
-}
-
-impl VerificationJob {
-    /// Create a verification job with normalized proof dependencies.
-    #[must_use]
-    pub fn new(
-        formal_statement: FormalStatement,
-        source: impl Into<PathBuf>,
-        mut dependencies: Vec<ProofArtifactId>,
-    ) -> Self {
-        dependencies.sort_unstable();
-        dependencies.dedup();
-        Self {
-            formal_statement,
-            source: source.into(),
-            dependencies,
-        }
-    }
-}
 
 /// Raw normalized result returned by the Lean process boundary.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,7 +42,11 @@ pub struct VerificationOutcome {
 #[derive(Debug)]
 pub enum VerificationError {
     Io(std::io::Error),
+    VerificationJobIntegrity,
     FormalStatementIntegrity,
+    FormalStatementMismatch,
+    BackendMismatch,
+    InvocationMismatch,
     SourceDigestMismatch,
     ProofArtifact(ProofArtifactError),
 }
@@ -76,10 +55,22 @@ impl fmt::Display for VerificationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(error) => write!(formatter, "Lean verification I/O error: {error}"),
+            Self::VerificationJobIntegrity => {
+                write!(formatter, "content-addressed verification job id mismatch")
+            }
             Self::FormalStatementIntegrity => write!(formatter, "formal statement id mismatch"),
+            Self::FormalStatementMismatch => write!(
+                formatter,
+                "verification job formal statement does not match supplied formal statement"
+            ),
+            Self::BackendMismatch => write!(formatter, "verification job is not for the Lean backend"),
+            Self::InvocationMismatch => write!(
+                formatter,
+                "verification job invocation does not match the pinned Lean kernel contract"
+            ),
             Self::SourceDigestMismatch => write!(
                 formatter,
-                "Lean source digest does not match formal statement"
+                "Lean source digest does not match the formal statement and verification job"
             ),
             Self::ProofArtifact(error) => {
                 write!(formatter, "proof artifact construction failed: {error}")
@@ -93,7 +84,12 @@ impl std::error::Error for VerificationError {
         match self {
             Self::Io(error) => Some(error),
             Self::ProofArtifact(error) => Some(error),
-            Self::FormalStatementIntegrity | Self::SourceDigestMismatch => None,
+            Self::VerificationJobIntegrity
+            | Self::FormalStatementIntegrity
+            | Self::FormalStatementMismatch
+            | Self::BackendMismatch
+            | Self::InvocationMismatch
+            | Self::SourceDigestMismatch => None,
         }
     }
 }
@@ -164,44 +160,63 @@ impl LeanKernel {
         })
     }
 
-    /// Verify a source-bound job and create a proof artifact only on acceptance.
+    /// Verify a content-addressed core job against an exact formal statement and source file.
     ///
-    /// A rejected Lean process returns `Ok(VerificationOutcome { proof: None, .. })`.
-    /// It never becomes a proof artifact.
+    /// The core job is the authoritative request identity. The filesystem path is
+    /// execution plumbing only: its bytes must match both the formal statement and
+    /// the job's proof-source digest before Lean is invoked. A rejected Lean process
+    /// returns `Ok(VerificationOutcome { proof: None, .. })`; it never becomes a
+    /// proof artifact.
     ///
     /// # Errors
     ///
-    /// Fails before kernel invocation when the formal statement id or source
-    /// digest is inconsistent. I/O failures and proof-artifact invariant failures
-    /// are also surfaced explicitly.
+    /// Fails before kernel invocation when the job identity, formal statement,
+    /// backend, invocation, or source binding is inconsistent. I/O failures and
+    /// proof-artifact invariant failures are surfaced explicitly.
     pub fn verify_job(
         &self,
         job: &VerificationJob,
-        repro: ReproMeta,
+        formal_statement: &FormalStatement,
+        source: impl AsRef<Path>,
     ) -> Result<VerificationOutcome, VerificationError> {
-        if !job.formal_statement.check_id() {
+        if !job.check_id() {
+            return Err(VerificationError::VerificationJobIntegrity);
+        }
+        if !formal_statement.check_id() {
             return Err(VerificationError::FormalStatementIntegrity);
         }
-        let source_bytes = fs::read(&job.source)?;
-        if !job.formal_statement.matches_source(&source_bytes) {
+        if job.formal_statement_id != formal_statement.id {
+            return Err(VerificationError::FormalStatementMismatch);
+        }
+        if job.backend != FormalBackend::Lean4 || formal_statement.backend != FormalBackend::Lean4 {
+            return Err(VerificationError::BackendMismatch);
+        }
+        if job.invocation != LEAN_INVOCATION {
+            return Err(VerificationError::InvocationMismatch);
+        }
+
+        let source = source.as_ref();
+        let source_bytes = fs::read(source)?;
+        if !formal_statement.matches_source(&source_bytes) || !job.matches_proof_source(&source_bytes)
+        {
             return Err(VerificationError::SourceDigestMismatch);
         }
 
-        let result = self.verify_file(&job.source)?;
+        let result = self.verify_file(source)?;
         let proof = if result.accepted {
             let receipt = KernelReceipt::new(
-                FormalBackend::Lean4,
-                LEAN_INVOCATION,
+                job.backend,
+                job.invocation.clone(),
                 true,
                 result.exit_code,
                 result.stdout_digest,
                 result.stderr_digest,
             );
             Some(ProofArtifact::new_verified(
-                &job.formal_statement,
+                formal_statement,
                 &source_bytes,
                 job.dependencies.clone(),
-                repro,
+                job.repro.clone(),
                 receipt,
             )?)
         } else {
@@ -234,6 +249,12 @@ mod tests {
 
     use super::*;
 
+    fn repro() -> ReproMeta {
+        let mut repro = ReproMeta::bootstrap("test-environment");
+        repro.prooflab_revision = "test-revision".into();
+        repro
+    }
+
     #[test]
     fn default_boundary_uses_lake() {
         assert_eq!(LeanKernel::default().lake_binary, PathBuf::from("lake"));
@@ -258,13 +279,31 @@ mod tests {
             parents: vec![],
         });
         let formal = FormalStatement::lean4(claim.id, b"different source", vec![]);
-        let job = VerificationJob::new(formal, source, vec![]);
-        let mut repro = ReproMeta::bootstrap("test-environment");
-        repro.prooflab_revision = "test-revision".into();
+        let job = VerificationJob::new(&formal, b"different source", LEAN_INVOCATION, repro()).unwrap();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
-            kernel.verify_job(&job, repro),
+            kernel.verify_job(&job, &formal, source),
             Err(VerificationError::SourceDigestMismatch)
+        ));
+    }
+
+    #[test]
+    fn tampered_core_job_fails_before_kernel_invocation() {
+        let source =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ProofLab/Core/Smoke.lean");
+        let source_bytes = fs::read(&source).unwrap();
+        let claim = Claim::new(ClaimBody {
+            statement: "forall n : Nat, n = n".into(),
+            assumptions: vec![],
+            parents: vec![],
+        });
+        let formal = FormalStatement::lean4(claim.id, &source_bytes, vec!["Mathlib".into()]);
+        let mut job = VerificationJob::new(&formal, &source_bytes, LEAN_INVOCATION, repro()).unwrap();
+        job.invocation = "lean directly".into();
+        let kernel = LeanKernel::new("this-command-must-not-run");
+        assert!(matches!(
+            kernel.verify_job(&job, &formal, source),
+            Err(VerificationError::VerificationJobIntegrity)
         ));
     }
 }
