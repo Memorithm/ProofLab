@@ -60,6 +60,13 @@ impl VerificationJob {
     ///
     /// This does not execute Lean and cannot confer `PROVED` status. A later
     /// kernel receipt must still be accepted by [`crate::ProofArtifact::new_verified`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`VerificationJobError::FormalStatementIntegrity`] when the
+    /// formal statement identity is inconsistent, [`VerificationJobError::EmptyInvocation`]
+    /// for a blank kernel invocation, or [`VerificationJobError::MissingReproField`]
+    /// when required reproducibility metadata is absent.
     pub fn new(
         formal: &FormalStatement,
         proof_source: &[u8],
