@@ -13,10 +13,10 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+pub use prooflab_core::VerificationJob;
 use prooflab_core::{
     FormalBackend, FormalStatement, KernelReceipt, ProofArtifact, ProofArtifactError, sha256_bytes,
 };
-pub use prooflab_core::VerificationJob;
 
 const LEAN_INVOCATION: &str = "lake env lean";
 
@@ -63,7 +63,9 @@ impl fmt::Display for VerificationError {
                 formatter,
                 "verification job formal statement does not match supplied formal statement"
             ),
-            Self::BackendMismatch => write!(formatter, "verification job is not for the Lean backend"),
+            Self::BackendMismatch => {
+                write!(formatter, "verification job is not for the Lean backend")
+            }
             Self::InvocationMismatch => write!(
                 formatter,
                 "verification job invocation does not match the pinned Lean kernel contract"
@@ -197,7 +199,8 @@ impl LeanKernel {
 
         let source = source.as_ref();
         let source_bytes = fs::read(source)?;
-        if !formal_statement.matches_source(&source_bytes) || !job.matches_proof_source(&source_bytes)
+        if !formal_statement.matches_source(&source_bytes)
+            || !job.matches_proof_source(&source_bytes)
         {
             return Err(VerificationError::SourceDigestMismatch);
         }
@@ -279,7 +282,8 @@ mod tests {
             parents: vec![],
         });
         let formal = FormalStatement::lean4(claim.id, b"different source", vec![]);
-        let job = VerificationJob::new(&formal, b"different source", LEAN_INVOCATION, repro()).unwrap();
+        let job =
+            VerificationJob::new(&formal, b"different source", LEAN_INVOCATION, repro()).unwrap();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
             kernel.verify_job(&job, &formal, source),
@@ -298,7 +302,8 @@ mod tests {
             parents: vec![],
         });
         let formal = FormalStatement::lean4(claim.id, &source_bytes, vec!["Mathlib".into()]);
-        let mut job = VerificationJob::new(&formal, &source_bytes, LEAN_INVOCATION, repro()).unwrap();
+        let mut job =
+            VerificationJob::new(&formal, &source_bytes, LEAN_INVOCATION, repro()).unwrap();
         job.invocation = "lean directly".into();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
