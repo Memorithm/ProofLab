@@ -90,8 +90,14 @@ fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
         .proof
         .expect("an accepted Lean theorem must produce a proof artifact");
     assert!(proof.check_id());
-    assert_eq!(proof.body.formal_statement_id, accepted_job.formal_statement_id);
-    assert_eq!(proof.body.proof_source_digest, accepted_job.proof_source_digest);
+    assert_eq!(
+        proof.body.formal_statement_id,
+        accepted_job.formal_statement_id
+    );
+    assert_eq!(
+        proof.body.proof_source_digest,
+        accepted_job.proof_source_digest
+    );
     assert_eq!(proof.body.dependencies, accepted_job.dependencies);
     assert_eq!(proof.body.repro, accepted_job.repro);
 
