@@ -40,6 +40,7 @@ mod partial_iso;
 mod pebble;
 mod proof;
 mod repro;
+mod verification;
 
 pub use bijective_pebble::{
     BijectivePebbleGameError, BijectivePebbleGameResult, solve_bijective_pebble_ordered,
@@ -112,3 +113,4 @@ pub use proof::{
     KernelReceipt, ProofArtifact, ProofArtifactBody, ProofArtifactError, ProofArtifactId,
 };
 pub use repro::ReproMeta;
+pub use verification::{VerificationJob, VerificationJobError, VerificationJobId};
