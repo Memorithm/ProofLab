@@ -1,9 +1,11 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use prooflab_core::{Claim, ClaimBody, FormalStatement, ReproMeta};
-use prooflab_lean::{LeanKernel, VerificationJob};
+use prooflab_core::{Claim, ClaimBody, FormalStatement, ReproMeta, VerificationJob};
+use prooflab_lean::LeanKernel;
 use prooflab_store::{MemoryProofStore, ProofStore};
+
+const LEAN_INVOCATION: &str = "lake env lean";
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -53,18 +55,27 @@ fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
         vec!["Mathlib".into()],
     );
 
+    let accepted_job = VerificationJob::new(
+        &accepted_formal,
+        &accepted_source,
+        LEAN_INVOCATION,
+        repro_meta(),
+    )
+    .unwrap();
+    let rejected_job = VerificationJob::new(
+        &rejected_formal,
+        rejected_source,
+        LEAN_INVOCATION,
+        repro_meta(),
+    )
+    .unwrap();
+
     let kernel = LeanKernel::default();
     let accepted = kernel
-        .verify_job(
-            &VerificationJob::new(accepted_formal, &accepted_path, vec![]),
-            repro_meta(),
-        )
+        .verify_job(&accepted_job, &accepted_formal, &accepted_path)
         .unwrap();
     let rejected = kernel
-        .verify_job(
-            &VerificationJob::new(rejected_formal, &rejected_path, vec![]),
-            repro_meta(),
-        )
+        .verify_job(&rejected_job, &rejected_formal, &rejected_path)
         .unwrap();
 
     fs::remove_file(&rejected_path).unwrap();
@@ -79,6 +90,16 @@ fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
         .proof
         .expect("an accepted Lean theorem must produce a proof artifact");
     assert!(proof.check_id());
+    assert_eq!(
+        proof.body.formal_statement_id,
+        accepted_job.formal_statement_id
+    );
+    assert_eq!(
+        proof.body.proof_source_digest,
+        accepted_job.proof_source_digest
+    );
+    assert_eq!(proof.body.dependencies, accepted_job.dependencies);
+    assert_eq!(proof.body.repro, accepted_job.repro);
 
     let mut store = MemoryProofStore::default();
     let stored_id = store.put(&proof).unwrap();
