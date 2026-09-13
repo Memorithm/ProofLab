@@ -30,6 +30,7 @@ ProofLab/
     prooflab-fs-store/   durable filesystem backend for verified proofs
   ProofLab/
     Core/                Lean definitions and trusted smoke fixtures
+    Corpus/              PL-1.0 known-theorem reproduction fixtures
     Descriptive/         finite-model-theory and descriptive-complexity substrate
   experiments/           preregistered/calibration research artifacts
   adapters/              future SciRust/TDI/Riemann bridges
@@ -88,10 +89,11 @@ Combined:
 
 ProofLab is beyond its original PL-0 bootstrap, but it remains a research substrate rather than a source of new complexity-theoretic claims.
 
-Current `main` includes:
+Current substrate includes:
 
 - stable claim/formal-statement/proof-artifact and reproducibility types;
 - the configured Lean verification boundary and fresh-kernel qualification path;
+- PL-1.0 known-theorem corpus orchestration (verification correctness only; no novelty claims);
 - finite relational and ordered structures;
 - FO syntax/evaluation with syntactic quantifier rank and distinct-variable count;
 - ESO syntax/evaluation and a finite Hamiltonian-cycle calibration;
@@ -114,4 +116,5 @@ ProofLab does not claim that:
 - an external solver result is automatically kernel-verified;
 - CFI, WL, EF, pebble-game, or order-sensitivity calibration establishes `P = NP` or `P != NP`;
 - the current substrate is itself a novel theorem-proving algorithm;
+- reproducing known theorems in the PL-1.0 corpus establishes mathematical novelty;
 - any future result generalizes beyond its recorded assumptions and proof artifact.
