@@ -24,8 +24,8 @@ The initial proof kernel is Lean. The architecture must permit future proof back
 ```text
 ProofLab/
   crates/
-    prooflab-core/       claim identity, lifecycle, reproducibility, env lock / reproduce
-    prooflab-lean/       trusted Lean invocation boundary (lock-aware verify/reproduce)
+    prooflab-core/       claim identity, lifecycle, reproducibility, env lock / reproduce, cheap falsify
+    prooflab-lean/       trusted Lean invocation boundary (lock-aware verify/reproduce, corpus, false conjectures)
     prooflab-store/      content-addressed proof artifact store + provenance queries
     prooflab-fs-store/   durable filesystem backend for verified proofs
   ProofLab/
@@ -48,8 +48,10 @@ A run may be `L3` bit-reproducible and still compute a false statement. Converse
 The end-to-end trust path is:
 
 ```text
-Claim -> FormalStatement -> VerificationJob -> Lean -> KernelResult -> ProofArtifact
+Claim -> (cheap falsify?) -> FormalStatement -> VerificationJob -> Lean -> KernelResult -> ProofArtifact
 ```
+
+Cheap falsification may terminate at `FALSIFIED` before proof search. Only Lean acceptance seals `PROVED`.
 
 ## SciRust / SOS reuse
 
@@ -94,6 +96,7 @@ Current substrate includes:
 - stable claim/formal-statement/proof-artifact and reproducibility types;
 - the configured Lean verification boundary and fresh-kernel qualification path;
 - PL-1.0 known-theorem corpus orchestration (verification correctness only; no novelty claims);
+- PL-1.1 controlled false-conjecture falsification (cheap Nat counterexamples block proof-search promotion; no novelty claims);
 - finite relational and ordered structures;
 - FO syntax/evaluation with syntactic quantifier rank and distinct-variable count;
 - ESO syntax/evaluation and a finite Hamiltonian-cycle calibration;
@@ -117,4 +120,5 @@ ProofLab does not claim that:
 - CFI, WL, EF, pebble-game, or order-sensitivity calibration establishes `P = NP` or `P != NP`;
 - the current substrate is itself a novel theorem-proving algorithm;
 - reproducing known theorems in the PL-1.0 corpus establishes mathematical novelty;
+- rejecting controlled false conjectures in PL-1.1 establishes discovery capability or completeness of falsification;
 - any future result generalizes beyond its recorded assumptions and proof artifact.

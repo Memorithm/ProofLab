@@ -29,11 +29,11 @@ The two dimensions must never be conflated.
 
 ### `prooflab-core`
 
-Owns immutable claim content, deterministic claim identity, claim lifecycle vocabulary, reproducibility metadata, content-addressed environment locks, drift reports and library `reproduce` checks (integrity + lock binding). Reproduce success is not proof status.
+Owns immutable claim content, deterministic claim identity, claim lifecycle vocabulary, reproducibility metadata, content-addressed environment locks, drift reports and library `reproduce` checks (integrity + lock binding). Reproduce success is not proof status. The PL-1.1 `falsify` module owns a restricted Nat expression evaluator and content-addressed counterexample / falsification records that may justify `FALSIFIED` only.
 
 ### `prooflab-lean`
 
-Owns the process boundary `lake env lean <file>`. It does not decide scientific meaning. It returns a normalized kernel-process result which higher layers will seal into a proof artifact with exact digests. Lock-aware verification and kernel-backed `reproduce` refuse to proceed under environment drift; only `ProofArtifact::new_verified` after Lean acceptance seals proof status. The PL-1.0 `corpus` module wires claims and formal statements to known Lean fixtures and measures accept/reject correctness without novelty claims.
+Owns the process boundary `lake env lean <file>`. It does not decide scientific meaning. It returns a normalized kernel-process result which higher layers will seal into a proof artifact with exact digests. Lock-aware verification and kernel-backed `reproduce` refuse to proceed under environment drift; only `ProofArtifact::new_verified` after Lean acceptance seals proof status. The PL-1.0 `corpus` module wires claims and formal statements to known Lean fixtures and measures accept/reject correctness without novelty claims. The PL-1.1 `false_conjectures` module runs cheap falsification first and refuses proof-search promotion for intentionally false controls; falsification never seals `PROVED`.
 
 ### Lean library
 
@@ -46,7 +46,7 @@ The next justified crates are expected to be:
 - `prooflab-store`: content-addressed claim/proof artifact store;
 - `prooflab-provenance`: dependency DAG and ancestry/impact queries;
 - `prooflab-runner`: verification jobs, environment capture and artifact sealing;
-- `prooflab-counterexample`: deterministic/sound falsification adapters;
+- `prooflab-counterexample`: broader deterministic/sound falsification adapters (PL-1.1 Nat subset lives in `prooflab-core::falsify` until a dedicated crate is justified);
 - `prooflab-search`: untrusted proof/conjecture strategy orchestration;
 - `prooflab-cli`: user/agent entry point.
 
