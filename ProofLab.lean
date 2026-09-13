@@ -1,4 +1,8 @@
 import ProofLab.Core.Smoke
+import ProofLab.Corpus.NatIdentity
+import ProofLab.Corpus.NatDecide
+import ProofLab.Corpus.NatAddZero
+import ProofLab.Corpus.NatCases
 import ProofLab.Descriptive.FiniteStructure
 import ProofLab.Descriptive.FO
 import ProofLab.Descriptive.FOSentence

@@ -12,6 +12,8 @@
 
 #![forbid(unsafe_code)]
 
+mod corpus;
+
 use std::collections::BTreeSet;
 use std::fmt;
 use std::fs;
@@ -20,6 +22,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub use prooflab_core::VerificationJob;
+
+pub use corpus::{
+    CorpusEntry, CorpusError, CorpusPrepared, CorpusRunReport, ExpectedOutcome,
+    KNOWN_THEOREM_CORPUS, prepare_corpus, verify_corpus,
+};
 use prooflab_core::{
     DriftReport, EnvironmentLock, FormalBackend, FormalStatement, KernelReceipt, ProofArtifact,
     ProofArtifactError, ProofArtifactId, ReproduceError as CoreReproduceError, ReproduceOk,

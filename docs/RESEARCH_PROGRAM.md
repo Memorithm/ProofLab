@@ -39,6 +39,13 @@ Status:
 
 Create a corpus of already-known Lean theorems covering several proof shapes. Measure proof verification and orchestration correctness, not mathematical novelty.
 
+Status:
+
+- started: minimal Lean corpus under `ProofLab/Corpus/` with distinct proof shapes (`rfl`, `decide`, `induction`, `cases`) plus an intentional rejection fixture;
+- Rust orchestration in `prooflab-lean::corpus` builds claims / formal statements / `VerificationJob`s and runs them through `LeanKernel` with optional `EnvironmentLock` binding;
+- acceptance requires positive kernel acceptance with sealed `ProofArtifact` and intentional rejection with no artifact;
+- no mathematical novelty claim is permitted at this stage.
+
 ### PL-1.1 — Controlled false conjectures
 
 Inject intentionally false statements with known counterexamples and measure whether cheap falsification routes reject them before proof search.

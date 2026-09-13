@@ -33,11 +33,11 @@ Owns immutable claim content, deterministic claim identity, claim lifecycle voca
 
 ### `prooflab-lean`
 
-Owns the process boundary `lake env lean <file>`. It does not decide scientific meaning. It returns a normalized kernel-process result which higher layers will seal into a proof artifact with exact digests. Lock-aware verification and kernel-backed `reproduce` refuse to proceed under environment drift; only `ProofArtifact::new_verified` after Lean acceptance seals proof status.
+Owns the process boundary `lake env lean <file>`. It does not decide scientific meaning. It returns a normalized kernel-process result which higher layers will seal into a proof artifact with exact digests. Lock-aware verification and kernel-backed `reproduce` refuse to proceed under environment drift; only `ProofArtifact::new_verified` after Lean acceptance seals proof status. The PL-1.0 `corpus` module wires claims and formal statements to known Lean fixtures and measures accept/reject correctness without novelty claims.
 
 ### Lean library
 
-Owns formal definitions, statements and checked proofs. The initial smoke theorem exists only to verify the toolchain path.
+Owns formal definitions, statements and checked proofs. The initial smoke theorem exists only to verify the toolchain path. The PL-1.0 known-theorem corpus under `ProofLab/Corpus/` exercises additional proof shapes for orchestration measurement only.
 
 ## 4. Next substrate increments
 
