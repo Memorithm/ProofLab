@@ -4,9 +4,15 @@
 //! level [`LeanKernel::verify_job`] path additionally checks the content-addressed
 //! core verification contract, formal-source integrity, and emits a
 //! [`prooflab_core::ProofArtifact`] only after acceptance.
+//!
+//! [`LeanKernel::reproduce`] re-checks a stored artifact against an observed
+//! environment lock and may re-invoke Lean under that locked contract.
+//! Reproduction success is not a `PROVED` authorization; only
+//! [`prooflab_core::ProofArtifact::new_verified`] seals proof status.
 
 #![forbid(unsafe_code)]
 
+use std::collections::BTreeSet;
 use std::fmt;
 use std::fs;
 use std::io;
@@ -15,7 +21,9 @@ use std::process::Command;
 
 pub use prooflab_core::VerificationJob;
 use prooflab_core::{
-    FormalBackend, FormalStatement, KernelReceipt, ProofArtifact, ProofArtifactError, sha256_bytes,
+    DriftReport, EnvironmentLock, FormalBackend, FormalStatement, KernelReceipt, ProofArtifact,
+    ProofArtifactError, ProofArtifactId, ReproduceError as CoreReproduceError, ReproduceOk,
+    reproduce as core_reproduce, sha256_bytes,
 };
 
 const LEAN_INVOCATION: &str = "lake env lean";
@@ -38,6 +46,19 @@ pub struct VerificationOutcome {
     pub proof: Option<ProofArtifact>,
 }
 
+/// Successful kernel-backed reproduce outcome.
+///
+/// `environment` confirms integrity + lock binding. `reverified` is present only
+/// when Lean accepted again under the locked contract. A new acceptance still
+/// goes through [`ProofArtifact::new_verified`]; reproduce itself never mutates
+/// claim status.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReproduceOutcome {
+    pub environment: ReproduceOk,
+    pub result: KernelResult,
+    pub reverified: Option<ProofArtifact>,
+}
+
 /// Fail-closed error at the Lean trust boundary.
 #[derive(Debug)]
 pub enum VerificationError {
@@ -48,6 +69,9 @@ pub enum VerificationError {
     BackendMismatch,
     InvocationMismatch,
     SourceDigestMismatch,
+    LockIntegrity,
+    Drift(DriftReport),
+    JobConstruction(String),
     ProofArtifact(ProofArtifactError),
 }
 
@@ -74,6 +98,11 @@ impl fmt::Display for VerificationError {
                 formatter,
                 "Lean source digest does not match the formal statement and verification job"
             ),
+            Self::LockIntegrity => write!(formatter, "environment lock id mismatch"),
+            Self::Drift(report) => write!(formatter, "verification refused due to {report}"),
+            Self::JobConstruction(detail) => {
+                write!(formatter, "verification job construction failed: {detail}")
+            }
             Self::ProofArtifact(error) => {
                 write!(formatter, "proof artifact construction failed: {error}")
             }
@@ -91,7 +120,10 @@ impl std::error::Error for VerificationError {
             | Self::FormalStatementMismatch
             | Self::BackendMismatch
             | Self::InvocationMismatch
-            | Self::SourceDigestMismatch => None,
+            | Self::SourceDigestMismatch
+            | Self::LockIntegrity
+            | Self::Drift(_)
+            | Self::JobConstruction(_) => None,
         }
     }
 }
@@ -105,6 +137,51 @@ impl From<std::io::Error> for VerificationError {
 impl From<ProofArtifactError> for VerificationError {
     fn from(error: ProofArtifactError) -> Self {
         Self::ProofArtifact(error)
+    }
+}
+
+/// Fail-closed reproduce error at the Lean boundary.
+#[derive(Debug)]
+pub enum LeanReproduceError {
+    Core(CoreReproduceError),
+    Verification(VerificationError),
+    KernelRejected,
+}
+
+impl fmt::Display for LeanReproduceError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Core(error) => write!(formatter, "{error}"),
+            Self::Verification(error) => write!(formatter, "{error}"),
+            Self::KernelRejected => {
+                write!(
+                    formatter,
+                    "Lean kernel rejected the proof during reproduction"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for LeanReproduceError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Core(error) => Some(error),
+            Self::Verification(error) => Some(error),
+            Self::KernelRejected => None,
+        }
+    }
+}
+
+impl From<CoreReproduceError> for LeanReproduceError {
+    fn from(value: CoreReproduceError) -> Self {
+        Self::Core(value)
+    }
+}
+
+impl From<VerificationError> for LeanReproduceError {
+    fn from(value: VerificationError) -> Self {
+        Self::Verification(value)
     }
 }
 
@@ -181,6 +258,94 @@ impl LeanKernel {
         formal_statement: &FormalStatement,
         source: impl AsRef<Path>,
     ) -> Result<VerificationOutcome, VerificationError> {
+        self.verify_job_inner(job, formal_statement, source.as_ref(), None)
+    }
+
+    /// Like [`Self::verify_job`], but fail closed unless `observed` binds the job's
+    /// pinned environment lock.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`VerificationError::Drift`] or [`VerificationError::LockIntegrity`]
+    /// before Lean runs when the observed environment does not bind the job lock.
+    /// Otherwise the same failures as [`Self::verify_job`] apply.
+    pub fn verify_job_with_lock(
+        &self,
+        job: &VerificationJob,
+        formal_statement: &FormalStatement,
+        source: impl AsRef<Path>,
+        observed: &EnvironmentLock,
+    ) -> Result<VerificationOutcome, VerificationError> {
+        self.verify_job_inner(job, formal_statement, source.as_ref(), Some(observed))
+    }
+
+    /// Reproduce a stored proof artifact under an observed environment lock.
+    ///
+    /// This first runs the core integrity/drift/dependency checks, then
+    /// re-invokes Lean under the artifact's locked `ReproMeta` via a fresh
+    /// [`VerificationJob`]. Lean acceptance yields a new sealed proof artifact
+    /// through [`ProofArtifact::new_verified`]; rejection fails closed.
+    ///
+    /// Reproduce success is an environment/re-verification result. It does not
+    /// by itself transition any claim to `PROVED`.
+    ///
+    /// # Errors
+    ///
+    /// Fails closed on integrity, drift, missing dependencies, verification
+    /// contract violations, I/O errors, or Lean rejection.
+    pub fn reproduce(
+        &self,
+        artifact: &ProofArtifact,
+        observed: &EnvironmentLock,
+        formal_statement: &FormalStatement,
+        source: impl AsRef<Path>,
+        available_dependencies: Option<&BTreeSet<ProofArtifactId>>,
+    ) -> Result<ReproduceOutcome, LeanReproduceError> {
+        let environment = core_reproduce(artifact, observed, available_dependencies)?;
+
+        let source = source.as_ref();
+        let source_bytes = fs::read(source).map_err(VerificationError::from)?;
+        if !formal_statement.matches_source(&source_bytes)
+            || artifact.body.proof_source_digest != sha256_bytes(&source_bytes)
+        {
+            return Err(VerificationError::SourceDigestMismatch.into());
+        }
+        if artifact.body.formal_statement_id != formal_statement.id {
+            return Err(VerificationError::FormalStatementMismatch.into());
+        }
+
+        let job = VerificationJob::new_with_dependencies(
+            formal_statement,
+            &source_bytes,
+            artifact.body.dependencies.clone(),
+            LEAN_INVOCATION,
+            artifact.body.repro.clone(),
+        )
+        .map_err(|error| VerificationError::JobConstruction(error.to_string()))?;
+
+        let outcome = self.verify_job_with_lock(&job, formal_statement, source, observed)?;
+
+        if !outcome.result.accepted {
+            return Err(LeanReproduceError::KernelRejected);
+        }
+        let Some(reverified) = outcome.proof else {
+            return Err(LeanReproduceError::KernelRejected);
+        };
+
+        Ok(ReproduceOutcome {
+            environment,
+            result: outcome.result,
+            reverified: Some(reverified),
+        })
+    }
+
+    fn verify_job_inner(
+        &self,
+        job: &VerificationJob,
+        formal_statement: &FormalStatement,
+        source: &Path,
+        observed: Option<&EnvironmentLock>,
+    ) -> Result<VerificationOutcome, VerificationError> {
         if !job.check_id() {
             return Err(VerificationError::VerificationJobIntegrity);
         }
@@ -197,7 +362,18 @@ impl LeanKernel {
             return Err(VerificationError::InvocationMismatch);
         }
 
-        let source = source.as_ref();
+        if let Some(observed) = observed {
+            if !observed.check_id() {
+                return Err(VerificationError::LockIntegrity);
+            }
+            let expected = EnvironmentLock::from_repro(&job.repro)
+                .map_err(|error| VerificationError::JobConstruction(error.to_string()))?;
+            let drift = expected.compare(observed);
+            if !drift.binds() {
+                return Err(VerificationError::Drift(drift));
+            }
+        }
+
         let source_bytes = fs::read(source)?;
         if !formal_statement.matches_source(&source_bytes)
             || !job.matches_proof_source(&source_bytes)
@@ -309,6 +485,32 @@ mod tests {
         assert!(matches!(
             kernel.verify_job(&job, &formal, source),
             Err(VerificationError::VerificationJobIntegrity)
+        ));
+    }
+
+    #[test]
+    fn drifted_lock_fails_before_kernel_invocation() {
+        let source =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ProofLab/Core/Smoke.lean");
+        let source_bytes = fs::read(&source).unwrap();
+        let claim = Claim::new(ClaimBody {
+            statement: "forall n : Nat, n = n".into(),
+            assumptions: vec![],
+            parents: vec![],
+        });
+        let formal = FormalStatement::lean4(claim.id, &source_bytes, vec!["Mathlib".into()]);
+        let job = VerificationJob::new(&formal, &source_bytes, LEAN_INVOCATION, repro()).unwrap();
+        let observed = EnvironmentLock::new(
+            "v4.33.1",
+            "0df444a360eaa60ab8c11dca51a86af692955474",
+            "test-revision",
+            "different-environment",
+        )
+        .unwrap();
+        let kernel = LeanKernel::new("this-command-must-not-run");
+        assert!(matches!(
+            kernel.verify_job_with_lock(&job, &formal, source, &observed),
+            Err(VerificationError::Drift(_))
         ));
     }
 }
