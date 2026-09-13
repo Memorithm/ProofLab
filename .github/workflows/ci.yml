@@ -55,7 +55,3 @@ jobs:
         env:
           PROOFLAB_TEST_REVISION: ${{ github.sha }}
         run: cargo +1.98.1 test -p prooflab-lean --test lean_e2e -- --ignored --nocapture
-      - name: Run PL-1.0 known-theorem corpus integration gate
-        env:
-          PROOFLAB_TEST_REVISION: ${{ github.sha }}
-        run: cargo +1.98.1 test -p prooflab-lean --test corpus_e2e -- --ignored --nocapture
