@@ -3,6 +3,9 @@ import ProofLab.Corpus.NatIdentity
 import ProofLab.Corpus.NatDecide
 import ProofLab.Corpus.NatAddZero
 import ProofLab.Corpus.NatCases
+import ProofLab.Corpus.Minimize.NatRflRedundant
+import ProofLab.Corpus.Minimize.NatRflDropTrue
+import ProofLab.Corpus.Minimize.NatEqByHyp
 import ProofLab.Descriptive.FiniteStructure
 import ProofLab.Descriptive.FO
 import ProofLab.Descriptive.FOSentence
