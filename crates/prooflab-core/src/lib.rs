@@ -22,6 +22,7 @@ mod claim;
 mod descriptive;
 mod determinism;
 mod ef;
+mod env_lock;
 mod eso;
 mod eso_eval;
 mod fo;
@@ -40,6 +41,7 @@ mod partial_iso;
 mod pebble;
 mod proof;
 mod repro;
+mod reproduce;
 mod verification;
 
 pub use bijective_pebble::{
@@ -75,6 +77,10 @@ pub use descriptive::{
 };
 pub use determinism::DeterminismLevel;
 pub use ef::{EfGameError, EfGameResult, solve_ef_ordered, solve_ef_unordered};
+pub use env_lock::{
+    DriftField, DriftReport, EnvironmentLock, EnvironmentLockBody, EnvironmentLockError,
+    EnvironmentLockId,
+};
 pub use eso::{EsoSentence, EsoValidationError};
 pub use eso_eval::{
     EsoEvaluation, EsoEvaluationBudget, EsoEvaluationError, evaluate_eso_ordered,
@@ -113,4 +119,5 @@ pub use proof::{
     KernelReceipt, ProofArtifact, ProofArtifactBody, ProofArtifactError, ProofArtifactId,
 };
 pub use repro::ReproMeta;
+pub use reproduce::{ReproduceError, ReproduceOk, lock_for_artifact, reproduce};
 pub use verification::{VerificationJob, VerificationJobError, VerificationJobId};
