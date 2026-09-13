@@ -62,6 +62,14 @@ Status:
 
 For known proved statements with redundant assumptions, test automatic removal followed by kernel re-verification.
 
+Status:
+
+- started: leave-one-out candidate generation and curated controls in `prooflab-lean::minimize`;
+- known proved fixtures under `ProofLab/Corpus/Minimize/` plus a rejection fixture under `Fixtures/`;
+- automatic removal is re-verified through `LeanKernel`; outcomes are `Removable` or `RemovalRejected` only;
+- necessity is never claimed from rejection alone; Lean remains the sole `PROVED` authority;
+- no mathematical novelty claim is permitted at this stage.
+
 ## PL-2.x — Experimental-to-formal discovery
 
 Only after PL-0/PL-1 are stable, ingest observations from external Memorithm research benches such as TDI or Riemann-specific experiments.

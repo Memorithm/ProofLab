@@ -26,3 +26,16 @@ library target. The Rust corpus runner invokes it through the same
 Success here means the trusted kernel path accepted or rejected as expected under
 a recorded environment. It does not establish new mathematics, search quality, or
 discovery capability.
+
+## Assumption minimization (PL-1.2)
+
+| Module | Role |
+| --- | --- |
+| `Minimize/NatRflRedundant` | proved with redundant `True` binder |
+| `Minimize/NatRflDropTrue` | same goal after removing `True` (expect accept) |
+| `Minimize/NatEqByHyp` | proved using hypothesis `h : n = 1` |
+| `Fixtures/MinimizeDropHypReject` | weakened `∀ n, n = 1` after dropping `h` (expect reject; not a Lake target) |
+
+Kernel rejection of a removal candidate records `RemovalRejected` only. It does
+not establish that the dropped assumption was necessary unless an independent
+counterexample or argument is supplied.

@@ -25,12 +25,12 @@ The initial proof kernel is Lean. The architecture must permit future proof back
 ProofLab/
   crates/
     prooflab-core/       claim identity, lifecycle, reproducibility, env lock / reproduce, cheap falsify
-    prooflab-lean/       trusted Lean invocation boundary (lock-aware verify/reproduce, corpus, false conjectures)
+    prooflab-lean/       trusted Lean invocation boundary (lock-aware verify/reproduce, corpus, false conjectures, minimize)
     prooflab-store/      content-addressed proof artifact store + provenance queries
     prooflab-fs-store/   durable filesystem backend for verified proofs
   ProofLab/
     Core/                Lean definitions and trusted smoke fixtures
-    Corpus/              PL-1.0 known-theorem reproduction fixtures
+    Corpus/              PL-1.0 known-theorem + PL-1.2 minimization fixtures
     Descriptive/         finite-model-theory and descriptive-complexity substrate
   experiments/           preregistered/calibration research artifacts
   adapters/              future SciRust/TDI/Riemann bridges
@@ -97,6 +97,7 @@ Current substrate includes:
 - the configured Lean verification boundary and fresh-kernel qualification path;
 - PL-1.0 known-theorem corpus orchestration (verification correctness only; no novelty claims);
 - PL-1.1 controlled false-conjecture falsification (cheap Nat counterexamples block proof-search promotion; no novelty claims);
+- PL-1.2 assumption minimization (automatic leave-one-out removal + Lean re-verification; no necessity-without-argument claims);
 - finite relational and ordered structures;
 - FO syntax/evaluation with syntactic quantifier rank and distinct-variable count;
 - ESO syntax/evaluation and a finite Hamiltonian-cycle calibration;

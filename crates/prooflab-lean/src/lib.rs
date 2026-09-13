@@ -14,6 +14,7 @@
 
 mod corpus;
 mod false_conjectures;
+mod minimize;
 
 use std::collections::BTreeSet;
 use std::fmt;
@@ -31,6 +32,12 @@ pub use corpus::{
 pub use false_conjectures::{
     CONTROLLED_FALSE_CONJECTURES, FalseConjectureEntry, FalseConjectureError,
     FalseConjectureReport, run_controlled_false_conjecture_battery,
+};
+pub use minimize::{
+    ASSUMPTION_MINIMIZATION_CORPUS, ExpectedRemovalOutcome, MinimizationEntry, MinimizationError,
+    MinimizationPrepared, MinimizationRunReport, PreparedRemovalTrial, RemovalCandidate,
+    RemovalOutcome, RemovalTrial, RemovalTrialReport, leave_one_out_candidates,
+    prepare_minimization_corpus, verify_assumption_minimization,
 };
 use prooflab_core::{
     DriftReport, EnvironmentLock, FormalBackend, FormalStatement, KernelReceipt, ProofArtifact,
