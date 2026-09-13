@@ -1,0 +1,22 @@
+[package]
+name = "prooflab-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Thin user/agent CLI entry point for ProofLab library APIs"
+readme = "README.md"
+
+[[bin]]
+name = "prooflab"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }
+prooflab-core = { path = "../prooflab-core" }
+prooflab-lean = { path = "../prooflab-lean" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
