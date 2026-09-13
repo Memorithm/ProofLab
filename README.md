@@ -28,6 +28,7 @@ ProofLab/
     prooflab-lean/       trusted Lean invocation boundary (lock-aware verify/reproduce, corpus, false conjectures, minimize)
     prooflab-store/      content-addressed proof artifact store + provenance queries
     prooflab-fs-store/   durable filesystem backend for verified proofs
+    prooflab-cli/        thin `prooflab` UX/agent entry (reproduce/falsify/verify-corpus/minimize)
   ProofLab/
     Core/                Lean definitions and trusted smoke fixtures
     Corpus/              PL-1.0 known-theorem + PL-1.2 minimization fixtures
@@ -98,6 +99,7 @@ Current substrate includes:
 - PL-1.0 known-theorem corpus orchestration (verification correctness only; no novelty claims);
 - PL-1.1 controlled false-conjecture falsification (cheap Nat counterexamples block proof-search promotion; no novelty claims);
 - PL-1.2 assumption minimization (automatic leave-one-out removal + Lean re-verification; no necessity-without-argument claims);
+- thin `prooflab` CLI wrapping reproduce / falsify / verify-corpus / minimize library APIs (no new proof authority);
 - finite relational and ordered structures;
 - FO syntax/evaluation with syntactic quantifier rank and distinct-variable count;
 - ESO syntax/evaluation and a finite Hamiltonian-cycle calibration;

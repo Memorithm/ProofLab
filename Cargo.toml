@@ -4,6 +4,7 @@ members = [
     "crates/prooflab-lean",
     "crates/prooflab-store",
     "crates/prooflab-fs-store",
+    "crates/prooflab-cli",
 ]
 resolver = "2"
 
@@ -17,6 +18,7 @@ repository = "https://github.com/Memorithm/ProofLab"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+clap = { version = "4", features = ["derive"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

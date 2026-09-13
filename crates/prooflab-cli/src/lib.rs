@@ -1,0 +1,674 @@
+//! Thin user/agent entry point over existing `ProofLab` library APIs.
+//!
+//! Commands expose `reproduce`, cheap `falsify`, `verify-corpus`, and `minimize`
+//! without inventing new proof authority. Lean remains the sole `PROVED`
+//! backend; CLI success never seals proof status by itself.
+
+#![forbid(unsafe_code)]
+
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::ExitCode;
+
+use clap::{Parser, Subcommand};
+use prooflab_core::{
+    ClaimStatus, EnvironmentLock, FormalStatement, ProofArtifact, ReproMeta, ReproduceOk,
+    reproduce as core_reproduce,
+};
+use prooflab_lean::{
+    ExpectedOutcome, ExpectedRemovalOutcome, FalseConjectureReport, LeanKernel,
+    MinimizationRunReport, RemovalOutcome, ReproduceOutcome,
+    run_controlled_false_conjecture_battery, verify_assumption_minimization, verify_corpus,
+};
+use serde::Serialize;
+
+/// `ProofLab` agent/UX CLI. Library wrappers only — no new trust authority.
+#[derive(Debug, Parser)]
+#[command(
+    name = "prooflab",
+    about = "Thin ProofLab entry point for reproduce / falsify / verify-corpus / minimize",
+    long_about = "Exposes existing library APIs for agents and local UX.\n\
+Lean remains the sole PROVED authority. Cheap falsification may record FALSIFIED only.\n\
+Reproduce success is environment/integrity confirmation, not proof status."
+)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Commands,
+}
+
+/// Top-level CLI commands.
+#[derive(Debug, Subcommand)]
+pub enum Commands {
+    /// Check a stored proof artifact against an observed environment lock.
+    ///
+    /// Without `--source` / `--formal`, only integrity + lock binding run (core
+    /// reproduce). With both, Lean re-verification runs through `LeanKernel`.
+    /// Success does not authorize `PROVED`.
+    Reproduce {
+        /// JSON-encoded [`ProofArtifact`].
+        #[arg(long)]
+        artifact: PathBuf,
+        /// JSON-encoded observed [`EnvironmentLock`].
+        #[arg(long)]
+        lock: PathBuf,
+        /// JSON-encoded [`FormalStatement`] (required with `--source` for Lean re-verify).
+        #[arg(long)]
+        formal: Option<PathBuf>,
+        /// Lean source file bound by the artifact / formal statement.
+        #[arg(long)]
+        source: Option<PathBuf>,
+        /// Lake binary used for Lean re-verification (default: `lake`).
+        #[arg(long, default_value = "lake")]
+        lake: PathBuf,
+    },
+    /// Run the PL-1.1 controlled false-conjecture battery (no Lean).
+    ///
+    /// Records `FALSIFIED` only; never `PROVED`.
+    Falsify,
+    /// Run the PL-1.0 known-theorem corpus through Lean.
+    VerifyCorpus {
+        /// Repository root containing `ProofLab/Corpus/`.
+        #[arg(long, default_value = ".")]
+        repo_root: PathBuf,
+        /// Environment digest pinned into corpus `ReproMeta`.
+        #[arg(long, default_value = "prooflab-cli-verify-corpus")]
+        environment_digest: String,
+        /// Optional `ProofLab` revision pin (defaults to `unknown` for local runs).
+        #[arg(long, default_value = "unknown")]
+        prooflab_revision: String,
+        /// Optional JSON observed lock; when set, verification fails closed on drift.
+        #[arg(long)]
+        lock: Option<PathBuf>,
+        /// Lake binary (default: `lake`).
+        #[arg(long, default_value = "lake")]
+        lake: PathBuf,
+    },
+    /// Run the PL-1.2 assumption-minimization battery through Lean.
+    ///
+    /// Rejection is `RemovalRejected` only — never a necessity claim.
+    Minimize {
+        /// Repository root containing minimization fixtures.
+        #[arg(long, default_value = ".")]
+        repo_root: PathBuf,
+        /// Environment digest pinned into minimization `ReproMeta`.
+        #[arg(long, default_value = "prooflab-cli-minimize")]
+        environment_digest: String,
+        /// Optional `ProofLab` revision pin (defaults to `unknown` for local runs).
+        #[arg(long, default_value = "unknown")]
+        prooflab_revision: String,
+        /// Optional JSON observed lock; when set, verification fails closed on drift.
+        #[arg(long)]
+        lock: Option<PathBuf>,
+        /// Lake binary (default: `lake`).
+        #[arg(long, default_value = "lake")]
+        lake: PathBuf,
+    },
+}
+
+/// Machine-readable CLI outcome envelope.
+#[derive(Debug, Clone, Serialize)]
+pub struct CliReport {
+    pub command: String,
+    pub ok: bool,
+    pub notes: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reproduce: Option<ReproduceReport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub falsify: Option<Vec<FalsifyEntryReport>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub corpus: Option<Vec<CorpusEntryReport>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub minimize: Option<Vec<MinimizeEntryReport>>,
+}
+
+/// Reproduce command summary.
+#[derive(Debug, Clone, Serialize)]
+pub struct ReproduceReport {
+    pub mode: String,
+    pub artifact_id_hex: String,
+    pub lock_id_hex: String,
+    pub lean_reverified: bool,
+    pub reverified_artifact_id_hex: Option<String>,
+}
+
+/// One falsify battery row.
+#[derive(Debug, Clone, Serialize)]
+pub struct FalsifyEntryReport {
+    pub entry_id: String,
+    pub falsified: bool,
+    pub proof_search_blocked: bool,
+    pub status: Option<String>,
+    pub witness_n: Option<u64>,
+    pub left_value: Option<u64>,
+    pub right_value: Option<u64>,
+}
+
+/// One corpus verification row.
+#[derive(Debug, Clone, Serialize)]
+pub struct CorpusEntryReport {
+    pub entry_id: String,
+    pub expected: String,
+    pub accepted: bool,
+    pub produced_proof: bool,
+    pub matches_expectation: bool,
+}
+
+/// One minimization entry summary.
+#[derive(Debug, Clone, Serialize)]
+pub struct MinimizeEntryReport {
+    pub entry_id: String,
+    pub full_accepted: bool,
+    pub full_produced_proof: bool,
+    pub trials: Vec<MinimizeTrialReport>,
+}
+
+/// One removal trial row.
+#[derive(Debug, Clone, Serialize)]
+pub struct MinimizeTrialReport {
+    pub remove_index: usize,
+    pub removed_assumption: String,
+    pub outcome: String,
+    pub expected: String,
+    pub matches_expectation: bool,
+    pub produced_proof: bool,
+    /// Always false: CLI never claims necessity from rejection.
+    pub necessity_claimed: bool,
+}
+
+/// Run the parsed CLI and return a process exit code.
+#[must_use]
+pub fn run(cli: Cli) -> ExitCode {
+    match execute(cli) {
+        Ok(report) => {
+            emit(&report);
+            if report.ok {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
+        }
+        Err(error) => {
+            eprintln!("error: {error}");
+            ExitCode::from(2)
+        }
+    }
+}
+
+/// Execute a parsed CLI invocation without exiting the process.
+///
+/// # Errors
+///
+/// Returns a human-readable error string on I/O, decode, library, or contract failures.
+pub fn execute(cli: Cli) -> Result<CliReport, String> {
+    match cli.command {
+        Commands::Reproduce {
+            artifact,
+            lock,
+            formal,
+            source,
+            lake,
+        } => cmd_reproduce(
+            &artifact,
+            &lock,
+            formal.as_deref(),
+            source.as_deref(),
+            &lake,
+        ),
+        Commands::Falsify => cmd_falsify(),
+        Commands::VerifyCorpus {
+            repo_root,
+            environment_digest,
+            prooflab_revision,
+            lock,
+            lake,
+        } => cmd_verify_corpus(
+            &repo_root,
+            &environment_digest,
+            &prooflab_revision,
+            lock.as_deref(),
+            &lake,
+        ),
+        Commands::Minimize {
+            repo_root,
+            environment_digest,
+            prooflab_revision,
+            lock,
+            lake,
+        } => cmd_minimize(
+            &repo_root,
+            &environment_digest,
+            &prooflab_revision,
+            lock.as_deref(),
+            &lake,
+        ),
+    }
+}
+
+fn emit(report: &CliReport) {
+    // Always emit JSON for agent consumption; humans can pretty-print.
+    match serde_json::to_string_pretty(report) {
+        Ok(text) => println!("{text}"),
+        Err(error) => eprintln!("error: failed to serialize report: {error}"),
+    }
+}
+
+fn cmd_reproduce(
+    artifact_path: &Path,
+    lock_path: &Path,
+    formal_path: Option<&Path>,
+    source_path: Option<&Path>,
+    lake: &Path,
+) -> Result<CliReport, String> {
+    let artifact: ProofArtifact = read_json(artifact_path)?;
+    let observed: EnvironmentLock = read_json(lock_path)?;
+
+    match (formal_path, source_path) {
+        (None, None) => {
+            let ok: ReproduceOk = core_reproduce(&artifact, &observed, None).map_err(err_string)?;
+            Ok(CliReport {
+                command: "reproduce".into(),
+                ok: true,
+                notes: vec![
+                    "core integrity + lock binding succeeded".into(),
+                    "reproduce success is not PROVED authorization".into(),
+                ],
+                reproduce: Some(ReproduceReport {
+                    mode: "core".into(),
+                    artifact_id_hex: hex32(&ok.artifact_id.0),
+                    lock_id_hex: hex32(&ok.lock_id.0),
+                    lean_reverified: false,
+                    reverified_artifact_id_hex: None,
+                }),
+                falsify: None,
+                corpus: None,
+                minimize: None,
+            })
+        }
+        (Some(formal_path), Some(source_path)) => {
+            let formal: FormalStatement = read_json(formal_path)?;
+            let kernel = LeanKernel::new(lake);
+            let outcome: ReproduceOutcome = kernel
+                .reproduce(&artifact, &observed, &formal, source_path, None)
+                .map_err(err_string)?;
+            let reverified_id = outcome.reverified.as_ref().map(|proof| hex32(&proof.id.0));
+            Ok(CliReport {
+                command: "reproduce".into(),
+                ok: true,
+                notes: vec![
+                    "Lean re-verification accepted under the observed lock".into(),
+                    "reproduce success is not PROVED authorization; only ProofArtifact::new_verified seals proof".into(),
+                ],
+                reproduce: Some(ReproduceReport {
+                    mode: "lean".into(),
+                    artifact_id_hex: hex32(&outcome.environment.artifact_id.0),
+                    lock_id_hex: hex32(&outcome.environment.lock_id.0),
+                    lean_reverified: true,
+                    reverified_artifact_id_hex: reverified_id,
+                }),
+                falsify: None,
+                corpus: None,
+                minimize: None,
+            })
+        }
+        _ => Err(
+            "Lean re-verify requires both --formal and --source; omit both for core-only reproduce"
+                .into(),
+        ),
+    }
+}
+
+fn cmd_falsify() -> Result<CliReport, String> {
+    let reports = run_controlled_false_conjecture_battery().map_err(err_string)?;
+    let entries: Vec<FalsifyEntryReport> = reports.iter().map(falsify_entry).collect();
+    let ok = entries
+        .iter()
+        .all(|entry| entry.falsified && entry.proof_search_blocked);
+    let mut notes = vec![
+        "PL-1.1 controlled false-conjecture battery (no Lean)".into(),
+        "falsification records ClaimStatus::Falsified only; never PROVED".into(),
+    ];
+    if !ok {
+        notes.push("one or more entries failed the falsification gate".into());
+    }
+    Ok(CliReport {
+        command: "falsify".into(),
+        ok,
+        notes,
+        reproduce: None,
+        falsify: Some(entries),
+        corpus: None,
+        minimize: None,
+    })
+}
+
+fn cmd_verify_corpus(
+    repo_root: &Path,
+    environment_digest: &str,
+    prooflab_revision: &str,
+    lock_path: Option<&Path>,
+    lake: &Path,
+) -> Result<CliReport, String> {
+    let mut repro = ReproMeta::bootstrap(environment_digest);
+    repro.prooflab_revision = prooflab_revision.into();
+    let observed = match lock_path {
+        Some(path) => Some(read_json::<EnvironmentLock>(path)?),
+        None => None,
+    };
+    let kernel = LeanKernel::new(lake);
+    let results =
+        verify_corpus(&kernel, repo_root, &repro, observed.as_ref()).map_err(err_string)?;
+    let entries: Vec<CorpusEntryReport> = results
+        .iter()
+        .map(|(_outcome, report)| CorpusEntryReport {
+            entry_id: report.entry_id.into(),
+            expected: match report.expected {
+                ExpectedOutcome::Accept => "accept".into(),
+                ExpectedOutcome::Reject => "reject".into(),
+            },
+            accepted: report.accepted,
+            produced_proof: report.produced_proof,
+            matches_expectation: report.matches_expectation,
+        })
+        .collect();
+    let ok = entries.iter().all(|entry| entry.matches_expectation);
+    let mut notes = vec![
+        "PL-1.0 known-theorem corpus through LeanKernel".into(),
+        "matching expected accept/reject measures orchestration only; no novelty claim".into(),
+        "only sealed ProofArtifact after Lean acceptance is PROVED evidence".into(),
+    ];
+    if !ok {
+        notes.push("one or more corpus entries missed their expected outcome".into());
+    }
+    Ok(CliReport {
+        command: "verify-corpus".into(),
+        ok,
+        notes,
+        reproduce: None,
+        falsify: None,
+        corpus: Some(entries),
+        minimize: None,
+    })
+}
+
+fn cmd_minimize(
+    repo_root: &Path,
+    environment_digest: &str,
+    prooflab_revision: &str,
+    lock_path: Option<&Path>,
+    lake: &Path,
+) -> Result<CliReport, String> {
+    let mut repro = ReproMeta::bootstrap(environment_digest);
+    repro.prooflab_revision = prooflab_revision.into();
+    let observed = match lock_path {
+        Some(path) => Some(read_json::<EnvironmentLock>(path)?),
+        None => None,
+    };
+    let kernel = LeanKernel::new(lake);
+    let reports = verify_assumption_minimization(&kernel, repo_root, &repro, observed.as_ref())
+        .map_err(err_string)?;
+    let entries: Vec<MinimizeEntryReport> = reports.iter().map(minimize_entry).collect();
+    let ok = entries.iter().all(|entry| {
+        entry.full_accepted
+            && entry.full_produced_proof
+            && entry.trials.iter().all(|trial| trial.matches_expectation)
+            && entry.trials.iter().all(|trial| !trial.necessity_claimed)
+    });
+    let mut notes = vec![
+        "PL-1.2 assumption minimization through LeanKernel".into(),
+        "RemovalRejected is not a necessity certificate".into(),
+        "Lean remains the sole PROVED authority".into(),
+    ];
+    if !ok {
+        notes.push("one or more minimization controls missed expectations".into());
+    }
+    Ok(CliReport {
+        command: "minimize".into(),
+        ok,
+        notes,
+        reproduce: None,
+        falsify: None,
+        corpus: None,
+        minimize: Some(entries),
+    })
+}
+
+fn falsify_entry(report: &FalseConjectureReport) -> FalsifyEntryReport {
+    FalsifyEntryReport {
+        entry_id: report.entry_id.into(),
+        falsified: report.falsified,
+        proof_search_blocked: report.proof_search_blocked,
+        status: report.status.map(status_name),
+        witness_n: report.witness_n,
+        left_value: report.left_value,
+        right_value: report.right_value,
+    }
+}
+
+fn minimize_entry(report: &MinimizationRunReport) -> MinimizeEntryReport {
+    MinimizeEntryReport {
+        entry_id: report.entry_id.into(),
+        full_accepted: report.full_accepted,
+        full_produced_proof: report.full_produced_proof,
+        trials: report
+            .trials
+            .iter()
+            .map(|trial| MinimizeTrialReport {
+                remove_index: trial.remove_index,
+                removed_assumption: trial.removed_assumption.into(),
+                outcome: match trial.outcome {
+                    RemovalOutcome::Removable => "removable".into(),
+                    RemovalOutcome::RemovalRejected => "removal_rejected".into(),
+                },
+                expected: match trial.expected {
+                    ExpectedRemovalOutcome::KernelAccepts => "kernel_accepts".into(),
+                    ExpectedRemovalOutcome::KernelRejects => "kernel_rejects".into(),
+                },
+                matches_expectation: trial.matches_expectation,
+                produced_proof: trial.produced_proof,
+                necessity_claimed: trial.necessity_claimed,
+            })
+            .collect(),
+    }
+}
+
+fn status_name(status: ClaimStatus) -> String {
+    match status {
+        ClaimStatus::Observed => "observed".into(),
+        ClaimStatus::Conjectured => "conjectured".into(),
+        ClaimStatus::Falsified => "falsified".into(),
+        ClaimStatus::Formalized => "formalized".into(),
+        ClaimStatus::Proved => "proved".into(),
+        ClaimStatus::Generalized => "generalized".into(),
+    }
+}
+
+fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T, String> {
+    let bytes = fs::read(path).map_err(|error| format!("{}: {error}", path.display()))?;
+    serde_json::from_slice(&bytes).map_err(|error| format!("{}: {error}", path.display()))
+}
+
+fn hex32(bytes: &[u8; 32]) -> String {
+    let mut out = String::with_capacity(64);
+    for byte in bytes {
+        use std::fmt::Write as _;
+        let _ = write!(out, "{byte:02x}");
+    }
+    out
+}
+
+fn err_string(error: impl std::fmt::Display) -> String {
+    error.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use prooflab_core::{
+        Claim, ClaimBody, FormalBackend, FormalStatement, KernelReceipt, ProofArtifact, ReproMeta,
+        sha256_bytes,
+    };
+    use std::collections::BTreeSet;
+
+    fn sample_artifact() -> (ProofArtifact, EnvironmentLock, FormalStatement, Vec<u8>) {
+        let claim = Claim::new(ClaimBody {
+            statement: "n = n".into(),
+            assumptions: vec![],
+            parents: vec![],
+        });
+        let source = b"theorem refl : True := by trivial\n".to_vec();
+        let formal = FormalStatement::lean4(claim.id, &source, vec!["Mathlib".into()]);
+        let mut repro = ReproMeta::bootstrap("sha256:cli-test-env");
+        repro.prooflab_revision = "cli-test-revision".into();
+        let receipt = KernelReceipt::new(
+            FormalBackend::Lean4,
+            "lake env lean",
+            true,
+            Some(0),
+            sha256_bytes(b"stdout"),
+            sha256_bytes(b"stderr"),
+        );
+        let artifact =
+            ProofArtifact::new_verified(&formal, &source, Vec::new(), repro, receipt).unwrap();
+        let lock = EnvironmentLock::from_repro(&artifact.body.repro).unwrap();
+        (artifact, lock, formal, source)
+    }
+
+    #[test]
+    fn falsify_battery_succeeds_without_lean() {
+        let report = cmd_falsify().expect("falsify");
+        assert!(report.ok);
+        assert_eq!(report.command, "falsify");
+        let entries = report.falsify.expect("entries");
+        assert!(entries.len() >= 4);
+        for entry in entries {
+            assert!(entry.falsified);
+            assert!(entry.proof_search_blocked);
+            assert_eq!(entry.status.as_deref(), Some("falsified"));
+            assert_ne!(entry.status.as_deref(), Some("proved"));
+        }
+    }
+
+    #[test]
+    fn core_reproduce_round_trips_json_inputs() {
+        let tmp =
+            std::env::temp_dir().join(format!("prooflab-cli-reproduce-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).unwrap();
+        let (artifact, lock, _formal, _source) = sample_artifact();
+        let artifact_path = tmp.join("artifact.json");
+        let lock_path = tmp.join("lock.json");
+        fs::write(
+            &artifact_path,
+            serde_json::to_vec_pretty(&artifact).unwrap(),
+        )
+        .unwrap();
+        fs::write(&lock_path, serde_json::to_vec_pretty(&lock).unwrap()).unwrap();
+
+        let report = cmd_reproduce(&artifact_path, &lock_path, None, None, Path::new("lake"))
+            .expect("reproduce");
+        assert!(report.ok);
+        let reproduce = report.reproduce.expect("reproduce section");
+        assert_eq!(reproduce.mode, "core");
+        assert!(!reproduce.lean_reverified);
+        assert_eq!(reproduce.artifact_id_hex, hex32(&artifact.id.0));
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn lean_reproduce_requires_both_formal_and_source() {
+        let tmp = std::env::temp_dir().join(format!(
+            "prooflab-cli-reproduce-partial-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).unwrap();
+        let (artifact, lock, formal, _source) = sample_artifact();
+        let artifact_path = tmp.join("artifact.json");
+        let lock_path = tmp.join("lock.json");
+        let formal_path = tmp.join("formal.json");
+        fs::write(
+            &artifact_path,
+            serde_json::to_vec_pretty(&artifact).unwrap(),
+        )
+        .unwrap();
+        fs::write(&lock_path, serde_json::to_vec_pretty(&lock).unwrap()).unwrap();
+        fs::write(&formal_path, serde_json::to_vec_pretty(&formal).unwrap()).unwrap();
+
+        let err = cmd_reproduce(
+            &artifact_path,
+            &lock_path,
+            Some(&formal_path),
+            None,
+            Path::new("lake"),
+        )
+        .expect_err("partial lean args");
+        assert!(err.contains("--formal") && err.contains("--source"));
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn drifted_lock_fails_closed_for_core_reproduce() {
+        let tmp = std::env::temp_dir().join(format!(
+            "prooflab-cli-reproduce-drift-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).unwrap();
+        let (artifact, _lock, _formal, _source) = sample_artifact();
+        let drifted = EnvironmentLock::new(
+            "v4.33.1",
+            "0df444a360eaa60ab8c11dca51a86af692955474",
+            "cli-test-revision",
+            "sha256:different",
+        )
+        .unwrap();
+        let artifact_path = tmp.join("artifact.json");
+        let lock_path = tmp.join("lock.json");
+        fs::write(
+            &artifact_path,
+            serde_json::to_vec_pretty(&artifact).unwrap(),
+        )
+        .unwrap();
+        fs::write(&lock_path, serde_json::to_vec_pretty(&drifted).unwrap()).unwrap();
+
+        let err = cmd_reproduce(
+            &artifact_path,
+            &lock_path,
+            None,
+            None,
+            Path::new("this-must-not-run"),
+        )
+        .expect_err("drift");
+        assert!(err.contains("drift") || err.contains("environment"));
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn clap_parses_all_primary_commands() {
+        use clap::Parser;
+        for args in [
+            vec!["prooflab", "falsify"],
+            vec![
+                "prooflab",
+                "reproduce",
+                "--artifact",
+                "a.json",
+                "--lock",
+                "l.json",
+            ],
+            vec!["prooflab", "verify-corpus", "--repo-root", "."],
+            vec!["prooflab", "minimize", "--repo-root", "."],
+        ] {
+            Cli::try_parse_from(args).expect("parse");
+        }
+    }
+
+    #[test]
+    fn hex32_is_stable_length() {
+        let bytes = [0u8; 32];
+        assert_eq!(hex32(&bytes).len(), 64);
+        let mut set = BTreeSet::new();
+        set.insert(hex32(&[1; 32]));
+        assert_eq!(set.len(), 1);
+    }
+}

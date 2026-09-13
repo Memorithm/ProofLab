@@ -31,7 +31,7 @@ Status:
 
 - append-only content-addressed proof storage and theorem dependency DAG queries are available via `prooflab-store` / `prooflab-fs-store`;
 - content-addressed `EnvironmentLock`, fail-closed drift detection and library `reproduce` semantics are implemented in `prooflab-core`, with Lean re-verification wired through `prooflab-lean`;
-- a thin `prooflab reproduce` CLI remains optional follow-up work once an executable UX surface is justified.
+- thin `prooflab` CLI (`prooflab-cli`) exposes `reproduce` / `falsify` / `verify-corpus` / `minimize` over the library APIs; CLI success never seals `PROVED`.
 
 ## PL-1.x — Controlled theorem proving
 
@@ -69,6 +69,10 @@ Status:
 - automatic removal is re-verified through `LeanKernel`; outcomes are `Removable` or `RemovalRejected` only;
 - necessity is never claimed from rejection alone; Lean remains the sole `PROVED` authority;
 - no mathematical novelty claim is permitted at this stage.
+
+### Agent / UX entry (`prooflab-cli`)
+
+After PL-0.2–PL-1.2 library surfaces exist, `crates/prooflab-cli` provides a thin executable that calls those APIs only. It does not introduce a new proof authority, conjecture engine, or observation ingest path.
 
 ## PL-2.x — Experimental-to-formal discovery
 
