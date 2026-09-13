@@ -13,6 +13,7 @@
 #![forbid(unsafe_code)]
 
 mod corpus;
+mod false_conjectures;
 
 use std::collections::BTreeSet;
 use std::fmt;
@@ -26,6 +27,10 @@ pub use prooflab_core::VerificationJob;
 pub use corpus::{
     CorpusEntry, CorpusError, CorpusPrepared, CorpusRunReport, ExpectedOutcome,
     KNOWN_THEOREM_CORPUS, prepare_corpus, verify_corpus,
+};
+pub use false_conjectures::{
+    CONTROLLED_FALSE_CONJECTURES, FalseConjectureEntry, FalseConjectureError,
+    FalseConjectureReport, run_controlled_false_conjecture_battery,
 };
 use prooflab_core::{
     DriftReport, EnvironmentLock, FormalBackend, FormalStatement, KernelReceipt, ProofArtifact,

@@ -50,6 +50,14 @@ Status:
 
 Inject intentionally false statements with known counterexamples and measure whether cheap falsification routes reject them before proof search.
 
+Status:
+
+- started: restricted Nat cheap falsifier in `prooflab-core::falsify` with content-addressed `CounterexampleWitness` / `FalsificationRecord`;
+- controlled false-conjecture catalog and proof-search refusal gate in `prooflab-lean::false_conjectures`;
+- battery rejects closed and universal false Nat equalities before any Lean invocation;
+- falsification records `ClaimStatus::Falsified` only; Lean remains the sole `PROVED` authority;
+- no mathematical novelty claim is permitted at this stage.
+
 ### PL-1.2 — Assumption minimization
 
 For known proved statements with redundant assumptions, test automatic removal followed by kernel re-verification.

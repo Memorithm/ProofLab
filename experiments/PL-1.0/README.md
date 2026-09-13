@@ -19,7 +19,7 @@ theorems through the trusted ProofLab verification path.
 
 - corpus catalog preparation binds on-disk source digests;
 - lock drift fails closed before Lean invocation;
-- ignored integration test `corpus_e2e` matches every expected accept/reject outcome (add to Lean CI when `workflow` scope is available);
+- ignored integration test `corpus_e2e` matches every expected accept/reject outcome (wired into the Lean CI job when workflow permissions allow);
 - no mathematical novelty is claimed.
 
 ## Non-claims
