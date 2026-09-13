@@ -29,11 +29,11 @@ The two dimensions must never be conflated.
 
 ### `prooflab-core`
 
-Owns immutable claim content, deterministic claim identity, claim lifecycle vocabulary and reproducibility metadata.
+Owns immutable claim content, deterministic claim identity, claim lifecycle vocabulary, reproducibility metadata, content-addressed environment locks, drift reports and library `reproduce` checks (integrity + lock binding). Reproduce success is not proof status.
 
 ### `prooflab-lean`
 
-Owns the process boundary `lake env lean <file>`. It does not decide scientific meaning. It returns a normalized kernel-process result which higher layers will seal into a proof artifact with exact digests.
+Owns the process boundary `lake env lean <file>`. It does not decide scientific meaning. It returns a normalized kernel-process result which higher layers will seal into a proof artifact with exact digests. Lock-aware verification and kernel-backed `reproduce` refuse to proceed under environment drift; only `ProofArtifact::new_verified` after Lean acceptance seals proof status.
 
 ### Lean library
 

@@ -63,7 +63,16 @@ Relevant concepts:
 - level-aware reproduction contracts;
 - refusal to guess when provenance is ambiguous.
 
-Proof artifacts require non-empty ProofLab revision, Lean version, mathlib revision and environment digest before construction succeeds. The stronger environment-lock/drift model remains a later increment.
+Proof artifacts require non-empty ProofLab revision, Lean version, mathlib revision and environment digest before construction succeeds.
+
+PL-0.2 delivers the stronger environment-lock/drift model in `prooflab-core`:
+
+- content-addressed `EnvironmentLock` / `EnvironmentLockId` over Lean version, mathlib revision, ProofLab revision and environment digest;
+- itemized `DriftReport` / `DriftField` comparison that fails closed on mismatch;
+- library `reproduce` semantics that verify artifact integrity, lock binding and optional dependency presence without authorizing `PROVED`;
+- Lean-boundary `verify_job_with_lock` / `LeanKernel::reproduce` paths that refuse to invoke or accept under drift.
+
+Reproduction remains orthogonal to mathematical status: only an accepted kernel receipt through `ProofArtifact::new_verified` authorizes `PROVED`.
 
 ## What must not be copied wholesale
 

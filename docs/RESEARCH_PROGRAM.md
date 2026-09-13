@@ -27,6 +27,12 @@ Acceptance requires both a positive and a negative verification fixture.
 
 Add append-only storage, theorem dependency DAG, environment locking, drift detection and `prooflab reproduce` semantics.
 
+Status:
+
+- append-only content-addressed proof storage and theorem dependency DAG queries are available via `prooflab-store` / `prooflab-fs-store`;
+- content-addressed `EnvironmentLock`, fail-closed drift detection and library `reproduce` semantics are implemented in `prooflab-core`, with Lean re-verification wired through `prooflab-lean`;
+- a thin `prooflab reproduce` CLI remains optional follow-up work once an executable UX surface is justified.
+
 ## PL-1.x — Controlled theorem proving
 
 ### PL-1.0 — Known theorem reproduction

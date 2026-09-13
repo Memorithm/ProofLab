@@ -24,8 +24,10 @@ The initial proof kernel is Lean. The architecture must permit future proof back
 ```text
 ProofLab/
   crates/
-    prooflab-core/       claim identity, lifecycle, reproducibility types
-    prooflab-lean/       trusted Lean invocation boundary
+    prooflab-core/       claim identity, lifecycle, reproducibility, env lock / reproduce
+    prooflab-lean/       trusted Lean invocation boundary (lock-aware verify/reproduce)
+    prooflab-store/      content-addressed proof artifact store + provenance queries
+    prooflab-fs-store/   durable filesystem backend for verified proofs
   ProofLab/
     Core/                Lean definitions and trusted smoke fixtures
     Descriptive/         finite-model-theory and descriptive-complexity substrate
