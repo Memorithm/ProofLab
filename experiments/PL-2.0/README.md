@@ -1,7 +1,8 @@
-# PL-2.0 — Typed scientific evidence (Stage-0)
+# PL-2.0 — Typed scientific evidence (Stage-0 + Stage-1)
 
-PL-2.0 Stage-0 implements the smallest tested type system for the
-observation → conjecture → obligation → kernel → proof chain (PL-C15).
+PL-2.0 implements the smallest tested type system for the
+observation → conjecture → obligation → kernel → proof chain (PL-C15),
+including Stage-1 explicit human/agent promotion into `ConjectureCandidate`.
 
 ## Control
 
@@ -23,6 +24,11 @@ observation → conjecture → obligation → kernel → proof chain (PL-C15).
    never upgraded (never `PROVED`). Fixtures:
    `fixtures/riemann_stub_manifest.json`, `fixtures/tdi_stub_manifest.json`.
    No live TDI/Riemann network ingest.
+7. Stage-1: `ConjectureCandidate::from_evidence` requires `PromotionMeta`
+   (`PromotionAuthority::{Human,Agent}`, non-empty promoter id + rationale).
+   Numerical / stub / solver observations cannot auto-upgrade
+   (`refuse_auto_upgrade_from_empirical`). Status is always `Conjectured`,
+   never `PROVED`.
 
 ## Success criteria
 
@@ -68,3 +74,12 @@ Never seals `PROVED`.
 
 Non-claims: fixture ingest is not operator novelty and does not run live
 TDI. `empirical ≠ proof`.
+
+## Stage-1 conjecture promotion
+
+`ConjectureCandidate::from_evidence` binds explicit `PromotionMeta` into the
+content-addressed candidate (`prooflab-conjecture-candidate:v2`). Human or agent
+authority is required; empty promoter id / rationale fail closed. Numerical,
+stub, and solver observations have no silent auto-upgrade path
+(`refuse_auto_upgrade_from_empirical`). Promotion never seals `PROVED`.
+`empirical ≠ proof`.

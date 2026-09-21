@@ -632,7 +632,8 @@ fn lake_project_root(source: &Path) -> io::Result<PathBuf> {
 mod tests {
     use prooflab_core::{
         Claim, ClaimBody, ClaimStatus, ConjectureCandidate, EvidenceClaim, EvidenceStrength,
-        FormalStatement, Observation, ProofObligation, ReproMeta, sha256_bytes,
+        FormalStatement, Observation, PromotionAuthority, PromotionMeta, ProofObligation,
+        ReproMeta, sha256_bytes,
     };
 
     use super::*;
@@ -752,11 +753,18 @@ mod tests {
             EvidenceStrength::Suggestive,
         )
         .unwrap();
+        let promotion = PromotionMeta::new(
+            PromotionAuthority::Human,
+            "lean-bridge-test",
+            "stage-1 explicit promotion for obligation pipeline",
+        )
+        .unwrap();
         let conjecture = ConjectureCandidate::from_evidence(
             claim.id,
             &[&evidence],
             "n = n",
             vec!["n : Nat".into()],
+            promotion,
         )
         .unwrap();
         let formal = FormalStatement::lean4(claim.id, formal_source, vec!["Mathlib".into()]);

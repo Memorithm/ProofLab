@@ -89,7 +89,7 @@ Every PL-2 claim must clearly distinguish:
 - verified theorem;
 - attempted but unproved statement.
 
-### PL-2.0 — Typed scientific evidence (Stage-0)
+### PL-2.0 — Typed scientific evidence (Stage-0 + Stage-1)
 
 Status:
 
@@ -107,6 +107,11 @@ Status:
 - label-preserving Riemann / TDI stub adapters (`prooflab-core::bench_adapter`)
   emit `Observation` / `EvidenceClaim` only from fixture manifests;
   epistemic labels are never upgraded and never imply `PROVED`;
+- **Stage-1**: `ConjectureCandidate::from_evidence` requires explicit
+  `PromotionMeta` (`PromotionAuthority::{Human,Agent}`, non-empty promoter id
+  and rationale). Numerical / stub / solver observations cannot auto-upgrade;
+  `refuse_auto_upgrade_from_empirical` documents the deny path. Status stays
+  `Conjectured` (never `PROVED`);
 - no live TDI/Riemann network ingest; Lean remains the sole `PROVED` authority;
 - see [`CONJECTURE-RESEARCH-PROGRAMME.md`](CONJECTURE-RESEARCH-PROGRAMME.md) PL-C15
   and `experiments/PL-2.0/`.

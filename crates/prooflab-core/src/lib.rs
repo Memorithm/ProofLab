@@ -98,7 +98,8 @@ pub use eso_eval::{
 pub use evidence::{
     AcceptedKernel, ConjectureCandidate, ConjectureCandidateId, EvidenceClaim, EvidenceClaimId,
     EvidenceError, EvidenceStrength, KernelOutcome, KernelResult, KernelResultId, Observation,
-    ObservationId, ObservationKind, ProofObligation, ProofObligationId,
+    ObservationId, ObservationKind, PromotionAuthority, PromotionMeta, ProofObligation,
+    ProofObligationId, empirical_auto_upgrade_refused, refuse_auto_upgrade_from_empirical,
     refuse_empirical_proof_seal, refuse_evidence_proof_seal,
 };
 pub use falsify::{
