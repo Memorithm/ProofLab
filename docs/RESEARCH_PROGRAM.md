@@ -104,8 +104,8 @@ Status:
 - numerical / solver / stub observations and strong evidence cannot construct
   proof artifacts or set `PROVED`; serde round-trip cannot upgrade status or
   kernel outcome identity;
-- label-preserving Riemann stub adapter (`prooflab-core::bench_adapter`)
-  emits `Observation` / `EvidenceClaim` only from fixture manifests;
+- label-preserving Riemann / TDI stub adapters (`prooflab-core::bench_adapter`)
+  emit `Observation` / `EvidenceClaim` only from fixture manifests;
   epistemic labels are never upgraded and never imply `PROVED`;
 - no live TDI/Riemann network ingest; Lean remains the sole `PROVED` authority;
 - see [`CONJECTURE-RESEARCH-PROGRAMME.md`](CONJECTURE-RESEARCH-PROGRAMME.md) PL-C15
