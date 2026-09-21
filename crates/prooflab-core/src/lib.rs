@@ -2,7 +2,7 @@
 //!
 //! This crate intentionally contains no theorem prover. It defines immutable
 //! claim identity, formal statements, proof artifacts, mathematical lifecycle
-//! state, reproducibility metadata, typed scientific evidence (PL-2.0 / PL-C15), a label-preserving Riemann stub adapter,
+//! state, reproducibility metadata, typed scientific evidence (PL-2.0 / PL-C15), label-preserving Riemann/TDI stub adapters,
 //! finite descriptive-complexity syntax and evaluation, and exact finite
 //! model-comparison game oracles. Proof status is never inferred from
 //! reproducibility or empirical evidence.
@@ -49,8 +49,9 @@ mod reproduce;
 mod verification;
 
 pub use bench_adapter::{
-    BenchAdapterError, BenchSourceLabel, RiemannStubEntry, RiemannStubIngest, ingest_riemann_stub,
-    refuse_label_upgrade, refuse_riemann_stub_proof_seal,
+    BenchAdapterError, BenchSourceLabel, RiemannStubEntry, RiemannStubIngest, TdiStubEntry,
+    TdiStubIngest, ingest_riemann_stub, ingest_tdi_stub, refuse_label_upgrade,
+    refuse_riemann_stub_proof_seal, refuse_tdi_stub_proof_seal,
 };
 pub use bijective_pebble::{
     BijectivePebbleGameError, BijectivePebbleGameResult, solve_bijective_pebble_ordered,

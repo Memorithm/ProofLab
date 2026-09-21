@@ -1,10 +1,10 @@
-//! PL-2.0 label-preserving stub adapter for one external bench (Riemann).
+//! PL-2.0 label-preserving stub adapters for external benches (Riemann, TDI).
 //!
 //! Ingests fixture-style evidence manifests into [`Observation`] /
-//! [`EvidenceClaim`] only. Epistemic source labels from
-//! `riemann_ndim_bench` (and the PL-C3 vocabulary) are preserved exactly:
-//! they are never silently upgraded (e.g. `numerical` → `exact`, or any
-//! label → `PROVED`).
+//! [`EvidenceClaim`] only. Epistemic source labels from the PL-C3 vocabulary
+//! (shared by `riemann_ndim_bench` and TDI-style operator evidence) are
+//! preserved exactly: they are never silently upgraded (e.g. `numerical` →
+//! `exact`, or any label → `PROVED`).
 //!
 //! Non-claims: this is not live TDI/Riemann network ingest, does not
 //! establish mathematical novelty, and never seals a [`crate::ProofArtifact`].
@@ -20,9 +20,10 @@ use crate::evidence::{
 };
 use crate::{ClaimId, ClaimStatus};
 
-/// Epistemic source labels admitted by the Riemann stub adapter.
+/// Epistemic source labels admitted by Riemann / TDI stub adapters.
 ///
-/// Canonical wire tags match the PL-C3 / `riemann_ndim_bench` vocabulary.
+/// Canonical wire tags match the shared PL-C3 vocabulary used by
+/// `riemann_ndim_bench` and TDI-style operator evidence manifests.
 /// Variants are provenance tags only; none confers [`ClaimStatus::Proved`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -149,9 +150,9 @@ pub enum BenchAdapterError {
 impl fmt::Display for BenchAdapterError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::EmptyEntryId => write!(formatter, "riemann stub entry_id must be non-empty"),
-            Self::EmptyPayload => write!(formatter, "riemann stub payload must be non-empty"),
-            Self::EmptyStatement => write!(formatter, "riemann stub statement must be non-empty"),
+            Self::EmptyEntryId => write!(formatter, "bench stub entry_id must be non-empty"),
+            Self::EmptyPayload => write!(formatter, "bench stub payload must be non-empty"),
+            Self::EmptyStatement => write!(formatter, "bench stub statement must be non-empty"),
             Self::UnknownLabel(label) => {
                 write!(formatter, "unknown bench source label: {label}")
             }
@@ -261,6 +262,89 @@ pub fn refuse_riemann_stub_proof_seal(
     label: BenchSourceLabel,
 ) -> Result<crate::ProofArtifact, EvidenceError> {
     // ObservationKind deny is sufficient; strength deny is covered by unit tests.
+    refuse_empirical_proof_seal(label.observation_kind())
+}
+
+/// One fixture row from a TDI (operator / structural) evidence manifest.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TdiStubEntry {
+    /// Stable entry id within the stub manifest (not a content address).
+    pub entry_id: String,
+    /// Epistemic label; preserved exactly through ingest.
+    pub source_label: BenchSourceLabel,
+    /// Human-readable statement sketch motivating a claim (not a proof).
+    pub statement: String,
+    /// Opaque payload bytes recorded via digest on the observation.
+    pub payload: String,
+}
+
+/// Result of TDI stub-ingest: observation + evidence only (never a proof).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TdiStubIngest {
+    /// Preserved epistemic label from the entry.
+    pub source_label: BenchSourceLabel,
+    pub observation: Observation,
+    pub evidence: EvidenceClaim,
+}
+
+/// Ingest one TDI stub manifest entry into [`Observation`] / [`EvidenceClaim`].
+///
+/// The entry's [`BenchSourceLabel`] is embedded in `Observation::source_label`
+/// under a `tdi-stub://` URI and returned unchanged on [`TdiStubIngest`].
+/// Status is always [`ClaimStatus::Observed`]. This path cannot construct a
+/// proof artifact.
+///
+/// # Errors
+///
+/// Fails on empty fields or evidence integrity errors.
+pub fn ingest_tdi_stub(
+    claim_id: ClaimId,
+    entry: &TdiStubEntry,
+) -> Result<TdiStubIngest, BenchAdapterError> {
+    if entry.entry_id.trim().is_empty() {
+        return Err(BenchAdapterError::EmptyEntryId);
+    }
+    if entry.payload.is_empty() {
+        return Err(BenchAdapterError::EmptyPayload);
+    }
+    if entry.statement.trim().is_empty() {
+        return Err(BenchAdapterError::EmptyStatement);
+    }
+
+    let label = entry.source_label;
+    // Identity check: re-parsing the canonical tag must not change the class.
+    let reparsed = BenchSourceLabel::parse(label.as_str())?;
+    refuse_label_upgrade(label, reparsed)?;
+
+    let source_label = format!("tdi-stub://{}/{}", entry.entry_id.trim(), label.as_str());
+    let observation = Observation::new(
+        label.observation_kind(),
+        source_label,
+        entry.payload.as_bytes(),
+        vec![],
+    );
+    let evidence =
+        EvidenceClaim::from_observations(claim_id, &[&observation], label.default_strength())?;
+
+    debug_assert_eq!(evidence.status, ClaimStatus::Observed);
+    debug_assert_ne!(evidence.status, ClaimStatus::Proved);
+    debug_assert_eq!(observation.implied_status(), ClaimStatus::Observed);
+
+    Ok(TdiStubIngest {
+        source_label: label,
+        observation,
+        evidence,
+    })
+}
+
+/// Deny helper: TDI stub-adapted empirical evidence cannot seal proofs.
+///
+/// # Errors
+///
+/// Always returns [`EvidenceError::EmpiricalCannotSealProof`].
+pub fn refuse_tdi_stub_proof_seal(
+    label: BenchSourceLabel,
+) -> Result<crate::ProofArtifact, EvidenceError> {
     refuse_empirical_proof_seal(label.observation_kind())
 }
 
@@ -435,5 +519,168 @@ mod tests {
                 BenchSourceLabel::Conjecture,
             ]
         );
+    }
+
+    fn tdi_entry(label: BenchSourceLabel, id: &str) -> TdiStubEntry {
+        TdiStubEntry {
+            entry_id: id.into(),
+            source_label: label,
+            statement: "tdi stub operator regularity for typed ingest".into(),
+            payload: format!("tdi-payload-{id}"),
+        }
+    }
+
+    #[test]
+    fn tdi_numerical_label_is_preserved_and_never_proved() {
+        let claim = claim();
+        let ingest = ingest_tdi_stub(claim.id, &tdi_entry(BenchSourceLabel::Numerical, "op-1"))
+            .expect("ingest");
+        assert_eq!(ingest.source_label, BenchSourceLabel::Numerical);
+        assert_eq!(ingest.source_label.as_str(), "numerical");
+        assert!(ingest.observation.source_label.starts_with("tdi-stub://"));
+        assert!(ingest.observation.source_label.ends_with("/numerical"));
+        assert_eq!(ingest.observation.kind, ObservationKind::Numerical);
+        assert_eq!(ingest.evidence.status, ClaimStatus::Observed);
+        assert_ne!(ingest.evidence.status, ClaimStatus::Proved);
+        assert_eq!(ingest.evidence.strength, EvidenceStrength::Suggestive);
+        assert!(ingest.observation.check_id());
+        assert!(ingest.evidence.check_id());
+    }
+
+    #[test]
+    fn tdi_exact_not_upgraded_from_numerical_or_conjecture() {
+        let claim = claim();
+        let exact =
+            ingest_tdi_stub(claim.id, &tdi_entry(BenchSourceLabel::Exact, "tdi-ex-1")).unwrap();
+        assert_eq!(exact.source_label, BenchSourceLabel::Exact);
+        assert!(exact.observation.source_label.starts_with("tdi-stub://"));
+        assert!(
+            refuse_label_upgrade(BenchSourceLabel::Numerical, BenchSourceLabel::Exact).is_err()
+        );
+        assert!(
+            refuse_label_upgrade(BenchSourceLabel::Conjecture, BenchSourceLabel::Exact).is_err()
+        );
+        assert!(
+            refuse_label_upgrade(BenchSourceLabel::FormalAsymptotic, BenchSourceLabel::Exact)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn tdi_stub_ingest_cannot_seal_proof() {
+        for label in [
+            BenchSourceLabel::Exact,
+            BenchSourceLabel::Numerical,
+            BenchSourceLabel::Conjecture,
+            BenchSourceLabel::FormalAsymptotic,
+        ] {
+            assert!(
+                refuse_tdi_stub_proof_seal(label).is_err(),
+                "tdi label {label} must not seal proof"
+            );
+        }
+    }
+
+    #[test]
+    fn tdi_serde_round_trip_preserves_labels_without_status_upgrade() {
+        let claim = claim();
+        let ingest = ingest_tdi_stub(
+            claim.id,
+            &tdi_entry(BenchSourceLabel::Conjecture, "tdi-cj-1"),
+        )
+        .unwrap();
+        let bytes = serde_json::to_vec(&ingest).expect("serialize");
+        let restored: TdiStubIngest = serde_json::from_slice(&bytes).expect("deserialize");
+        assert_eq!(restored.source_label, BenchSourceLabel::Conjecture);
+        assert_eq!(restored.evidence.status, ClaimStatus::Observed);
+        assert!(restored.evidence.check_id());
+
+        let mut forged = serde_json::to_value(&ingest).unwrap();
+        forged["source_label"] = serde_json::json!("exact");
+        forged["evidence"]["status"] = serde_json::json!("Proved");
+        let tampered: TdiStubIngest = serde_json::from_value(forged).unwrap();
+        assert!(!tampered.evidence.check_id());
+        assert_eq!(
+            refuse_label_upgrade(BenchSourceLabel::Conjecture, tampered.source_label),
+            Err(BenchAdapterError::LabelUpgrade {
+                from: BenchSourceLabel::Conjecture,
+                to: BenchSourceLabel::Exact,
+            })
+        );
+    }
+
+    #[test]
+    fn tdi_fixture_manifest_json_ingests_label_preserving() {
+        let manifest = r#"
+        [
+          {
+            "entry_id": "operator-compress-diag",
+            "source_label": "numerical",
+            "statement": "finite-block operator compression diagnostic",
+            "payload": "compress-fixture"
+          },
+          {
+            "entry_id": "algebraic-identity-n4",
+            "source_label": "exact",
+            "statement": "finite algebraic operator identity on n=4 (fixture)",
+            "payload": "exact-op-fixture"
+          },
+          {
+            "entry_id": "distinguishability-conjecture",
+            "source_label": "conjecture",
+            "statement": "structural distinguishability under bounded probes (source conjecture)",
+            "payload": "tdi-conjecture-fixture"
+          },
+          {
+            "entry_id": "scaling-formal-asymptotic",
+            "source_label": "formal_asymptotic",
+            "statement": "operator scaling without theorem-grade remainder (fixture)",
+            "payload": "tdi-asym-fixture"
+          }
+        ]
+        "#;
+        let entries: Vec<TdiStubEntry> = serde_json::from_str(manifest).unwrap();
+        assert_eq!(entries.len(), 4);
+        let claim = claim();
+        let labels: Vec<_> = entries
+            .iter()
+            .map(|entry| {
+                let ingest = ingest_tdi_stub(claim.id, entry).unwrap();
+                assert_ne!(ingest.evidence.status, ClaimStatus::Proved);
+                assert!(ingest.observation.source_label.starts_with("tdi-stub://"));
+                ingest.source_label
+            })
+            .collect();
+        assert_eq!(
+            labels,
+            [
+                BenchSourceLabel::Numerical,
+                BenchSourceLabel::Exact,
+                BenchSourceLabel::Conjecture,
+                BenchSourceLabel::FormalAsymptotic,
+            ]
+        );
+    }
+
+    #[test]
+    fn tdi_and_riemann_uri_schemes_remain_distinct() {
+        let claim = claim();
+        let riemann =
+            ingest_riemann_stub(claim.id, &entry(BenchSourceLabel::Numerical, "shared-id"))
+                .unwrap();
+        let tdi = ingest_tdi_stub(
+            claim.id,
+            &tdi_entry(BenchSourceLabel::Numerical, "shared-id"),
+        )
+        .unwrap();
+        assert!(
+            riemann
+                .observation
+                .source_label
+                .starts_with("riemann-stub://")
+        );
+        assert!(tdi.observation.source_label.starts_with("tdi-stub://"));
+        assert_ne!(riemann.observation.id, tdi.observation.id);
+        assert_eq!(riemann.source_label, tdi.source_label);
     }
 }

@@ -13,8 +13,8 @@
 //! acceptance and never upgrade through serde round-trip.
 //!
 //! Non-claims: this stage defines types and trust-boundary tests only. Live
-//! TDI/Riemann network ingest is out of scope here (see `bench_adapter` for a
-//! label-preserving fixture stub). This module does not claim scientific
+//! TDI/Riemann network ingest is out of scope here (see `bench_adapter` for
+//! label-preserving Riemann/TDI fixture stubs). This module does not claim scientific
 //! novelty and does not treat numerical agreement as proof.
 
 use core::fmt;

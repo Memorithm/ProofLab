@@ -24,7 +24,7 @@ The initial proof kernel is Lean. The architecture must permit future proof back
 ```text
 ProofLab/
   crates/
-    prooflab-core/       claim identity, lifecycle, reproducibility, env lock / reproduce, cheap falsify, typed evidence + Riemann stub adapter (PL-2.0)
+    prooflab-core/       claim identity, lifecycle, reproducibility, env lock / reproduce, cheap falsify, typed evidence + Riemann/TDI stub adapters (PL-2.0)
     prooflab-lean/       trusted Lean invocation boundary (lock-aware verify/reproduce, corpus, false conjectures, minimize)
     prooflab-store/      content-addressed proof artifact store + provenance queries
     prooflab-fs-store/   durable filesystem backend for verified proofs
@@ -34,7 +34,7 @@ ProofLab/
     Corpus/              PL-1.0 known-theorem + PL-1.2 minimization fixtures
     Descriptive/         finite-model-theory and descriptive-complexity substrate
   experiments/           preregistered/calibration research artifacts
-  adapters/              SciRust/TDI/Riemann bridges (Riemann stub → core bench_adapter)
+  adapters/              SciRust/TDI/Riemann bridges (Riemann/TDI stubs → core bench_adapter)
   docs/
 ```
 
