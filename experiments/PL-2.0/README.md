@@ -16,8 +16,12 @@ observation → conjecture → obligation → kernel → proof chain (PL-C15).
 4. `Rejected` / `Unknown` / `Timeout` stay distinct from acceptance; serde
    round-trip and forged outcome/status upgrades fail `check_id` /
    `into_accepted`.
-5. A tiny `Observation::stub` helper exists for type plumbing; no real
-   TDI/Riemann ingest.
+5. A tiny `Observation::stub` helper exists for type plumbing.
+6. Label-preserving Riemann stub adapter (`prooflab-core::bench_adapter`)
+   ingests fixture manifests into `Observation` / `EvidenceClaim` only;
+   labels `exact` / `numerical` / `conjecture` / `formal_asymptotic` are
+   never upgraded (never `PROVED`). Fixture:
+   `fixtures/riemann_stub_manifest.json`. No live TDI/Riemann network ingest.
 
 ## Success criteria
 
@@ -43,3 +47,13 @@ Raw process diagnostics remain available as `LeanProcessResult`. The legacy
 `verify_job` path is unchanged for PL-0/PL-1 orchestration; PL-2.0 evidence-chain
 sealing goes through the obligation path.
 
+
+## Riemann stub adapter (follow-on)
+
+`ingest_riemann_stub` maps one fixture entry into typed evidence while
+preserving the external epistemic label. Attempted upgrades
+(`numerical` → `exact`, any label → proof-like tokens) fail closed.
+Empirical / asymptotic / conjecture rows cannot seal `ProofArtifact`.
+
+Non-claims: fixture ingest is not a scientific result and does not
+reproduce RiemannBench numerics. `empirical ≠ proof`.
