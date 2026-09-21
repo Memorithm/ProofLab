@@ -54,7 +54,7 @@ Delivered in `prooflab-core::evidence` (PL-2.0): typed `Observation` / `Evidence
 `ConjectureCandidate` / `ProofObligation` / `KernelResult` with `AcceptedKernel` typestate
 gate, deny helpers for empirical sealing, and serde integrity tests. Lean verify path
 `LeanKernel::verify_obligation` emits typed `Accepted` / `Rejected` / `Unknown` /
-`Timeout` outcomes and seals `ProofArtifact` only via `AcceptedKernel`. Riemann stub adapter (`bench_adapter`) preserves `exact` / `numerical` / `conjecture` / `formal_asymptotic` labels into `Observation` / `EvidenceClaim` only (never `PROVED`). No live TDI/Riemann network ingest; Lean remains sole `PROVED` authority. See `experiments/PL-2.0/`.
+`Timeout` outcomes and seals `ProofArtifact` only via `AcceptedKernel`. Riemann / TDI stub adapters (`bench_adapter`) preserve `exact` / `numerical` / `conjecture` / `formal_asymptotic` labels into `Observation` / `EvidenceClaim` only (never `PROVED`). No live TDI/Riemann network ingest; Lean remains sole `PROVED` authority. See `experiments/PL-2.0/`.
 
 ## Relationship to PL-DC
 These conjecture programmes are additive and must not weaken or displace the existing descriptive-complexity programme. Reusable finite-structure, counterexample and provenance machinery should be shared where technically appropriate.

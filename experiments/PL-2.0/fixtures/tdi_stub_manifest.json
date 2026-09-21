@@ -1,0 +1,26 @@
+[
+  {
+    "entry_id": "operator-compress-diag",
+    "source_label": "numerical",
+    "statement": "finite-block operator compression diagnostic (fixture)",
+    "payload": "compress-fixture"
+  },
+  {
+    "entry_id": "algebraic-identity-n4",
+    "source_label": "exact",
+    "statement": "finite algebraic operator identity on n=4 (fixture)",
+    "payload": "exact-op-fixture"
+  },
+  {
+    "entry_id": "distinguishability-conjecture",
+    "source_label": "conjecture",
+    "statement": "structural distinguishability under bounded probes (source conjecture fixture)",
+    "payload": "tdi-conjecture-fixture"
+  },
+  {
+    "entry_id": "scaling-formal-asymptotic",
+    "source_label": "formal_asymptotic",
+    "statement": "operator scaling without theorem-grade remainder (fixture)",
+    "payload": "tdi-asym-fixture"
+  }
+]

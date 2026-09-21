@@ -17,11 +17,12 @@ observation → conjecture → obligation → kernel → proof chain (PL-C15).
    round-trip and forged outcome/status upgrades fail `check_id` /
    `into_accepted`.
 5. A tiny `Observation::stub` helper exists for type plumbing.
-6. Label-preserving Riemann stub adapter (`prooflab-core::bench_adapter`)
-   ingests fixture manifests into `Observation` / `EvidenceClaim` only;
+6. Label-preserving Riemann / TDI stub adapters (`prooflab-core::bench_adapter`)
+   ingest fixture manifests into `Observation` / `EvidenceClaim` only;
    labels `exact` / `numerical` / `conjecture` / `formal_asymptotic` are
-   never upgraded (never `PROVED`). Fixture:
-   `fixtures/riemann_stub_manifest.json`. No live TDI/Riemann network ingest.
+   never upgraded (never `PROVED`). Fixtures:
+   `fixtures/riemann_stub_manifest.json`, `fixtures/tdi_stub_manifest.json`.
+   No live TDI/Riemann network ingest.
 
 ## Success criteria
 
@@ -57,3 +58,13 @@ Empirical / asymptotic / conjecture rows cannot seal `ProofArtifact`.
 
 Non-claims: fixture ingest is not a scientific result and does not
 reproduce RiemannBench numerics. `empirical ≠ proof`.
+
+## TDI stub adapter (follow-on)
+
+`ingest_tdi_stub` is the parallel PL-C3 ingest for TDI-style operator /
+structural evidence fixtures. Same label vocabulary and deny paths; URI
+scheme is `tdi-stub://` so provenance stays distinct from Riemann rows.
+Never seals `PROVED`.
+
+Non-claims: fixture ingest is not operator novelty and does not run live
+TDI. `empirical ≠ proof`.
