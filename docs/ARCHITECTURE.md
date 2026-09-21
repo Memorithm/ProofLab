@@ -29,7 +29,7 @@ The two dimensions must never be conflated.
 
 ### `prooflab-core`
 
-Owns immutable claim content, deterministic claim identity, claim lifecycle vocabulary, reproducibility metadata, content-addressed environment locks, drift reports and library `reproduce` checks (integrity + lock binding). Reproduce success is not proof status. The PL-1.1 `falsify` module owns a restricted Nat expression evaluator and content-addressed counterexample / falsification records that may justify `FALSIFIED` only.
+Owns immutable claim content, deterministic claim identity, claim lifecycle vocabulary, reproducibility metadata, content-addressed environment locks, drift reports and library `reproduce` checks (integrity + lock binding). Reproduce success is not proof status. The PL-1.1 `falsify` module owns a restricted Nat expression evaluator and content-addressed counterexample / falsification records that may justify `FALSIFIED` only. The PL-2.0 `evidence` module owns typed observation → conjecture → obligation → kernel-result plumbing; empirical evidence cannot seal `ProofArtifact` / `PROVED` without an `AcceptedKernel`.
 
 ### `prooflab-lean`
 
@@ -74,3 +74,5 @@ A future `ProofArtifact` should bind at least:
 - determinism level.
 
 Only an accepted kernel result matching all bound inputs may authorize `ClaimStatus::Proved`.
+
+PL-2.0 Stage-0 makes the upstream chain explicit: `Observation` → `EvidenceClaim` → `ConjectureCandidate` → `ProofObligation` → `KernelResult` → (`AcceptedKernel`) → `ProofArtifact`. Failed, unknown and timeout outcomes are not acceptance.

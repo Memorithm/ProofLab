@@ -2,9 +2,10 @@
 //!
 //! This crate intentionally contains no theorem prover. It defines immutable
 //! claim identity, formal statements, proof artifacts, mathematical lifecycle
-//! state, reproducibility metadata, finite descriptive-complexity syntax and
-//! evaluation, and exact finite model-comparison game oracles. Proof status is
-//! never inferred from reproducibility.
+//! state, reproducibility metadata, typed scientific evidence (PL-2.0 / PL-C15),
+//! finite descriptive-complexity syntax and evaluation, and exact finite
+//! model-comparison game oracles. Proof status is never inferred from
+//! reproducibility or empirical evidence.
 
 #![forbid(unsafe_code)]
 
@@ -25,6 +26,7 @@ mod ef;
 mod env_lock;
 mod eso;
 mod eso_eval;
+mod evidence;
 mod falsify;
 mod fo;
 mod fo_eval;
@@ -86,6 +88,12 @@ pub use eso::{EsoSentence, EsoValidationError};
 pub use eso_eval::{
     EsoEvaluation, EsoEvaluationBudget, EsoEvaluationError, evaluate_eso_ordered,
     evaluate_eso_ordered_bounded, evaluate_eso_unordered, evaluate_eso_unordered_bounded,
+};
+pub use evidence::{
+    AcceptedKernel, ConjectureCandidate, ConjectureCandidateId, EvidenceClaim, EvidenceClaimId,
+    EvidenceError, EvidenceStrength, KernelOutcome, KernelResult, KernelResultId, Observation,
+    ObservationId, ObservationKind, ProofObligation, ProofObligationId,
+    refuse_empirical_proof_seal, refuse_evidence_proof_seal,
 };
 pub use falsify::{
     CheapClaimShape, CounterexampleWitness, CounterexampleWitnessId, FalsificationOutcome,
