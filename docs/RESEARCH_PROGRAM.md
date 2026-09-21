@@ -98,6 +98,9 @@ Status:
   with distinct `Accepted` / `Rejected` / `Unknown` / `Timeout` outcomes;
 - typestate `AcceptedKernel` is the only evidence-layer gate that may seal a
   `ProofArtifact` (via existing `ProofArtifact::new_verified`);
+- `prooflab-lean::LeanKernel::verify_obligation` wires the Lean process boundary
+  into typed `KernelResult` outcomes and seals artifacts only via `AcceptedKernel`;
+  raw process output is retained as `LeanProcessResult`;
 - numerical / solver / stub observations and strong evidence cannot construct
   proof artifacts or set `PROVED`; serde round-trip cannot upgrade status or
   kernel outcome identity;
