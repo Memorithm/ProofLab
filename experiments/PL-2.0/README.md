@@ -68,3 +68,19 @@ Never seals `PROVED`.
 
 Non-claims: fixture ingest is not operator novelty and does not run live
 TDI. `empirical ≠ proof`.
+
+## CLI inspect (follow-on)
+
+`prooflab inspect` is a read-only agent/UX surface over typed evidence JSON and
+the Riemann/TDI stub fixtures above. Example:
+
+```bash
+cargo run -p prooflab-cli -- inspect --kind riemann-stub-manifest \
+  --input experiments/PL-2.0/fixtures/riemann_stub_manifest.json
+cargo run -p prooflab-cli -- inspect --kind tdi-stub-manifest \
+  --input experiments/PL-2.0/fixtures/tdi_stub_manifest.json
+```
+
+It reports integrity, epistemic labels, and claim status. It never seals
+`PROVED` and never calls `AcceptedKernel::seal_proof_artifact`.
+
