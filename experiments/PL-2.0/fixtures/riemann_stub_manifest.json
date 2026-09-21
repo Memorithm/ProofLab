@@ -1,0 +1,26 @@
+[
+  {
+    "entry_id": "phase3-boundary-t0",
+    "source_label": "numerical",
+    "statement": "prolate boundary contribution t(0) regression (fixture)",
+    "payload": "t0=fixture"
+  },
+  {
+    "entry_id": "phase4-jacobi-identity",
+    "source_label": "exact",
+    "statement": "finite archimedean Jacobi coefficient identity (fixture)",
+    "payload": "jacobi-exact-fixture"
+  },
+  {
+    "entry_id": "phase4-soft-edge",
+    "source_label": "formal_asymptotic",
+    "statement": "soft-edge fixed-rank scaling without theorem remainder (fixture)",
+    "payload": "soft-edge-fixture"
+  },
+  {
+    "entry_id": "semilocal-sufficiency",
+    "source_label": "conjecture",
+    "statement": "bounded-support semilocal sufficiency (source conjecture fixture)",
+    "payload": "conjecture-fixture"
+  }
+]

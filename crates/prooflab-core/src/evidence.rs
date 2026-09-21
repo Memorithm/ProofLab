@@ -12,9 +12,10 @@
 //! artifact. Failed, unknown and timeout kernel outcomes stay distinct from
 //! acceptance and never upgrade through serde round-trip.
 //!
-//! Non-claims: this stage defines types and trust-boundary tests only. It does
-//! not ingest TDI/Riemann data, does not claim scientific novelty, and does
-//! not treat numerical agreement as proof.
+//! Non-claims: this stage defines types and trust-boundary tests only. Live
+//! TDI/Riemann network ingest is out of scope here (see `bench_adapter` for a
+//! label-preserving fixture stub). This module does not claim scientific
+//! novelty and does not treat numerical agreement as proof.
 
 use core::fmt;
 
