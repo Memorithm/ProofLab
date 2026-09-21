@@ -31,7 +31,7 @@ Status:
 
 - append-only content-addressed proof storage and theorem dependency DAG queries are available via `prooflab-store` / `prooflab-fs-store`;
 - content-addressed `EnvironmentLock`, fail-closed drift detection and library `reproduce` semantics are implemented in `prooflab-core`, with Lean re-verification wired through `prooflab-lean`;
-- thin `prooflab` CLI (`prooflab-cli`) exposes `reproduce` / `falsify` / `verify-corpus` / `minimize` over the library APIs; CLI success never seals `PROVED`.
+- thin `prooflab` CLI (`prooflab-cli`) exposes `reproduce` / `falsify` / `verify-corpus` / `minimize` / read-only `inspect` over the library APIs; CLI success never seals `PROVED`.
 
 ## PL-1.x — Controlled theorem proving
 
@@ -107,6 +107,8 @@ Status:
 - label-preserving Riemann / TDI stub adapters (`prooflab-core::bench_adapter`)
   emit `Observation` / `EvidenceClaim` only from fixture manifests;
   epistemic labels are never upgraded and never imply `PROVED`;
+- `prooflab-cli inspect` is a read-only UX over typed evidence JSON and stub
+  manifests; it reports integrity/status/labels and never seals `PROVED`;
 - no live TDI/Riemann network ingest; Lean remains the sole `PROVED` authority;
 - see [`CONJECTURE-RESEARCH-PROGRAMME.md`](CONJECTURE-RESEARCH-PROGRAMME.md) PL-C15
   and `experiments/PL-2.0/`.

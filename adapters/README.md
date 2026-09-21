@@ -16,3 +16,15 @@ Future SciRust / TDI / Riemann bridges live here as thin, tested ingest surfaces
   scheme distinct from `riemann-stub://`.
 
 No live network ingest. Lean remains the sole `PROVED` authority.
+
+Read-only CLI inspect for these fixtures:
+
+```bash
+cargo run -p prooflab-cli -- inspect --kind riemann-stub-manifest \
+  --input experiments/PL-2.0/fixtures/riemann_stub_manifest.json
+cargo run -p prooflab-cli -- inspect --kind tdi-stub-manifest \
+  --input experiments/PL-2.0/fixtures/tdi_stub_manifest.json
+```
+
+Inspect never seals `PROVED`.
+
