@@ -32,3 +32,14 @@ observation → conjecture → obligation → kernel → proof chain (PL-C15).
 This stage defines types and trust-boundary tests only. It does not establish
 that empirical regularities become theorems, that the type system reduces
 errors in production adapters, or any new mathematical result. `empirical ≠ proof`.
+
+## Lean typed-kernel bridge (follow-on)
+
+`prooflab-lean::LeanKernel::verify_obligation` classifies the Lean process boundary
+into a typed `KernelResult` / `KernelOutcome` (`Accepted` / `Rejected` /
+`Unknown` / `Timeout`) and seals `ProofArtifact` only through `AcceptedKernel`.
+
+Raw process diagnostics remain available as `LeanProcessResult`. The legacy
+`verify_job` path is unchanged for PL-0/PL-1 orchestration; PL-2.0 evidence-chain
+sealing goes through the obligation path.
+
