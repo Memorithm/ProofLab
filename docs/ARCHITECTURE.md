@@ -29,7 +29,7 @@ The two dimensions must never be conflated.
 
 ### `prooflab-core`
 
-Owns immutable claim content, deterministic claim identity, claim lifecycle vocabulary, reproducibility metadata, content-addressed environment locks, drift reports and library `reproduce` checks (integrity + lock binding). Reproduce success is not proof status. The PL-1.1 `falsify` module owns a restricted Nat expression evaluator and content-addressed counterexample / falsification records that may justify `FALSIFIED` only. The PL-2.0 `evidence` module owns typed observation → conjecture → obligation → kernel-result plumbing; empirical evidence cannot seal `ProofArtifact` / `PROVED` without an `AcceptedKernel`. The `bench_adapter` module provides label-preserving Riemann/TDI stub ingest into `Observation` / `EvidenceClaim` only.
+Owns immutable claim content, deterministic claim identity, claim lifecycle vocabulary, reproducibility metadata, content-addressed environment locks, drift reports and library `reproduce` checks (integrity + lock binding). Reproduce success is not proof status. The PL-1.1 `falsify` module owns a restricted Nat expression evaluator and content-addressed counterexample / falsification records that may justify `FALSIFIED` only. The `falsify_evidence` bridge maps those records into typed `Observation` / `EvidenceClaim` without sealing `PROVED` or promoting conjectures. The PL-2.0 `evidence` module owns typed observation → conjecture → obligation → kernel-result plumbing; empirical evidence cannot seal `ProofArtifact` / `PROVED` without an `AcceptedKernel`. The `bench_adapter` module provides label-preserving Riemann/TDI stub ingest into `Observation` / `EvidenceClaim` only.
 
 ### `prooflab-lean`
 

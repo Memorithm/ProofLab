@@ -31,3 +31,12 @@ proof-search promotion.
 Passing the PL-1.1 battery shows that cheap falsification routing works for a
 fixed control set. It does not establish search quality, discovery capability,
 completeness of the falsifier, or any new theorem.
+
+## Typed evidence bridge (follow-on)
+
+`prooflab-core::falsify_evidence::evidence_from_falsification` adapts a validated
+`FalsificationRecord` into PL-2.0 `Observation` / `EvidenceClaim` with
+`ObservationKind::Counterexample` and `falsify://pl-1.1/…` provenance. Evidence
+status stays `Observed`; scientific status stays `Falsified`. The bridge refuses
+conjecture promotion and proof sealing. Lean remains the sole `PROVED` authority.
+

@@ -785,6 +785,7 @@ fn observation_kind_name(kind: ObservationKind) -> String {
         ObservationKind::SolverOutput => "solver_output".into(),
         ObservationKind::ManualAnnotation => "manual_annotation".into(),
         ObservationKind::StubAdapter => "stub_adapter".into(),
+        ObservationKind::Counterexample => "counterexample".into(),
     }
 }
 

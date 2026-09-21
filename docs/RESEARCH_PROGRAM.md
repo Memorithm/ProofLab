@@ -56,6 +56,9 @@ Status:
 - controlled false-conjecture catalog and proof-search refusal gate in `prooflab-lean::false_conjectures`;
 - battery rejects closed and universal false Nat equalities before any Lean invocation;
 - falsification records `ClaimStatus::Falsified` only; Lean remains the sole `PROVED` authority;
+- PL-2.0 bridge `evidence_from_falsification` maps validated records into typed
+  `Observation` / `EvidenceClaim` (`falsify://pl-1.1/…`); evidence stays `Observed`,
+  scientific status stays `Falsified`, conjecture promotion and proof sealing are refused;
 - no mathematical novelty claim is permitted at this stage.
 
 ### PL-1.2 — Assumption minimization
@@ -107,6 +110,9 @@ Status:
 - label-preserving Riemann / TDI stub adapters (`prooflab-core::bench_adapter`)
   emit `Observation` / `EvidenceClaim` only from fixture manifests;
   epistemic labels are never upgraded and never imply `PROVED`;
+- PL-1.1 falsify bridge (`prooflab-core::falsify_evidence`) admits
+  `FalsificationRecord` → typed evidence without proof; refuses conjecture
+  promotion and `AcceptedKernel` sealing on that path;
 - `prooflab-cli inspect` is a read-only UX over typed evidence JSON and stub
   manifests; it reports integrity/status/labels and never seals `PROVED`;
 - no live TDI/Riemann network ingest; Lean remains the sole `PROVED` authority;

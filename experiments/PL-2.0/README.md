@@ -84,3 +84,12 @@ cargo run -p prooflab-cli -- inspect --kind tdi-stub-manifest \
 It reports integrity, epistemic labels, and claim status. It never seals
 `PROVED` and never calls `AcceptedKernel::seal_proof_artifact`.
 
+## Falsify → EvidenceClaim bridge (follow-on)
+
+`evidence_from_falsification` connects PL-1.1 `FalsificationRecord` /
+`CounterexampleWitness` into the typed chain as `Observation` + `EvidenceClaim`.
+Scientific status remains `Falsified` on the ingest wrapper; evidence objects stay
+`Observed`. `refuse_conjecture_from_falsification` and
+`refuse_falsify_evidence_proof_seal` document the trust boundary. Never seals
+`PROVED`. `empirical ≠ proof`.
+
