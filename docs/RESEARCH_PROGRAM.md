@@ -89,6 +89,22 @@ Every PL-2 claim must clearly distinguish:
 - verified theorem;
 - attempted but unproved statement.
 
+### PL-2.0 — Typed scientific evidence (Stage-0)
+
+Status:
+
+- started: `prooflab-core::evidence` introduces content-addressed `Observation`,
+  `EvidenceClaim`, `ConjectureCandidate`, `ProofObligation`, and `KernelResult`
+  with distinct `Accepted` / `Rejected` / `Unknown` / `Timeout` outcomes;
+- typestate `AcceptedKernel` is the only evidence-layer gate that may seal a
+  `ProofArtifact` (via existing `ProofArtifact::new_verified`);
+- numerical / solver / stub observations and strong evidence cannot construct
+  proof artifacts or set `PROVED`; serde round-trip cannot upgrade status or
+  kernel outcome identity;
+- no real TDI/Riemann ingest yet; Lean remains the sole `PROVED` authority;
+- see [`CONJECTURE-RESEARCH-PROGRAMME.md`](CONJECTURE-RESEARCH-PROGRAMME.md) PL-C15
+  and `experiments/PL-2.0/`.
+
 ## PL-DC — Descriptive complexity
 
 ProofLab also hosts a dedicated finite descriptive-complexity programme whose long-term target is the ordered finite-structure formulation of P versus NP through `FO(LFP)` versus `ESO`.

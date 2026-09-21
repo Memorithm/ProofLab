@@ -49,5 +49,11 @@ The type system adds bookkeeping but does not materially reduce invalid claim tr
 ### First implementation slice
 Extend the existing claim lifecycle with explicit evidence-level and proof-obligation types plus compile-time/runtime tests demonstrating that empirical and solver evidence cannot construct a `ProofArtifact` without a successful trusted `KernelResult`.
 
+### Stage-0 status
+Delivered in `prooflab-core::evidence` (PL-2.0): typed `Observation` / `EvidenceClaim` /
+`ConjectureCandidate` / `ProofObligation` / `KernelResult` with `AcceptedKernel` typestate
+gate, deny helpers for empirical sealing, and serde integrity tests. No real TDI/Riemann
+ingest; Lean remains sole `PROVED` authority. See `experiments/PL-2.0/`.
+
 ## Relationship to PL-DC
 These conjecture programmes are additive and must not weaken or displace the existing descriptive-complexity programme. Reusable finite-structure, counterexample and provenance machinery should be shared where technically appropriate.

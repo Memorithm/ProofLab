@@ -24,7 +24,7 @@ The initial proof kernel is Lean. The architecture must permit future proof back
 ```text
 ProofLab/
   crates/
-    prooflab-core/       claim identity, lifecycle, reproducibility, env lock / reproduce, cheap falsify
+    prooflab-core/       claim identity, lifecycle, reproducibility, env lock / reproduce, cheap falsify, typed evidence (PL-2.0)
     prooflab-lean/       trusted Lean invocation boundary (lock-aware verify/reproduce, corpus, false conjectures, minimize)
     prooflab-store/      content-addressed proof artifact store + provenance queries
     prooflab-fs-store/   durable filesystem backend for verified proofs
@@ -49,10 +49,11 @@ A run may be `L3` bit-reproducible and still compute a false statement. Converse
 The end-to-end trust path is:
 
 ```text
+Observation -> EvidenceClaim -> ConjectureCandidate -> ProofObligation
 Claim -> (cheap falsify?) -> FormalStatement -> VerificationJob -> Lean -> KernelResult -> ProofArtifact
 ```
 
-Cheap falsification may terminate at `FALSIFIED` before proof search. Only Lean acceptance seals `PROVED`.
+Cheap falsification may terminate at `FALSIFIED` before proof search. Empirical / solver evidence may motivate conjectures but cannot seal proof status. Only Lean acceptance (via `AcceptedKernel` / `ProofArtifact::new_verified`) seals `PROVED`.
 
 ## SciRust / SOS reuse
 
