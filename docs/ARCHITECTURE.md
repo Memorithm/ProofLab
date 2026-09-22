@@ -29,7 +29,7 @@ The two dimensions must never be conflated.
 
 ### `prooflab-core`
 
-Owns immutable claim content, deterministic claim identity, claim lifecycle vocabulary, reproducibility metadata, content-addressed environment locks, drift reports and library `reproduce` checks (integrity + lock binding). Reproduce success is not proof status. The PL-1.1 `falsify` module owns a restricted Nat expression evaluator and content-addressed counterexample / falsification records that may justify `FALSIFIED` only. The PL-2.0 `evidence` module owns typed observation → evidence → (explicit human/agent promotion) → conjecture → obligation → kernel-result plumbing; empirical evidence cannot auto-upgrade to conjectures or seal `ProofArtifact` / `PROVED` without an `AcceptedKernel`. The `bench_adapter` module provides label-preserving Riemann/TDI stub ingest into `Observation` / `EvidenceClaim` only.
+Owns immutable claim content, deterministic claim identity, claim lifecycle vocabulary, reproducibility metadata, content-addressed environment locks, drift reports and library `reproduce` checks (integrity + lock binding). Reproduce success is not proof status. The PL-1.1 `falsify` module owns a restricted Nat expression evaluator and content-addressed counterexample / falsification records that may justify `FALSIFIED` only. The `falsify_evidence` bridge maps those records into typed `Observation` / `EvidenceClaim` without sealing `PROVED` or promoting conjectures. The PL-2.0 `evidence` module owns typed observation → evidence → (explicit human/agent promotion) → conjecture → obligation → kernel-result plumbing; empirical evidence cannot auto-upgrade to conjectures or seal `ProofArtifact` / `PROVED` without an `AcceptedKernel`. The `bench_adapter` module provides label-preserving Riemann/TDI stub ingest into `Observation` / `EvidenceClaim` only.
 
 ### `prooflab-lean`
 
@@ -37,7 +37,7 @@ Owns the process boundary `lake env lean <file>`. It does not decide scientific 
 
 ### `prooflab-cli`
 
-Owns the executable UX/agent surface. Subcommands are thin wrappers: core or Lean `reproduce`, PL-1.1 `falsify` battery, PL-1.0 `verify-corpus`, and PL-1.2 `minimize`. Output is JSON reports. The CLI never invents proof status; Lean acceptance via sealed `ProofArtifact` remains the only `PROVED` path.
+Owns the executable UX/agent surface. Subcommands are thin wrappers: core or Lean `reproduce`, PL-1.1 `falsify` battery, PL-1.0 `verify-corpus`, PL-1.2 `minimize`, and read-only PL-2.0 `inspect` (typed evidence objects or Riemann/TDI stub manifests). Output is JSON reports. The CLI never invents proof status; `inspect` never calls `AcceptedKernel::seal_proof_artifact`. Lean acceptance via sealed `ProofArtifact` remains the only `PROVED` path.
 
 ### Lean library
 
@@ -52,7 +52,7 @@ The next justified crates are expected to be:
 - `prooflab-runner`: verification jobs, environment capture and artifact sealing;
 - `prooflab-counterexample`: broader deterministic/sound falsification adapters (PL-1.1 Nat subset lives in `prooflab-core::falsify` until a dedicated crate is justified);
 - `prooflab-search`: untrusted proof/conjecture strategy orchestration;
-- `prooflab-cli`: thin user/agent entry point (`reproduce` / `falsify` / `verify-corpus` / `minimize`) over existing library APIs — present; does not seal `PROVED`.
+- `prooflab-cli`: thin user/agent entry point (`reproduce` / `falsify` / `verify-corpus` / `minimize` / `inspect`) over existing library APIs — present; does not seal `PROVED`.
 
 Further crates should be added only when their contract is implemented and tested.
 

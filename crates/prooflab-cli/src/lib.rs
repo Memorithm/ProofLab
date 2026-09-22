@@ -1,8 +1,9 @@
 //! Thin user/agent entry point over existing `ProofLab` library APIs.
 //!
-//! Commands expose `reproduce`, cheap `falsify`, `verify-corpus`, and `minimize`
-//! without inventing new proof authority. Lean remains the sole `PROVED`
-//! backend; CLI success never seals proof status by itself.
+//! Commands expose `reproduce`, cheap `falsify`, `verify-corpus`, `minimize`,
+//! and read-only PL-2.0 `inspect` without inventing new proof authority. Lean
+//! remains the sole `PROVED` backend; CLI success never seals proof status by
+//! itself. `inspect` never calls `AcceptedKernel::seal_proof_artifact`.
 
 #![forbid(unsafe_code)]
 
@@ -12,8 +13,11 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use prooflab_core::{
-    ClaimStatus, EnvironmentLock, FormalStatement, ProofArtifact, ReproMeta, ReproduceOk,
-    reproduce as core_reproduce,
+    Claim, ClaimBody, ClaimStatus, ConjectureCandidate, EnvironmentLock, EvidenceClaim,
+    FormalStatement, KernelResult, Observation, ObservationKind, ProofArtifact, ProofObligation,
+    ReproMeta, ReproduceOk, RiemannStubEntry, TdiStubEntry, ingest_riemann_stub, ingest_tdi_stub,
+    refuse_empirical_proof_seal, refuse_evidence_proof_seal, refuse_riemann_stub_proof_seal,
+    refuse_tdi_stub_proof_seal, reproduce as core_reproduce,
 };
 use prooflab_lean::{
     ExpectedOutcome, ExpectedRemovalOutcome, FalseConjectureReport, LeanKernel,
@@ -26,10 +30,11 @@ use serde::Serialize;
 #[derive(Debug, Parser)]
 #[command(
     name = "prooflab",
-    about = "Thin ProofLab entry point for reproduce / falsify / verify-corpus / minimize",
+    about = "Thin ProofLab entry point for reproduce / falsify / verify-corpus / minimize / inspect",
     long_about = "Exposes existing library APIs for agents and local UX.\n\
 Lean remains the sole PROVED authority. Cheap falsification may record FALSIFIED only.\n\
-Reproduce success is environment/integrity confirmation, not proof status."
+Reproduce success is environment/integrity confirmation, not proof status.\n\
+Inspect is read-only over PL-2.0 evidence/stub JSON and never seals PROVED."
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -103,6 +108,42 @@ pub enum Commands {
         #[arg(long, default_value = "lake")]
         lake: PathBuf,
     },
+    /// Read-only PL-2.0 evidence / stub-manifest inspect (never seals `PROVED`).
+    ///
+    /// Deserializes typed evidence-chain JSON or runs label-preserving Riemann/TDI
+    /// stub ingest against a fixture manifest. Reports integrity, status/outcome,
+    /// and epistemic labels. Does not invoke Lean and never calls
+    /// `AcceptedKernel::seal_proof_artifact`.
+    Inspect {
+        /// Kind of JSON document to inspect.
+        #[arg(long, value_enum)]
+        kind: InspectKind,
+        /// Path to the JSON input.
+        #[arg(long)]
+        input: PathBuf,
+        /// Claim statement used only when ingesting stub manifests (identity pin).
+        #[arg(long, default_value = "prooflab-cli-inspect-claim")]
+        claim_statement: String,
+    },
+}
+
+/// Document kinds accepted by [`Commands::Inspect`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+pub enum InspectKind {
+    /// Content-addressed [`Observation`] JSON.
+    Observation,
+    /// Content-addressed [`EvidenceClaim`] JSON.
+    EvidenceClaim,
+    /// Content-addressed [`ConjectureCandidate`] JSON.
+    Conjecture,
+    /// Content-addressed [`ProofObligation`] JSON.
+    Obligation,
+    /// Content-addressed [`KernelResult`] JSON (report-only; never seals).
+    KernelResult,
+    /// Riemann stub fixture manifest (`Vec<RiemannStubEntry>`).
+    RiemannStubManifest,
+    /// TDI stub fixture manifest (`Vec<TdiStubEntry>`).
+    TdiStubManifest,
 }
 
 /// Machine-readable CLI outcome envelope.
@@ -119,6 +160,51 @@ pub struct CliReport {
     pub corpus: Option<Vec<CorpusEntryReport>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub minimize: Option<Vec<MinimizeEntryReport>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inspect: Option<InspectReport>,
+}
+
+/// Read-only inspect summary for one evidence-chain or stub-manifest input.
+#[derive(Debug, Clone, Serialize)]
+pub struct InspectReport {
+    pub kind: String,
+    pub input: String,
+    pub integrity_ok: bool,
+    /// Always false: inspect never seals proof artifacts.
+    pub sealed_proved: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub object: Option<InspectObjectReport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stub_rows: Option<Vec<InspectStubRowReport>>,
+}
+
+/// Summary fields for a single typed evidence object.
+#[derive(Debug, Clone, Serialize)]
+pub struct InspectObjectReport {
+    pub id_hex: String,
+    pub status: Option<String>,
+    pub observation_kind: Option<String>,
+    pub evidence_strength: Option<String>,
+    pub source_label: Option<String>,
+    pub kernel_outcome: Option<String>,
+    pub kernel_accepting: Option<bool>,
+    pub check_id: bool,
+}
+
+/// One stub-manifest row after label-preserving ingest.
+#[derive(Debug, Clone, Serialize)]
+pub struct InspectStubRowReport {
+    pub entry_id: String,
+    pub source_label: String,
+    pub observation_kind: String,
+    pub evidence_strength: String,
+    pub status: String,
+    pub observation_check_id: bool,
+    pub evidence_check_id: bool,
+    pub observation_id_hex: String,
+    pub evidence_id_hex: String,
+    /// Always false for stub ingest paths.
+    pub proved: bool,
 }
 
 /// Reproduce command summary.
@@ -241,6 +327,11 @@ pub fn execute(cli: Cli) -> Result<CliReport, String> {
             lock.as_deref(),
             &lake,
         ),
+        Commands::Inspect {
+            kind,
+            input,
+            claim_statement,
+        } => cmd_inspect(kind, &input, &claim_statement),
     }
 }
 
@@ -282,6 +373,7 @@ fn cmd_reproduce(
                 falsify: None,
                 corpus: None,
                 minimize: None,
+                inspect: None,
             })
         }
         (Some(formal_path), Some(source_path)) => {
@@ -308,6 +400,7 @@ fn cmd_reproduce(
                 falsify: None,
                 corpus: None,
                 minimize: None,
+                inspect: None,
             })
         }
         _ => Err(
@@ -338,6 +431,7 @@ fn cmd_falsify() -> Result<CliReport, String> {
         falsify: Some(entries),
         corpus: None,
         minimize: None,
+        inspect: None,
     })
 }
 
@@ -387,6 +481,7 @@ fn cmd_verify_corpus(
         falsify: None,
         corpus: Some(entries),
         minimize: None,
+        inspect: None,
     })
 }
 
@@ -429,7 +524,286 @@ fn cmd_minimize(
         falsify: None,
         corpus: None,
         minimize: Some(entries),
+        inspect: None,
     })
+}
+
+fn cmd_inspect(
+    kind: InspectKind,
+    input: &Path,
+    claim_statement: &str,
+) -> Result<CliReport, String> {
+    let notes = inspect_notes(kind);
+    let inspect = match kind {
+        InspectKind::Observation => inspect_observation(input)?,
+        InspectKind::EvidenceClaim => inspect_evidence_claim(input)?,
+        InspectKind::Conjecture => inspect_conjecture(input)?,
+        InspectKind::Obligation => inspect_obligation(input)?,
+        InspectKind::KernelResult => inspect_kernel_result(input)?,
+        InspectKind::RiemannStubManifest => {
+            inspect_stub_manifest(input, claim_statement, StubManifestKind::Riemann)?
+        }
+        InspectKind::TdiStubManifest => {
+            inspect_stub_manifest(input, claim_statement, StubManifestKind::Tdi)?
+        }
+    };
+    let ok = inspect_report_ok(kind, &inspect);
+    Ok(CliReport {
+        command: "inspect".into(),
+        ok,
+        notes,
+        reproduce: None,
+        falsify: None,
+        corpus: None,
+        minimize: None,
+        inspect: Some(inspect),
+    })
+}
+
+fn inspect_report_ok(kind: InspectKind, inspect: &InspectReport) -> bool {
+    if !inspect.integrity_ok || inspect.sealed_proved {
+        return false;
+    }
+    if let Some(rows) = &inspect.stub_rows
+        && (rows.is_empty() || rows.iter().any(|row| row.proved))
+    {
+        return false;
+    }
+    if let Some(object) = &inspect.object {
+        if object.status.as_deref() == Some("proved") {
+            return false;
+        }
+        if matches!(kind, InspectKind::EvidenceClaim)
+            && (object.status.as_deref() != Some("observed") || !object.check_id)
+        {
+            return false;
+        }
+    }
+    true
+}
+
+#[derive(Clone, Copy)]
+enum StubManifestKind {
+    Riemann,
+    Tdi,
+}
+
+fn inspect_notes(kind: InspectKind) -> Vec<String> {
+    let mut notes = vec![
+        "PL-2.0 read-only evidence/stub inspect".into(),
+        "inspect never seals PROVED / never calls AcceptedKernel::seal_proof_artifact".into(),
+        "Lean remains the sole PROVED authority".into(),
+    ];
+    if matches!(kind, InspectKind::KernelResult) {
+        notes.push(
+            "accepting KernelResult still requires AcceptedKernel::seal_proof_artifact to PROVED"
+                .into(),
+        );
+    }
+    notes
+}
+
+fn empty_object_report(id_hex: String, check_id: bool) -> InspectObjectReport {
+    InspectObjectReport {
+        id_hex,
+        status: None,
+        observation_kind: None,
+        evidence_strength: None,
+        source_label: None,
+        kernel_outcome: None,
+        kernel_accepting: None,
+        check_id,
+    }
+}
+
+fn inspect_observation(input: &Path) -> Result<InspectReport, String> {
+    let obj: Observation = read_json(input)?;
+    let check = obj.check_id();
+    let _ = refuse_empirical_proof_seal(obj.kind);
+    let mut object = empty_object_report(hex32(&obj.id.0), check);
+    object.status = Some(status_name(obj.implied_status()));
+    object.observation_kind = Some(observation_kind_name(obj.kind));
+    object.source_label = Some(obj.source_label.clone());
+    Ok(InspectReport {
+        kind: "observation".into(),
+        input: input.display().to_string(),
+        integrity_ok: check,
+        sealed_proved: false,
+        object: Some(object),
+        stub_rows: None,
+    })
+}
+
+fn inspect_evidence_claim(input: &Path) -> Result<InspectReport, String> {
+    let obj: EvidenceClaim = read_json(input)?;
+    let check = obj.check_id();
+    let _ = refuse_evidence_proof_seal(obj.strength);
+    let mut object = empty_object_report(hex32(&obj.id.0), check);
+    object.status = Some(status_name(obj.status));
+    object.evidence_strength = Some(evidence_strength_name(obj.strength));
+    Ok(InspectReport {
+        kind: "evidence-claim".into(),
+        input: input.display().to_string(),
+        integrity_ok: check,
+        sealed_proved: false,
+        object: Some(object),
+        stub_rows: None,
+    })
+}
+
+fn inspect_conjecture(input: &Path) -> Result<InspectReport, String> {
+    let obj: ConjectureCandidate = read_json(input)?;
+    let check = obj.check_id();
+    let mut object = empty_object_report(hex32(&obj.id.0), check);
+    object.status = Some(status_name(obj.status));
+    Ok(InspectReport {
+        kind: "conjecture".into(),
+        input: input.display().to_string(),
+        integrity_ok: check,
+        sealed_proved: false,
+        object: Some(object),
+        stub_rows: None,
+    })
+}
+
+fn inspect_obligation(input: &Path) -> Result<InspectReport, String> {
+    let obj: ProofObligation = read_json(input)?;
+    let check = obj.check_id();
+    let mut object = empty_object_report(hex32(&obj.id.0), check);
+    object.status = Some(status_name(obj.status));
+    Ok(InspectReport {
+        kind: "obligation".into(),
+        input: input.display().to_string(),
+        integrity_ok: check,
+        sealed_proved: false,
+        object: Some(object),
+        stub_rows: None,
+    })
+}
+
+fn inspect_kernel_result(input: &Path) -> Result<InspectReport, String> {
+    let obj: KernelResult = read_json(input)?;
+    let check = obj.check_id();
+    let mut object = empty_object_report(hex32(&obj.id.0), check);
+    object.kernel_outcome = Some(kernel_outcome_name(&obj.outcome));
+    object.kernel_accepting = Some(obj.outcome.is_accepting());
+    Ok(InspectReport {
+        kind: "kernel-result".into(),
+        input: input.display().to_string(),
+        integrity_ok: check,
+        sealed_proved: false,
+        object: Some(object),
+        stub_rows: None,
+    })
+}
+
+fn inspect_stub_manifest(
+    input: &Path,
+    claim_statement: &str,
+    kind: StubManifestKind,
+) -> Result<InspectReport, String> {
+    let claim = Claim::new(ClaimBody {
+        statement: claim_statement.into(),
+        assumptions: vec![],
+        parents: vec![],
+    });
+    let rows = match kind {
+        StubManifestKind::Riemann => {
+            let entries: Vec<RiemannStubEntry> = read_json(input)?;
+            entries
+                .iter()
+                .map(|entry| {
+                    let ingest = ingest_riemann_stub(claim.id, entry).map_err(err_string)?;
+                    let _ = refuse_riemann_stub_proof_seal(entry.source_label);
+                    Ok(stub_row_from_parts(
+                        &entry.entry_id,
+                        entry.source_label.as_str(),
+                        &ingest.observation,
+                        &ingest.evidence,
+                    ))
+                })
+                .collect::<Result<Vec<_>, String>>()?
+        }
+        StubManifestKind::Tdi => {
+            let entries: Vec<TdiStubEntry> = read_json(input)?;
+            entries
+                .iter()
+                .map(|entry| {
+                    let ingest = ingest_tdi_stub(claim.id, entry).map_err(err_string)?;
+                    let _ = refuse_tdi_stub_proof_seal(entry.source_label);
+                    Ok(stub_row_from_parts(
+                        &entry.entry_id,
+                        entry.source_label.as_str(),
+                        &ingest.observation,
+                        &ingest.evidence,
+                    ))
+                })
+                .collect::<Result<Vec<_>, String>>()?
+        }
+    };
+    let integrity_ok = rows.iter().all(|row| {
+        row.observation_check_id && row.evidence_check_id && row.status == "observed" && !row.proved
+    });
+    let kind_name = match kind {
+        StubManifestKind::Riemann => "riemann-stub-manifest",
+        StubManifestKind::Tdi => "tdi-stub-manifest",
+    };
+    Ok(InspectReport {
+        kind: kind_name.into(),
+        input: input.display().to_string(),
+        integrity_ok,
+        sealed_proved: false,
+        object: None,
+        stub_rows: Some(rows),
+    })
+}
+
+fn stub_row_from_parts(
+    entry_id: &str,
+    source_label: &str,
+    observation: &Observation,
+    evidence: &EvidenceClaim,
+) -> InspectStubRowReport {
+    InspectStubRowReport {
+        entry_id: entry_id.into(),
+        source_label: source_label.into(),
+        observation_kind: observation_kind_name(observation.kind),
+        evidence_strength: evidence_strength_name(evidence.strength),
+        status: status_name(evidence.status),
+        observation_check_id: observation.check_id(),
+        evidence_check_id: evidence.check_id(),
+        observation_id_hex: hex32(&observation.id.0),
+        evidence_id_hex: hex32(&evidence.id.0),
+        proved: evidence.status == ClaimStatus::Proved,
+    }
+}
+
+fn observation_kind_name(kind: ObservationKind) -> String {
+    match kind {
+        ObservationKind::Numerical => "numerical".into(),
+        ObservationKind::SymbolicExperiment => "symbolic_experiment".into(),
+        ObservationKind::SolverOutput => "solver_output".into(),
+        ObservationKind::ManualAnnotation => "manual_annotation".into(),
+        ObservationKind::StubAdapter => "stub_adapter".into(),
+        ObservationKind::Counterexample => "counterexample".into(),
+    }
+}
+
+fn evidence_strength_name(strength: prooflab_core::EvidenceStrength) -> String {
+    match strength {
+        prooflab_core::EvidenceStrength::Suggestive => "suggestive".into(),
+        prooflab_core::EvidenceStrength::Corroborated => "corroborated".into(),
+        prooflab_core::EvidenceStrength::Strong => "strong".into(),
+    }
+}
+
+fn kernel_outcome_name(outcome: &prooflab_core::KernelOutcome) -> String {
+    match outcome {
+        prooflab_core::KernelOutcome::Accepted { .. } => "accepted".into(),
+        prooflab_core::KernelOutcome::Rejected { .. } => "rejected".into(),
+        prooflab_core::KernelOutcome::Unknown { .. } => "unknown".into(),
+        prooflab_core::KernelOutcome::Timeout { .. } => "timeout".into(),
+    }
 }
 
 fn falsify_entry(report: &FalseConjectureReport) -> FalsifyEntryReport {
@@ -658,9 +1032,132 @@ mod tests {
             ],
             vec!["prooflab", "verify-corpus", "--repo-root", "."],
             vec!["prooflab", "minimize", "--repo-root", "."],
+            vec![
+                "prooflab",
+                "inspect",
+                "--kind",
+                "riemann-stub-manifest",
+                "--input",
+                "m.json",
+            ],
+            vec![
+                "prooflab",
+                "inspect",
+                "--kind",
+                "observation",
+                "--input",
+                "o.json",
+            ],
         ] {
             Cli::try_parse_from(args).expect("parse");
         }
+    }
+
+    #[test]
+    fn inspect_riemann_stub_manifest_never_seals_proved() {
+        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../experiments/PL-2.0/fixtures/riemann_stub_manifest.json");
+        let report = cmd_inspect(
+            InspectKind::RiemannStubManifest,
+            &manifest,
+            "cli-inspect-riemann-fixture",
+        )
+        .expect("inspect riemann");
+        assert!(report.ok);
+        assert_eq!(report.command, "inspect");
+        let inspect = report.inspect.expect("inspect section");
+        assert!(!inspect.sealed_proved);
+        assert!(inspect.integrity_ok);
+        let rows = inspect.stub_rows.expect("stub rows");
+        assert_eq!(rows.len(), 4);
+        for row in &rows {
+            assert_eq!(row.status, "observed");
+            assert!(!row.proved);
+            assert!(row.observation_check_id);
+            assert!(row.evidence_check_id);
+        }
+        let labels: Vec<&str> = rows.iter().map(|r| r.source_label.as_str()).collect();
+        assert!(labels.contains(&"numerical"));
+        assert!(labels.contains(&"exact"));
+        assert!(labels.contains(&"conjecture"));
+        assert!(labels.contains(&"formal_asymptotic"));
+    }
+
+    #[test]
+    fn inspect_tdi_stub_manifest_never_seals_proved() {
+        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../experiments/PL-2.0/fixtures/tdi_stub_manifest.json");
+        let report = cmd_inspect(
+            InspectKind::TdiStubManifest,
+            &manifest,
+            "cli-inspect-tdi-fixture",
+        )
+        .expect("inspect tdi");
+        assert!(report.ok);
+        let inspect = report.inspect.expect("inspect section");
+        assert!(!inspect.sealed_proved);
+        let rows = inspect.stub_rows.expect("stub rows");
+        assert_eq!(rows.len(), 4);
+        for row in &rows {
+            assert_eq!(row.status, "observed");
+            assert!(!row.proved);
+        }
+    }
+
+    #[test]
+    fn inspect_observation_json_reports_integrity_without_sealing() {
+        let tmp =
+            std::env::temp_dir().join(format!("prooflab-cli-inspect-obs-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).unwrap();
+        let obs = Observation::stub("stub://cli-inspect", b"payload");
+        let path = tmp.join("obs.json");
+        fs::write(&path, serde_json::to_vec_pretty(&obs).unwrap()).unwrap();
+        let report = cmd_inspect(InspectKind::Observation, &path, "unused").expect("inspect obs");
+        assert!(report.ok);
+        let inspect = report.inspect.expect("section");
+        assert!(!inspect.sealed_proved);
+        let object = inspect.object.expect("object");
+        assert!(object.check_id);
+        assert_eq!(object.status.as_deref(), Some("observed"));
+        assert_eq!(object.observation_kind.as_deref(), Some("stub_adapter"));
+        assert_ne!(object.status.as_deref(), Some("proved"));
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn inspect_evidence_claim_rejects_forged_proved_status() {
+        let claim = Claim::new(ClaimBody {
+            statement: "cli-inspect-forged".into(),
+            assumptions: vec![],
+            parents: vec![],
+        });
+        let obs = Observation::stub("stub://cli-inspect-forged", b"x");
+        let evidence = EvidenceClaim::from_observations(
+            claim.id,
+            &[&obs],
+            prooflab_core::EvidenceStrength::Strong,
+        )
+        .unwrap();
+        let mut value = serde_json::to_value(&evidence).unwrap();
+        value["status"] = serde_json::json!("Proved");
+        let tmp = std::env::temp_dir().join(format!(
+            "prooflab-cli-inspect-forged-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).unwrap();
+        let path = tmp.join("forged.json");
+        fs::write(&path, serde_json::to_vec_pretty(&value).unwrap()).unwrap();
+        let report = cmd_inspect(InspectKind::EvidenceClaim, &path, "unused").expect("inspect");
+        assert!(!report.ok);
+        let inspect = report.inspect.expect("section");
+        assert!(!inspect.sealed_proved);
+        assert!(!inspect.integrity_ok);
+        let object = inspect.object.expect("object");
+        assert!(!object.check_id);
+        assert_eq!(object.status.as_deref(), Some("proved"));
+        let _ = fs::remove_dir_all(&tmp);
     }
 
     #[test]

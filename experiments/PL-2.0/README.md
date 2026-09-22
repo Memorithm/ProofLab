@@ -24,6 +24,7 @@ including Stage-1 explicit human/agent promotion into `ConjectureCandidate`.
    never upgraded (never `PROVED`). Fixtures:
    `fixtures/riemann_stub_manifest.json`, `fixtures/tdi_stub_manifest.json`.
    No live TDI/Riemann network ingest.
+
 7. Stage-1: `ConjectureCandidate::from_evidence` requires `PromotionMeta`
    (`PromotionAuthority::{Human,Agent}`, non-empty promoter id + rationale).
    Numerical / stub / solver observations cannot auto-upgrade
@@ -74,6 +75,31 @@ Never seals `PROVED`.
 
 Non-claims: fixture ingest is not operator novelty and does not run live
 TDI. `empirical ≠ proof`.
+
+## CLI inspect (follow-on)
+
+`prooflab inspect` is a read-only agent/UX surface over typed evidence JSON and
+the Riemann/TDI stub fixtures above. Example:
+
+```bash
+cargo run -p prooflab-cli -- inspect --kind riemann-stub-manifest \
+  --input experiments/PL-2.0/fixtures/riemann_stub_manifest.json
+cargo run -p prooflab-cli -- inspect --kind tdi-stub-manifest \
+  --input experiments/PL-2.0/fixtures/tdi_stub_manifest.json
+```
+
+It reports integrity, epistemic labels, and claim status. It never seals
+`PROVED` and never calls `AcceptedKernel::seal_proof_artifact`.
+
+## Falsify → EvidenceClaim bridge (follow-on)
+
+`evidence_from_falsification` connects PL-1.1 `FalsificationRecord` /
+`CounterexampleWitness` into the typed chain as `Observation` + `EvidenceClaim`.
+Scientific status remains `Falsified` on the ingest wrapper; evidence objects stay
+`Observed`. `refuse_conjecture_from_falsification` and
+`refuse_falsify_evidence_proof_seal` document the trust boundary. Never seals
+`PROVED`. `empirical ≠ proof`.
+
 
 ## Stage-1 conjecture promotion
 

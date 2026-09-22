@@ -51,6 +51,8 @@ pub enum ObservationKind {
     ManualAnnotation,
     /// Tiny stub adapter used by PL-2.0 tests (no real bench ingest).
     StubAdapter,
+    /// Cheap finite counterexample witness (PL-1.1 falsify bridge). Never proof.
+    Counterexample,
 }
 
 impl ObservationKind {
@@ -61,6 +63,7 @@ impl ObservationKind {
             Self::SolverOutput => "solver_output",
             Self::ManualAnnotation => "manual_annotation",
             Self::StubAdapter => "stub_adapter",
+            Self::Counterexample => "counterexample",
         }
     }
 }

@@ -31,7 +31,7 @@ Status:
 
 - append-only content-addressed proof storage and theorem dependency DAG queries are available via `prooflab-store` / `prooflab-fs-store`;
 - content-addressed `EnvironmentLock`, fail-closed drift detection and library `reproduce` semantics are implemented in `prooflab-core`, with Lean re-verification wired through `prooflab-lean`;
-- thin `prooflab` CLI (`prooflab-cli`) exposes `reproduce` / `falsify` / `verify-corpus` / `minimize` over the library APIs; CLI success never seals `PROVED`.
+- thin `prooflab` CLI (`prooflab-cli`) exposes `reproduce` / `falsify` / `verify-corpus` / `minimize` / read-only `inspect` over the library APIs; CLI success never seals `PROVED`.
 
 ## PL-1.x — Controlled theorem proving
 
@@ -56,6 +56,9 @@ Status:
 - controlled false-conjecture catalog and proof-search refusal gate in `prooflab-lean::false_conjectures`;
 - battery rejects closed and universal false Nat equalities before any Lean invocation;
 - falsification records `ClaimStatus::Falsified` only; Lean remains the sole `PROVED` authority;
+- PL-2.0 bridge `evidence_from_falsification` maps validated records into typed
+  `Observation` / `EvidenceClaim` (`falsify://pl-1.1/…`); evidence stays `Observed`,
+  scientific status stays `Falsified`, conjecture promotion and proof sealing are refused;
 - no mathematical novelty claim is permitted at this stage.
 
 ### PL-1.2 — Assumption minimization
@@ -112,6 +115,11 @@ Status:
   and rationale). Numerical / stub / solver observations cannot auto-upgrade;
   `refuse_auto_upgrade_from_empirical` documents the deny path. Status stays
   `Conjectured` (never `PROVED`);
+- PL-1.1 falsify bridge (`prooflab-core::falsify_evidence`) admits
+  `FalsificationRecord` → typed evidence without proof; refuses conjecture
+  promotion and `AcceptedKernel` sealing on that path;
+- `prooflab-cli inspect` is a read-only UX over typed evidence JSON and stub
+  manifests; it reports integrity/status/labels and never seals `PROVED`;
 - no live TDI/Riemann network ingest; Lean remains the sole `PROVED` authority;
 - see [`CONJECTURE-RESEARCH-PROGRAMME.md`](CONJECTURE-RESEARCH-PROGRAMME.md) PL-C15
   and `experiments/PL-2.0/`.

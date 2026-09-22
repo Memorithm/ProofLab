@@ -54,7 +54,7 @@ Delivered in `prooflab-core::evidence` (PL-2.0): typed `Observation` / `Evidence
 `ConjectureCandidate` / `ProofObligation` / `KernelResult` with `AcceptedKernel` typestate
 gate, deny helpers for empirical sealing, and serde integrity tests. Lean verify path
 `LeanKernel::verify_obligation` emits typed `Accepted` / `Rejected` / `Unknown` /
-`Timeout` outcomes and seals `ProofArtifact` only via `AcceptedKernel`. Riemann / TDI stub adapters (`bench_adapter`) preserve `exact` / `numerical` / `conjecture` / `formal_asymptotic` labels into `Observation` / `EvidenceClaim` only (never `PROVED`). No live TDI/Riemann network ingest; Lean remains sole `PROVED` authority. See `experiments/PL-2.0/`.
+`Timeout` outcomes and seals `ProofArtifact` only via `AcceptedKernel`. Riemann / TDI stub adapters (`bench_adapter`) preserve `exact` / `numerical` / `conjecture` / `formal_asymptotic` labels into `Observation` / `EvidenceClaim` only (never `PROVED`). PL-1.1 `falsify_evidence` bridges falsification records into the same typed chain without proof or conjecture promotion. `prooflab inspect` exposes these objects/manifests read-only and never seals `PROVED`. No live TDI/Riemann network ingest; Lean remains sole `PROVED` authority. See `experiments/PL-2.0/`.
 
 ### Stage-1 status
 Delivered: `EvidenceClaim` → `ConjectureCandidate` requires explicit `PromotionMeta`

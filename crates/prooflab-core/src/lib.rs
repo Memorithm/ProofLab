@@ -2,7 +2,7 @@
 //!
 //! This crate intentionally contains no theorem prover. It defines immutable
 //! claim identity, formal statements, proof artifacts, mathematical lifecycle
-//! state, reproducibility metadata, typed scientific evidence (PL-2.0 / PL-C15), label-preserving Riemann/TDI stub adapters,
+//! state, reproducibility metadata, typed scientific evidence (PL-2.0 / PL-C15), label-preserving Riemann/TDI stub adapters, PL-1.1 falsify→evidence bridge,
 //! finite descriptive-complexity syntax and evaluation, and exact finite
 //! model-comparison game oracles. Proof status is never inferred from
 //! reproducibility or empirical evidence.
@@ -29,6 +29,7 @@ mod eso;
 mod eso_eval;
 mod evidence;
 mod falsify;
+mod falsify_evidence;
 mod fo;
 mod fo_eval;
 mod fo_order_invariance;
@@ -106,6 +107,10 @@ pub use falsify::{
     CheapClaimShape, CounterexampleWitness, CounterexampleWitnessId, FalsificationOutcome,
     FalsificationRecord, FalsificationRecordId, FalsifyError, NatAtom, NatBinOp, NatExpr,
     refuse_proof_search, try_falsify,
+};
+pub use falsify_evidence::{
+    FalsifyEvidenceError, FalsifyEvidenceIngest, evidence_from_falsification,
+    refuse_conjecture_from_falsification, refuse_falsify_evidence_proof_seal,
 };
 pub use fo::{FoAtom, FoFormula, FoValidationError, Variable};
 pub use fo_eval::{FoAssignment, FoEvaluationError, evaluate_ordered, evaluate_unordered};
