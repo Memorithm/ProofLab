@@ -632,8 +632,8 @@ fn lake_project_root(source: &Path) -> io::Result<PathBuf> {
 mod tests {
     use prooflab_core::{
         Claim, ClaimBody, ClaimStatus, ConjectureCandidate, EvidenceClaim, EvidenceStrength,
-        FormalStatement, FormalizationAuthority, FormalizationMeta, Observation, PromotionAuthority,
-        PromotionMeta, ProofObligation, ReproMeta, sha256_bytes,
+        FormalStatement, FormalizationAuthority, FormalizationMeta, Observation,
+        PromotionAuthority, PromotionMeta, ProofObligation, ReproMeta, sha256_bytes,
     };
 
     use super::*;
