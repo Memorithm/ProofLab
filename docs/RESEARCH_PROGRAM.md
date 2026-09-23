@@ -92,7 +92,7 @@ Every PL-2 claim must clearly distinguish:
 - verified theorem;
 - attempted but unproved statement.
 
-### PL-2.0 — Typed scientific evidence (Stage-0 + Stage-1)
+### PL-2.0 — Typed scientific evidence (Stage-0 + Stage-1 + Stage-2)
 
 Status:
 
@@ -115,6 +115,11 @@ Status:
   and rationale). Numerical / stub / solver observations cannot auto-upgrade;
   `refuse_auto_upgrade_from_empirical` documents the deny path. Status stays
   `Conjectured` (never `PROVED`);
+- **Stage-2**: `ProofObligation::from_conjecture` requires explicit
+  `FormalizationMeta` (`FormalizationAuthority::{Human,Agent}`, non-empty
+  formalizer id and rationale), and these fields participate in the
+  content-addressed obligation identity. Formalization records provenance only;
+  it never implies kernel acceptance or `PROVED`;
 - PL-1.1 falsify bridge (`prooflab-core::falsify_evidence`) admits
   `FalsificationRecord` → typed evidence without proof; refuses conjecture
   promotion and `AcceptedKernel` sealing on that path;
