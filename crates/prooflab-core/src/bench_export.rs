@@ -1,11 +1,11 @@
 //! Revision-pinned external bench export manifests for PL-2.0.
 //!
 //! This module is the production-facing successor to the fixture-only Riemann/TDI
-//! stub adapters. ProofLab does not fetch remote data here. Instead, a producing
+//! stub adapters. `ProofLab` does not fetch remote data here. Instead, a producing
 //! bench exports a deterministic manifest that pins its repository, revision,
 //! payload references, payload SHA-256 digests and epistemic labels.
 //!
-//! Importing such a manifest creates Observation / EvidenceClaim objects only.
+//! Importing such a manifest creates `Observation` / `EvidenceClaim` objects only.
 //! Source labels remain provenance labels and never authorize PROVED.
 
 use core::fmt;
@@ -137,6 +137,11 @@ impl BenchExportManifest {
     ///
     /// Entries are sorted by `entry_id`; duplicate IDs and empty provenance
     /// fields fail closed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BenchExportError`] when mandatory manifest/entry provenance is
+    /// empty or when entry identifiers are duplicated.
     pub fn new(
         bench: BenchKind,
         source_repository: impl Into<String>,
@@ -157,6 +162,11 @@ impl BenchExportManifest {
     }
 
     /// Validate canonical ordering and all mandatory provenance fields.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BenchExportError`] for empty fields, duplicate identifiers or
+    /// deserialized entry order that is not canonical.
     pub fn validate(&self) -> Result<(), BenchExportError> {
         if self.source_repository.trim().is_empty() {
             return Err(BenchExportError::EmptySourceRepository);
@@ -249,8 +259,8 @@ pub struct BenchExportIngest {
 
 /// Ingest one entry from a validated, revision-pinned external manifest.
 ///
-/// The caller explicitly binds the entry to `claim_id`. ProofLab preserves that
-/// mapping in the resulting EvidenceClaim but does not infer proof status.
+/// The caller explicitly binds the entry to `claim_id`. `ProofLab` preserves that
+/// mapping in the resulting `EvidenceClaim` but does not infer proof status.
 ///
 /// # Errors
 ///
@@ -308,6 +318,11 @@ pub fn ingest_bench_export(
 ///
 /// This helper performs no I/O or network access. Callers decide how the bytes
 /// were obtained and can require this check before ingesting or replaying data.
+///
+/// # Errors
+///
+/// Returns [`BenchExportError::PayloadDigestMismatch`] when `payload` does not
+/// match the SHA-256 digest pinned by the exported entry.
 pub fn verify_bench_export_payload(
     entry: &BenchExportEntry,
     payload: &[u8],
