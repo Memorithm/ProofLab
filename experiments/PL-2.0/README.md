@@ -123,3 +123,12 @@ formalizer authority, identifier, and rationale are bound into
 provenance replayable and prevents a silent formalization transition. Human and
 agent formalizations are both untrusted with respect to proof status; only a
 consistent accepting Lean `KernelResult` may seal `PROVED`.
+
+
+## CLI promote / formalize
+
+`prooflab promote` consumes a content-addressed `Claim` plus one or more
+`EvidenceClaim` JSON objects and writes a `ConjectureCandidate` only after
+explicit `PromotionMeta`. `prooflab formalize` consumes that candidate and a
+`FormalStatement`, requires explicit `FormalizationMeta`, and writes a
+`ProofObligation`. Neither command invokes Lean or can seal `PROVED`.
