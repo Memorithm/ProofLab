@@ -32,7 +32,7 @@ use crate::{
 const OBSERVATION_DOMAIN: &[u8] = b"prooflab-observation:v1\0";
 const EVIDENCE_CLAIM_DOMAIN: &[u8] = b"prooflab-evidence-claim:v1\0";
 const CONJECTURE_CANDIDATE_DOMAIN: &[u8] = b"prooflab-conjecture-candidate:v2\0";
-const PROOF_OBLIGATION_DOMAIN: &[u8] = b"prooflab-proof-obligation:v1\0";
+const PROOF_OBLIGATION_DOMAIN: &[u8] = b"prooflab-proof-obligation:v2\0";
 const KERNEL_RESULT_DOMAIN: &[u8] = b"prooflab-kernel-result:v1\0";
 
 /// Origin class of an empirical or external observation.
@@ -205,6 +205,8 @@ pub enum EvidenceError {
     EmptySketch,
     EmptyPromoterId,
     EmptyPromotionRationale,
+    EmptyFormalizerId,
+    EmptyFormalizationRationale,
     AutoUpgradeRefused(&'static str),
     KernelNotAccepted,
     KernelReceiptInconsistent,
@@ -242,6 +244,18 @@ impl fmt::Display for EvidenceError {
                 write!(
                     formatter,
                     "conjecture promotion requires a non-empty rationale"
+                )
+            }
+            Self::EmptyFormalizerId => {
+                write!(
+                    formatter,
+                    "proof-obligation formalization requires a non-empty formalizer id"
+                )
+            }
+            Self::EmptyFormalizationRationale => {
+                write!(
+                    formatter,
+                    "proof-obligation formalization requires a non-empty rationale"
                 )
             }
             Self::AutoUpgradeRefused(kind) => {
@@ -503,6 +517,67 @@ impl ConjectureCandidate {
     }
 }
 
+/// Who explicitly authored or authorized conjecture → formal-statement binding.
+///
+/// This authority records provenance only. Human and agent formalizers are both
+/// untrusted with respect to proof status; Lean remains the sole configured
+/// authority that may ultimately seal `PROVED`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum FormalizationAuthority {
+    /// Explicit human formalization.
+    Human,
+    /// Explicit agent/automation formalization.
+    Agent,
+}
+
+impl FormalizationAuthority {
+    fn tag(self) -> &'static str {
+        match self {
+            Self::Human => "human",
+            Self::Agent => "agent",
+        }
+    }
+}
+
+/// Stage-2 provenance required to turn a conjecture plus a formal statement
+/// into a proof obligation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FormalizationMeta {
+    pub authority: FormalizationAuthority,
+    /// Stable human/agent identifier. Must be non-empty.
+    pub formalizer_id: String,
+    /// Why this formal statement is intended to represent the conjecture.
+    pub rationale: String,
+}
+
+impl FormalizationMeta {
+    /// Construct validated formalization provenance.
+    ///
+    /// # Errors
+    ///
+    /// Returns `EvidenceError::EmptyFormalizerId` or
+    /// `EvidenceError::EmptyFormalizationRationale` for blank fields.
+    pub fn new(
+        authority: FormalizationAuthority,
+        formalizer_id: impl Into<String>,
+        rationale: impl Into<String>,
+    ) -> Result<Self, EvidenceError> {
+        let formalizer_id = formalizer_id.into();
+        if formalizer_id.trim().is_empty() {
+            return Err(EvidenceError::EmptyFormalizerId);
+        }
+        let rationale = rationale.into();
+        if rationale.trim().is_empty() {
+            return Err(EvidenceError::EmptyFormalizationRationale);
+        }
+        Ok(Self {
+            authority,
+            formalizer_id,
+            rationale,
+        })
+    }
+}
+
 /// Stable identity of an immutable proof obligation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ProofObligationId(pub [u8; 32]);
@@ -517,6 +592,7 @@ pub struct ProofObligation {
     pub conjecture_id: ConjectureCandidateId,
     pub claim_id: ClaimId,
     pub formal_statement_id: FormalStatementId,
+    pub formalization: FormalizationMeta,
     pub status: ClaimStatus,
 }
 
@@ -525,6 +601,9 @@ struct ProofObligationBody {
     conjecture_id: ConjectureCandidateId,
     claim_id: ClaimId,
     formal_statement_id: FormalStatementId,
+    formalization_authority: FormalizationAuthority,
+    formalizer_id: String,
+    formalization_rationale: String,
     status: ClaimStatus,
 }
 
@@ -538,6 +617,7 @@ impl ProofObligation {
     pub fn from_conjecture(
         conjecture: &ConjectureCandidate,
         formal: &FormalStatement,
+        formalization: FormalizationMeta,
     ) -> Result<Self, EvidenceError> {
         if !conjecture.check_id() {
             return Err(EvidenceError::ConjectureIntegrity);
@@ -548,10 +628,18 @@ impl ProofObligation {
         if formal.claim_id != conjecture.claim_id {
             return Err(EvidenceError::ClaimMismatch);
         }
+        let formalization = FormalizationMeta::new(
+            formalization.authority,
+            formalization.formalizer_id,
+            formalization.rationale,
+        )?;
         let body = ProofObligationBody {
             conjecture_id: conjecture.id,
             claim_id: conjecture.claim_id,
             formal_statement_id: formal.id,
+            formalization_authority: formalization.authority,
+            formalizer_id: formalization.formalizer_id.clone(),
+            formalization_rationale: formalization.rationale.clone(),
             status: ClaimStatus::Formalized,
         };
         Ok(Self {
@@ -559,6 +647,7 @@ impl ProofObligation {
             conjecture_id: body.conjecture_id,
             claim_id: body.claim_id,
             formal_statement_id: body.formal_statement_id,
+            formalization,
             status: ClaimStatus::Formalized,
         })
     }
@@ -573,6 +662,9 @@ impl ProofObligation {
             conjecture_id: self.conjecture_id,
             claim_id: self.claim_id,
             formal_statement_id: self.formal_statement_id,
+            formalization_authority: self.formalization.authority,
+            formalizer_id: self.formalization.formalizer_id.clone(),
+            formalization_rationale: self.formalization.rationale.clone(),
             status: self.status,
         };
         self.id == ProofObligationId(sha256_canonical(PROOF_OBLIGATION_DOMAIN, &body))
@@ -868,11 +960,20 @@ impl Canonical for ProofObligationId {
     }
 }
 
+impl Canonical for FormalizationAuthority {
+    fn encode(&self, encoder: &mut CanonicalEncoder) {
+        encoder.str(self.tag());
+    }
+}
+
 impl Canonical for ProofObligationBody {
     fn encode(&self, encoder: &mut CanonicalEncoder) {
         encoder.value(&self.conjecture_id);
         encoder.value(&self.claim_id);
         encoder.value(&self.formal_statement_id);
+        encoder.value(&self.formalization_authority);
+        encoder.value(&self.formalizer_id);
+        encoder.value(&self.formalization_rationale);
         encoder.str(status_tag(self.status));
     }
 }
@@ -992,8 +1093,18 @@ mod tests {
         )
         .expect("conjecture");
         let formal = formal_for(&claim);
-        let obligation =
-            ProofObligation::from_conjecture(&conjecture, &formal).expect("obligation");
+        let formalization = FormalizationMeta::new(
+            FormalizationAuthority::Agent,
+            "formalizer-test-agent",
+            "translate the promoted candidate into the pinned Lean statement",
+        )
+        .expect("formalization");
+        let obligation = ProofObligation::from_conjecture(
+            &conjecture,
+            &formal,
+            formalization,
+        )
+        .expect("obligation");
         (claim, observation, evidence, conjecture, formal, obligation)
     }
 
@@ -1048,6 +1159,45 @@ mod tests {
         assert_eq!(obligation.status, ClaimStatus::Formalized);
         assert_ne!(obligation.status, ClaimStatus::Proved);
         assert!(observation.check_id());
+    }
+
+    #[test]
+    fn stage2_requires_explicit_formalization_provenance() {
+        let (claim, _observation, evidence, conjecture, formal, _obligation) = pipeline();
+
+        assert_eq!(
+            FormalizationMeta::new(FormalizationAuthority::Agent, " ", "rationale"),
+            Err(EvidenceError::EmptyFormalizerId)
+        );
+        assert_eq!(
+            FormalizationMeta::new(FormalizationAuthority::Agent, "agent-7", ""),
+            Err(EvidenceError::EmptyFormalizationRationale)
+        );
+
+        let meta = FormalizationMeta::new(
+            FormalizationAuthority::Agent,
+            "agent-7",
+            "compile the conjecture sketch into the checked Lean statement",
+        )
+        .unwrap();
+        let obligation =
+            ProofObligation::from_conjecture(&conjecture, &formal, meta.clone()).unwrap();
+        assert_eq!(obligation.status, ClaimStatus::Formalized);
+        assert_ne!(obligation.status, ClaimStatus::Proved);
+        assert_eq!(obligation.formalization, meta);
+        assert!(obligation.check_id());
+        assert!(conjecture.evidence_ids.contains(&evidence.id));
+        assert_eq!(obligation.claim_id, claim.id);
+
+        let other = FormalizationMeta::new(
+            FormalizationAuthority::Human,
+            "agent-7",
+            "compile the conjecture sketch into the checked Lean statement",
+        )
+        .unwrap();
+        let other_obligation =
+            ProofObligation::from_conjecture(&conjecture, &formal, other).unwrap();
+        assert_ne!(obligation.id, other_obligation.id);
     }
 
     #[test]
