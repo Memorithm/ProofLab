@@ -123,6 +123,9 @@ Status:
 - PL-1.1 falsify bridge (`prooflab-core::falsify_evidence`) admits
   `FalsificationRecord` → typed evidence without proof; refuses conjecture
   promotion and `AcceptedKernel` sealing on that path;
+- `prooflab-cli promote` / `formalize` expose the Stage-1/2 transitions to agents
+  while still requiring explicit promotion/formalization provenance and emitting
+  only `ConjectureCandidate` / `ProofObligation` JSON objects;
 - `prooflab-cli inspect` is a read-only UX over typed evidence JSON and stub
   manifests; it reports integrity/status/labels and never seals `PROVED`;
 - no live TDI/Riemann network ingest; Lean remains the sole `PROVED` authority;
