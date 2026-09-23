@@ -668,7 +668,6 @@ fn cmd_minimize(
 }
 
 #[derive(Clone, Copy)]
-#[derive(Clone, Copy)]
 struct PromoteRequest<'a> {
     claim_path: &'a Path,
     evidence_paths: &'a [PathBuf],
