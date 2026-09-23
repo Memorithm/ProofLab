@@ -13,7 +13,7 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use prooflab_core::{
-    BenchExportEntry, BenchExportManifest, Claim, ClaimBody, ClaimStatus, ConjectureCandidate,
+    BenchExportManifest, Claim, ClaimBody, ClaimStatus, ConjectureCandidate,
     EnvironmentLock, EvidenceClaim, FormalStatement, FormalizationAuthority, FormalizationMeta,
     KernelResult, Observation, ObservationKind, PromotionAuthority, PromotionMeta, ProofArtifact,
     ProofObligation, ReproMeta, ReproduceOk, RiemannStubEntry, TdiStubEntry, ingest_bench_export,
@@ -1281,8 +1281,8 @@ fn err_string(error: impl std::fmt::Display) -> String {
 mod tests {
     use super::*;
     use prooflab_core::{
-        Claim, ClaimBody, FormalBackend, FormalStatement, KernelReceipt, ProofArtifact, ReproMeta,
-        sha256_bytes,
+        BenchExportEntry, Claim, ClaimBody, FormalBackend, FormalStatement, KernelReceipt,
+        ProofArtifact, ReproMeta, sha256_bytes,
     };
     use std::collections::BTreeSet;
 
