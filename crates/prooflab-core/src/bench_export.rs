@@ -174,6 +174,11 @@ impl BenchExportManifest {
         if self.source_revision.trim().is_empty() {
             return Err(BenchExportError::EmptySourceRevision);
         }
+        if !is_canonical_git_revision(&self.source_revision) {
+            return Err(BenchExportError::InvalidSourceRevision(
+                self.source_revision.clone(),
+            ));
+        }
         if self.export_id.trim().is_empty() {
             return Err(BenchExportError::EmptyExportId);
         }
@@ -225,6 +230,13 @@ impl Canonical for BenchExportManifest {
         encoder.value(&self.export_id);
         encoder.seq(&self.entries);
     }
+}
+
+fn is_canonical_git_revision(revision: &str) -> bool {
+    matches!(revision.len(), 40 | 64)
+        && revision
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn validate_entry(entry: &BenchExportEntry) -> Result<(), BenchExportError> {
@@ -341,6 +353,7 @@ pub fn verify_bench_export_payload(
 pub enum BenchExportError {
     EmptySourceRepository,
     EmptySourceRevision,
+    InvalidSourceRevision(String),
     EmptyExportId,
     EmptyEntries,
     EmptyEntryId,
@@ -362,6 +375,10 @@ impl fmt::Display for BenchExportError {
             Self::EmptySourceRevision => {
                 formatter.write_str("bench export source_revision is empty")
             }
+            Self::InvalidSourceRevision(revision) => write!(
+                formatter,
+                "bench export source_revision must be a canonical 40- or 64-character lowercase Git object id, found {revision:?}"
+            ),
             Self::EmptyExportId => formatter.write_str("bench export export_id is empty"),
             Self::EmptyEntries => formatter.write_str("bench export contains no entries"),
             Self::EmptyEntryId => formatter.write_str("bench export entry_id is empty"),
@@ -431,7 +448,7 @@ mod tests {
         BenchExportManifest::new(
             BenchKind::Tdi,
             "Memorithm/TDI",
-            "0123456789abcdef",
+            "0123456789abcdef0123456789abcdef01234567",
             "campaign-2026-09-23",
             entries,
         )
@@ -454,7 +471,7 @@ mod tests {
         let changed_revision = BenchExportManifest::new(
             BenchKind::Tdi,
             "Memorithm/TDI",
-            "fedcba9876543210",
+            "fedcba9876543210fedcba9876543210fedcba98",
             "campaign-2026-09-23",
             base.entries.clone(),
         )
@@ -472,7 +489,10 @@ mod tests {
         let ingest = ingest_bench_export(claim.id, &manifest, "run-17").unwrap();
 
         assert_eq!(ingest.manifest_id, manifest.id());
-        assert_eq!(ingest.source_revision, "0123456789abcdef");
+        assert_eq!(
+            ingest.source_revision,
+            "0123456789abcdef0123456789abcdef01234567"
+        );
         assert_eq!(ingest.source_repository, "Memorithm/TDI");
         assert_eq!(ingest.source_label, BenchSourceLabel::Numerical);
         assert_eq!(ingest.payload_digest, sha256_bytes(payload));
@@ -507,7 +527,7 @@ mod tests {
         let duplicate = BenchExportManifest::new(
             BenchKind::Riemann,
             "Memorithm/RiemannBench",
-            "rev",
+            "0123456789abcdef0123456789abcdef01234567",
             "export",
             vec![
                 entry("same", BenchSourceLabel::Numerical, b"a"),
@@ -527,6 +547,27 @@ mod tests {
             vec![entry("a", BenchSourceLabel::Numerical, b"a")],
         );
         assert_eq!(empty, Err(BenchExportError::EmptySourceRepository));
+    }
+
+    #[test]
+    fn mutable_or_noncanonical_source_revisions_are_rejected() {
+        let entry = entry("a", BenchSourceLabel::Numerical, b"a");
+        for revision in [
+            "main",
+            "0123456789abcdef",
+            "ABCDEF0123456789ABCDEF0123456789ABCDEF01",
+        ] {
+            assert!(matches!(
+                BenchExportManifest::new(
+                    BenchKind::Tdi,
+                    "Memorithm/TDI",
+                    revision,
+                    "export",
+                    vec![entry.clone()],
+                ),
+                Err(BenchExportError::InvalidSourceRevision(_))
+            ));
+        }
     }
 
     #[test]
