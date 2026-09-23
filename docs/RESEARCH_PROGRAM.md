@@ -110,6 +110,10 @@ Status:
 - label-preserving Riemann / TDI stub adapters (`prooflab-core::bench_adapter`)
   emit `Observation` / `EvidenceClaim` only from fixture manifests;
   epistemic labels are never upgraded and never imply `PROVED`;
+- revision-pinned offline bench exports (`prooflab-core::bench_export`) bind
+  repository, source revision, export id, payload reference and SHA-256 digest
+  into deterministic provenance before emitting `Observation` / `EvidenceClaim`;
+  optional local payload-byte verification detects digest mismatch without network I/O;
 - **Stage-1**: `ConjectureCandidate::from_evidence` requires explicit
   `PromotionMeta` (`PromotionAuthority::{Human,Agent}`, non-empty promoter id
   and rationale). Numerical / stub / solver observations cannot auto-upgrade;
@@ -125,7 +129,8 @@ Status:
   promotion and `AcceptedKernel` sealing on that path;
 - `prooflab-cli inspect` is a read-only UX over typed evidence JSON and stub
   manifests; it reports integrity/status/labels and never seals `PROVED`;
-- no live TDI/Riemann network ingest; Lean remains the sole `PROVED` authority;
+- no live TDI/Riemann network ingest is required: real campaigns may hand off
+  revision-pinned export manifests offline; Lean remains the sole `PROVED` authority;
 - see [`CONJECTURE-RESEARCH-PROGRAMME.md`](CONJECTURE-RESEARCH-PROGRAMME.md) PL-C15
   and `experiments/PL-2.0/`.
 
