@@ -132,3 +132,17 @@ consistent accepting Lean `KernelResult` may seal `PROVED`.
 explicit `PromotionMeta`. `prooflab formalize` consumes that candidate and a
 `FormalStatement`, requires explicit `FormalizationMeta`, and writes a
 `ProofObligation`. Neither command invokes Lean or can seal `PROVED`.
+
+
+## Revision-pinned real-bench exports
+
+`prooflab-core::bench_export` defines the production-facing offline ingest contract
+for TDI/Riemann-style campaigns. A manifest pins its source repository, exact
+revision and export id; every entry pins its epistemic label, payload reference and
+SHA-256 payload digest. Manifest entries are canonicalized by `entry_id`, duplicate
+IDs fail closed, and revision/payload changes alter manifest identity.
+
+`verify_bench_export_payload` checks locally obtained payload bytes against the
+exported digest without network access. `ingest_bench_export` then creates only
+`Observation` / `EvidenceClaim` with `Observed` status and embeds the manifest
+identity in the source provenance. This is evidence ingest, not proof verification.

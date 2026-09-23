@@ -10,6 +10,7 @@
 #![forbid(unsafe_code)]
 
 mod bench_adapter;
+mod bench_export;
 mod bijective_pebble;
 mod canonical;
 mod cfi;
@@ -53,6 +54,10 @@ pub use bench_adapter::{
     BenchAdapterError, BenchSourceLabel, RiemannStubEntry, RiemannStubIngest, TdiStubEntry,
     TdiStubIngest, ingest_riemann_stub, ingest_tdi_stub, refuse_label_upgrade,
     refuse_riemann_stub_proof_seal, refuse_tdi_stub_proof_seal,
+};
+pub use bench_export::{
+    BenchExportEntry, BenchExportError, BenchExportIngest, BenchExportManifest,
+    BenchExportManifestId, BenchKind, ingest_bench_export, verify_bench_export_payload,
 };
 pub use bijective_pebble::{
     BijectivePebbleGameError, BijectivePebbleGameResult, solve_bijective_pebble_ordered,
