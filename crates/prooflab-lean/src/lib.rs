@@ -632,8 +632,8 @@ fn lake_project_root(source: &Path) -> io::Result<PathBuf> {
 mod tests {
     use prooflab_core::{
         Claim, ClaimBody, ClaimStatus, ConjectureCandidate, EvidenceClaim, EvidenceStrength,
-        FormalStatement, Observation, PromotionAuthority, PromotionMeta, ProofObligation,
-        ReproMeta, sha256_bytes,
+        FormalStatement, FormalizationAuthority, FormalizationMeta, Observation, PromotionAuthority,
+        PromotionMeta, ProofObligation, ReproMeta, sha256_bytes,
     };
 
     use super::*;
@@ -768,7 +768,14 @@ mod tests {
         )
         .unwrap();
         let formal = FormalStatement::lean4(claim.id, formal_source, vec!["Mathlib".into()]);
-        let obligation = ProofObligation::from_conjecture(&conjecture, &formal).unwrap();
+        let formalization = FormalizationMeta::new(
+            FormalizationAuthority::Agent,
+            "lean-bridge-formalizer",
+            "bind the promoted conjecture to this Lean formal statement",
+        )
+        .unwrap();
+        let obligation =
+            ProofObligation::from_conjecture(&conjecture, &formal, formalization).unwrap();
         assert_eq!(obligation.status, ClaimStatus::Formalized);
         (formal, obligation)
     }
