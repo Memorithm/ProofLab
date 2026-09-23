@@ -101,6 +101,22 @@ impl Observation {
         kind: ObservationKind,
         source_label: impl Into<String>,
         payload: &[u8],
+        parent_ids: Vec<ObservationId>,
+    ) -> Self {
+        Self::from_payload_digest(kind, source_label, sha256_bytes(payload), parent_ids)
+    }
+
+    /// Record an observation from a precomputed exact payload digest.
+    ///
+    /// This constructor is intended for revision-pinned external manifests that
+    /// carry the producer's SHA-256 without forcing ProofLab to fetch the payload.
+    /// Callers that also possess the bytes should verify them before ingest.
+    /// Parent IDs are sorted and deduplicated exactly as in `Self::new`.
+    #[must_use]
+    pub fn from_payload_digest(
+        kind: ObservationKind,
+        source_label: impl Into<String>,
+        payload_digest: [u8; 32],
         mut parent_ids: Vec<ObservationId>,
     ) -> Self {
         parent_ids.sort_unstable();
@@ -108,7 +124,7 @@ impl Observation {
         let body = ObservationBody {
             kind,
             source_label: source_label.into(),
-            payload_digest: sha256_bytes(payload),
+            payload_digest,
             parent_ids,
         };
         Self {
