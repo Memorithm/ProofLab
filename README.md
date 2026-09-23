@@ -49,7 +49,7 @@ A run may be `L3` bit-reproducible and still compute a false statement. Converse
 The end-to-end trust path is:
 
 ```text
-Observation -> EvidenceClaim -> ConjectureCandidate -> ProofObligation
+Observation -> EvidenceClaim -> PromotionMeta -> ConjectureCandidate -> FormalizationMeta -> ProofObligation
 Claim -> (cheap falsify?) -> FormalStatement -> VerificationJob -> Lean -> KernelResult -> ProofArtifact
 ```
 
