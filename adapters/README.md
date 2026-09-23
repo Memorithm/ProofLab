@@ -34,3 +34,14 @@ cargo run -p prooflab-cli -- inspect --kind tdi-stub-manifest \
 
 Inspect never seals `PROVED`.
 
+
+## Revision-pinned export manifest
+
+For real offline campaigns, `prooflab-core::bench_export` accepts a deterministic
+manifest that records the producing bench (`riemann` / `tdi`), source repository,
+exact source revision, export id, per-entry epistemic label, payload reference and
+SHA-256 payload digest. ProofLab does not fetch the payload or source repository.
+`verify_bench_export_payload` can verify locally obtained bytes before ingest.
+`ingest_bench_export` emits only `Observation` / `EvidenceClaim` (`Observed`), with
+the exact manifest identity embedded in provenance. Source labels never imply
+`PROVED`; Lean remains the sole proof authority.
