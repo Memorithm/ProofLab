@@ -146,3 +146,8 @@ IDs fail closed, and revision/payload changes alter manifest identity.
 exported digest without network access. `ingest_bench_export` then creates only
 `Observation` / `EvidenceClaim` with `Observed` status and embeds the manifest
 identity in the source provenance. This is evidence ingest, not proof verification.
+
+
+## CLI revision-pinned bench ingest
+
+`prooflab ingest-bench-export` consumes a content-addressed `Claim` plus a validated `BenchExportManifest` and entry id, then writes an `Observation` and `EvidenceClaim`. If `--payload` is provided, the local bytes must match the SHA-256 pinned by the manifest before any output object is emitted. Without payload bytes, the report explicitly records `payload_verified=false`; the manifest digest remains provenance, not proof. The command never promotes a conjecture and never seals `PROVED`.
