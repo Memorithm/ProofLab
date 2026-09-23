@@ -101,8 +101,7 @@ pub use evidence::{
     EvidenceError, EvidenceStrength, FormalizationAuthority, FormalizationMeta, KernelOutcome,
     KernelResult, KernelResultId, Observation, ObservationId, ObservationKind, PromotionAuthority,
     PromotionMeta, ProofObligation, ProofObligationId, empirical_auto_upgrade_refused,
-    refuse_auto_upgrade_from_empirical,
-    refuse_empirical_proof_seal, refuse_evidence_proof_seal,
+    refuse_auto_upgrade_from_empirical, refuse_empirical_proof_seal, refuse_evidence_proof_seal,
 };
 pub use falsify::{
     CheapClaimShape, CounterexampleWitness, CounterexampleWitnessId, FalsificationOutcome,
