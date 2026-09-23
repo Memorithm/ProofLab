@@ -109,7 +109,7 @@ impl Observation {
     /// Record an observation from a precomputed exact payload digest.
     ///
     /// This constructor is intended for revision-pinned external manifests that
-    /// carry the producer's SHA-256 without forcing ProofLab to fetch the payload.
+    /// carry the producer's SHA-256 without forcing `ProofLab` to fetch the payload.
     /// Callers that also possess the bytes should verify them before ingest.
     /// Parent IDs are sorted and deduplicated exactly as in `Self::new`.
     #[must_use]
