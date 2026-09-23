@@ -436,7 +436,7 @@ pub fn execute(cli: Cli) -> Result<CliReport, String> {
             promoter_id,
             rationale,
             output,
-        } => cmd_promote(PromoteRequest {
+        } => cmd_promote(&PromoteRequest {
             claim_path: &claim,
             evidence_paths: &evidence,
             statement_sketch: &statement_sketch,
@@ -667,6 +667,7 @@ fn cmd_minimize(
     })
 }
 
+#[derive(Clone, Copy)]
 struct PromoteRequest<'a> {
     claim_path: &'a Path,
     evidence_paths: &'a [PathBuf],
@@ -678,7 +679,7 @@ struct PromoteRequest<'a> {
     output: &'a Path,
 }
 
-fn cmd_promote(request: PromoteRequest<'_>) -> Result<CliReport, String> {
+fn cmd_promote(request: &PromoteRequest<'_>) -> Result<CliReport, String> {
     let PromoteRequest {
         claim_path,
         evidence_paths,
@@ -688,7 +689,7 @@ fn cmd_promote(request: PromoteRequest<'_>) -> Result<CliReport, String> {
         promoter_id,
         rationale,
         output,
-    } = request;
+    } = *request;
     let claim: Claim = read_json(claim_path)?;
     if Claim::new(claim.body.clone()).id != claim.id {
         return Err("claim content address mismatch".into());
@@ -1373,7 +1374,7 @@ mod tests {
 
         let evidence_paths = [evidence_path];
         let assumptions = ["n : Nat".into()];
-        let promote = cmd_promote(PromoteRequest {
+        let promote = cmd_promote(&PromoteRequest {
             claim_path: &claim_path,
             evidence_paths: &evidence_paths,
             statement_sketch: "n = n",
