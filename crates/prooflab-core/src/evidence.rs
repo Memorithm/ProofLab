@@ -198,6 +198,7 @@ pub enum EvidenceError {
     ObservationIntegrity,
     EmptyEvidence,
     EvidenceIntegrity,
+    EvidenceClaimMismatch,
     ConjectureIntegrity,
     ObligationIntegrity,
     FormalStatementIntegrity,
@@ -224,6 +225,10 @@ impl fmt::Display for EvidenceError {
                 write!(formatter, "conjecture requires at least one evidence claim")
             }
             Self::EvidenceIntegrity => write!(formatter, "evidence claim id mismatch"),
+            Self::EvidenceClaimMismatch => write!(
+                formatter,
+                "evidence claim belongs to a different claim than the conjecture candidate"
+            ),
             Self::ConjectureIntegrity => write!(formatter, "conjecture candidate id mismatch"),
             Self::ObligationIntegrity => write!(formatter, "proof obligation id mismatch"),
             Self::FormalStatementIntegrity => write!(formatter, "formal statement id mismatch"),
@@ -469,6 +474,9 @@ impl ConjectureCandidate {
         for item in evidence {
             if !item.check_id() {
                 return Err(EvidenceError::EvidenceIntegrity);
+            }
+            if item.claim_id != claim_id {
+                return Err(EvidenceError::EvidenceClaimMismatch);
             }
             evidence_ids.push(item.id);
         }
@@ -1159,6 +1167,39 @@ mod tests {
         assert_eq!(obligation.status, ClaimStatus::Formalized);
         assert_ne!(obligation.status, ClaimStatus::Proved);
         assert!(observation.check_id());
+    }
+
+    #[test]
+    fn conjecture_rejects_evidence_from_another_claim() {
+        let target = claim();
+        let other = Claim::new(ClaimBody {
+            statement: "m * 1 = m".into(),
+            assumptions: vec![],
+            parents: vec![],
+        });
+        let observation = Observation::stub("stub://wrong-claim", b"samples");
+        let evidence = EvidenceClaim::from_observations(
+            other.id,
+            &[&observation],
+            EvidenceStrength::Corroborated,
+        )
+        .unwrap();
+        let promotion = PromotionMeta::new(
+            PromotionAuthority::Agent,
+            "agent-mismatch-test",
+            "attempted cross-claim promotion",
+        )
+        .unwrap();
+        assert_eq!(
+            ConjectureCandidate::from_evidence(
+                target.id,
+                &[&evidence],
+                "n + 0 = n",
+                vec![],
+                promotion,
+            ),
+            Err(EvidenceError::EvidenceClaimMismatch)
+        );
     }
 
     #[test]
