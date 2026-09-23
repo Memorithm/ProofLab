@@ -1,7 +1,7 @@
 //! Thin user/agent entry point over existing `ProofLab` library APIs.
 //!
 //! Commands expose `reproduce`, cheap `falsify`, `verify-corpus`, `minimize`,
-//! `promote` / `formalize`, and read-only PL-2.0 `inspect` without inventing new proof authority. Lean
+//! `promote` / `formalize`, revision-pinned bench ingest, and read-only PL-2.0 `inspect` without inventing new proof authority. Lean
 //! remains the sole `PROVED` backend; CLI success never seals proof status by
 //! itself. `inspect` never calls `AcceptedKernel::seal_proof_artifact`.
 
@@ -13,12 +13,13 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use prooflab_core::{
-    Claim, ClaimBody, ClaimStatus, ConjectureCandidate, EnvironmentLock, EvidenceClaim,
-    FormalStatement, FormalizationAuthority, FormalizationMeta, KernelResult, Observation,
-    ObservationKind, PromotionAuthority, PromotionMeta, ProofArtifact, ProofObligation, ReproMeta,
-    ReproduceOk, RiemannStubEntry, TdiStubEntry, ingest_riemann_stub, ingest_tdi_stub,
-    refuse_empirical_proof_seal, refuse_evidence_proof_seal, refuse_riemann_stub_proof_seal,
-    refuse_tdi_stub_proof_seal, reproduce as core_reproduce,
+    BenchExportManifest, Claim, ClaimBody, ClaimStatus, ConjectureCandidate, EnvironmentLock,
+    EvidenceClaim, FormalStatement, FormalizationAuthority, FormalizationMeta, KernelResult,
+    Observation, ObservationKind, PromotionAuthority, PromotionMeta, ProofArtifact,
+    ProofObligation, ReproMeta, ReproduceOk, RiemannStubEntry, TdiStubEntry, ingest_bench_export,
+    ingest_riemann_stub, ingest_tdi_stub, refuse_empirical_proof_seal, refuse_evidence_proof_seal,
+    refuse_riemann_stub_proof_seal, refuse_tdi_stub_proof_seal, reproduce as core_reproduce,
+    verify_bench_export_payload,
 };
 use prooflab_lean::{
     ExpectedOutcome, ExpectedRemovalOutcome, FalseConjectureReport, LeanKernel,
@@ -31,11 +32,11 @@ use serde::Serialize;
 #[derive(Debug, Parser)]
 #[command(
     name = "prooflab",
-    about = "ProofLab entry point for reproduce / falsify / verify-corpus / minimize / promote / formalize / inspect",
+    about = "ProofLab entry point for reproduce / falsify / verify-corpus / minimize / ingest-bench-export / promote / formalize / inspect",
     long_about = "Exposes existing library APIs for agents and local UX.\n\
 Lean remains the sole PROVED authority. Cheap falsification may record FALSIFIED only.\n\
 Reproduce success is environment/integrity confirmation, not proof status.\n\
-Promote/formalize create typed PL-2.0 transition objects only.\n\
+Bench ingest emits Observation/EvidenceClaim only; promote/formalize create typed PL-2.0 transition objects only.\n\
 Inspect is read-only over PL-2.0 evidence/stub JSON and never seals PROVED."
 )]
 pub struct Cli {
@@ -109,6 +110,31 @@ pub enum Commands {
         /// Lake binary (default: `lake`).
         #[arg(long, default_value = "lake")]
         lake: PathBuf,
+    },
+    /// Ingest one revision-pinned TDI/Riemann bench export entry.
+    ///
+    /// Writes an `Observation` and `EvidenceClaim`. When `--payload` is supplied,
+    /// its bytes must match the SHA-256 pinned in the manifest before output is written.
+    /// This command never promotes a conjecture and never seals `PROVED`.
+    IngestBenchExport {
+        /// JSON-encoded content-addressed `Claim` to bind the evidence to.
+        #[arg(long)]
+        claim: PathBuf,
+        /// JSON-encoded `BenchExportManifest`.
+        #[arg(long)]
+        manifest: PathBuf,
+        /// Canonical entry id within the manifest.
+        #[arg(long)]
+        entry_id: String,
+        /// Optional local payload file to verify against the manifest digest.
+        #[arg(long)]
+        payload: Option<PathBuf>,
+        /// Destination JSON file for the produced `Observation`.
+        #[arg(long)]
+        observation_output: PathBuf,
+        /// Destination JSON file for the produced `EvidenceClaim`.
+        #[arg(long)]
+        evidence_output: PathBuf,
     },
     /// Promote typed evidence into a conjecture candidate with explicit authority.
     ///
@@ -250,6 +276,30 @@ pub struct CliReport {
     pub inspect: Option<InspectReport>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transition: Option<TransitionReport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bench_ingest: Option<BenchIngestReport>,
+}
+
+/// Summary of one revision-pinned external bench entry ingest.
+#[derive(Debug, Clone, Serialize)]
+pub struct BenchIngestReport {
+    pub manifest_id_hex: String,
+    pub bench: String,
+    pub source_repository: String,
+    pub source_revision: String,
+    pub export_id: String,
+    pub entry_id: String,
+    pub source_label: String,
+    pub payload_ref: String,
+    pub payload_digest_hex: String,
+    pub payload_verified: bool,
+    pub observation_id_hex: String,
+    pub evidence_id_hex: String,
+    pub observation_output: String,
+    pub evidence_output: String,
+    pub status: String,
+    /// Always false: bench ingest never seals proof status.
+    pub proved: bool,
 }
 
 /// Summary of one typed PL-2.0 transition written to disk.
@@ -427,6 +477,21 @@ pub fn execute(cli: Cli) -> Result<CliReport, String> {
             lock.as_deref(),
             &lake,
         ),
+        Commands::IngestBenchExport {
+            claim,
+            manifest,
+            entry_id,
+            payload,
+            observation_output,
+            evidence_output,
+        } => cmd_ingest_bench_export(&BenchIngestRequest {
+            claim_path: &claim,
+            manifest_path: &manifest,
+            entry_id: &entry_id,
+            payload_path: payload.as_deref(),
+            observation_output: &observation_output,
+            evidence_output: &evidence_output,
+        }),
         Commands::Promote {
             claim,
             evidence,
@@ -509,6 +574,7 @@ fn cmd_reproduce(
                 minimize: None,
                 inspect: None,
                 transition: None,
+                bench_ingest: None,
             })
         }
         (Some(formal_path), Some(source_path)) => {
@@ -537,6 +603,7 @@ fn cmd_reproduce(
                 minimize: None,
                 inspect: None,
                 transition: None,
+        bench_ingest: None,
             })
         }
         _ => Err(
@@ -569,6 +636,7 @@ fn cmd_falsify() -> Result<CliReport, String> {
         minimize: None,
         inspect: None,
         transition: None,
+        bench_ingest: None,
     })
 }
 
@@ -620,6 +688,7 @@ fn cmd_verify_corpus(
         minimize: None,
         inspect: None,
         transition: None,
+        bench_ingest: None,
     })
 }
 
@@ -664,6 +733,81 @@ fn cmd_minimize(
         minimize: Some(entries),
         inspect: None,
         transition: None,
+        bench_ingest: None,
+    })
+}
+
+#[derive(Clone, Copy)]
+struct BenchIngestRequest<'a> {
+    claim_path: &'a Path,
+    manifest_path: &'a Path,
+    entry_id: &'a str,
+    payload_path: Option<&'a Path>,
+    observation_output: &'a Path,
+    evidence_output: &'a Path,
+}
+
+fn cmd_ingest_bench_export(request: &BenchIngestRequest<'_>) -> Result<CliReport, String> {
+    let claim: Claim = read_json(request.claim_path)?;
+    if Claim::new(claim.body.clone()).id != claim.id {
+        return Err("claim content address mismatch".into());
+    }
+    let manifest: BenchExportManifest = read_json(request.manifest_path)?;
+    manifest.validate().map_err(err_string)?;
+    let entry = manifest
+        .entry(request.entry_id)
+        .ok_or_else(|| format!("bench export entry not found: {}", request.entry_id))?;
+    let payload_verified = if let Some(payload_path) = request.payload_path {
+        let payload = fs::read(payload_path)
+            .map_err(|error| format!("{}: {error}", payload_path.display()))?;
+        verify_bench_export_payload(entry, &payload).map_err(err_string)?;
+        true
+    } else {
+        false
+    };
+    let ingest = ingest_bench_export(claim.id, &manifest, request.entry_id).map_err(err_string)?;
+    write_json(request.observation_output, &ingest.observation)?;
+    write_json(request.evidence_output, &ingest.evidence)?;
+    let ok = ingest.observation.check_id()
+        && ingest.evidence.check_id()
+        && ingest.evidence.status == ClaimStatus::Observed;
+    Ok(CliReport {
+        command: "ingest-bench-export".into(),
+        ok,
+        notes: vec![
+            "revision-pinned external bench evidence ingest; no proof authority".into(),
+            if payload_verified {
+                "local payload bytes matched the manifest SHA-256".into()
+            } else {
+                "payload bytes were not supplied; provenance uses the manifest-pinned SHA-256"
+                    .into()
+            },
+            "outputs are Observation + EvidenceClaim only; never PROVED".into(),
+        ],
+        reproduce: None,
+        falsify: None,
+        corpus: None,
+        minimize: None,
+        inspect: None,
+        transition: None,
+        bench_ingest: Some(BenchIngestReport {
+            manifest_id_hex: hex32(&ingest.manifest_id.0),
+            bench: ingest.bench.as_str().into(),
+            source_repository: ingest.source_repository,
+            source_revision: ingest.source_revision,
+            export_id: ingest.export_id,
+            entry_id: ingest.entry_id,
+            source_label: ingest.source_label.as_str().into(),
+            payload_ref: ingest.payload_ref,
+            payload_digest_hex: hex32(&ingest.payload_digest),
+            payload_verified,
+            observation_id_hex: hex32(&ingest.observation.id.0),
+            evidence_id_hex: hex32(&ingest.evidence.id.0),
+            observation_output: request.observation_output.display().to_string(),
+            evidence_output: request.evidence_output.display().to_string(),
+            status: status_name(ingest.evidence.status),
+            proved: false,
+        }),
     })
 }
 
@@ -735,6 +879,7 @@ fn cmd_promote(request: &PromoteRequest<'_>) -> Result<CliReport, String> {
             authority: authority.as_str().into(),
             actor_id: promoter_id.into(),
         }),
+        bench_ingest: None,
     })
 }
 
@@ -775,6 +920,7 @@ fn cmd_formalize(
             authority: authority.as_str().into(),
             actor_id: formalizer_id.into(),
         }),
+        bench_ingest: None,
     })
 }
 
@@ -808,6 +954,7 @@ fn cmd_inspect(
         minimize: None,
         inspect: Some(inspect),
         transition: None,
+        bench_ingest: None,
     })
 }
 
@@ -1134,8 +1281,8 @@ fn err_string(error: impl std::fmt::Display) -> String {
 mod tests {
     use super::*;
     use prooflab_core::{
-        Claim, ClaimBody, FormalBackend, FormalStatement, KernelReceipt, ProofArtifact, ReproMeta,
-        sha256_bytes,
+        BenchExportEntry, Claim, ClaimBody, FormalBackend, FormalStatement, KernelReceipt,
+        ProofArtifact, ReproMeta, sha256_bytes,
     };
     use std::collections::BTreeSet;
 
@@ -1290,6 +1437,22 @@ mod tests {
             vec!["prooflab", "minimize", "--repo-root", "."],
             vec![
                 "prooflab",
+                "ingest-bench-export",
+                "--claim",
+                "claim.json",
+                "--manifest",
+                "manifest.json",
+                "--entry-id",
+                "run-17",
+                "--payload",
+                "payload.bin",
+                "--observation-output",
+                "observation.json",
+                "--evidence-output",
+                "evidence.json",
+            ],
+            vec![
+                "prooflab",
                 "promote",
                 "--claim",
                 "claim.json",
@@ -1341,6 +1504,84 @@ mod tests {
         ] {
             Cli::try_parse_from(args).expect("parse");
         }
+    }
+
+    #[test]
+    fn bench_export_ingest_verifies_payload_and_writes_observation_evidence() {
+        let tmp =
+            std::env::temp_dir().join(format!("prooflab-cli-bench-export-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).unwrap();
+
+        let claim = Claim::new(ClaimBody {
+            statement: "external bench regularity".into(),
+            assumptions: vec![],
+            parents: vec![],
+        });
+        let payload = b"revision-pinned-bench-payload";
+        let entry = BenchExportEntry::from_payload(
+            "run-17",
+            prooflab_core::BenchSourceLabel::Numerical,
+            "finite operator diagnostic",
+            "artifacts/run-17.bin",
+            payload,
+        );
+        let manifest = BenchExportManifest::new(
+            prooflab_core::BenchKind::Tdi,
+            "Memorithm/TDI",
+            "0123456789abcdef0123456789abcdef01234567",
+            "campaign-cli-test",
+            vec![entry],
+        )
+        .unwrap();
+
+        let claim_path = tmp.join("claim.json");
+        let manifest_path = tmp.join("manifest.json");
+        let payload_path = tmp.join("payload.bin");
+        let observation_path = tmp.join("observation.json");
+        let evidence_path = tmp.join("evidence.json");
+        fs::write(&claim_path, serde_json::to_vec_pretty(&claim).unwrap()).unwrap();
+        fs::write(
+            &manifest_path,
+            serde_json::to_vec_pretty(&manifest).unwrap(),
+        )
+        .unwrap();
+        fs::write(&payload_path, payload).unwrap();
+
+        let report = cmd_ingest_bench_export(&BenchIngestRequest {
+            claim_path: &claim_path,
+            manifest_path: &manifest_path,
+            entry_id: "run-17",
+            payload_path: Some(&payload_path),
+            observation_output: &observation_path,
+            evidence_output: &evidence_path,
+        })
+        .expect("bench ingest");
+        assert!(report.ok);
+        let bench = report.bench_ingest.expect("bench report");
+        assert!(bench.payload_verified);
+        assert_eq!(bench.status, "observed");
+        assert!(!bench.proved);
+        let observation: Observation = read_json(&observation_path).unwrap();
+        let evidence: EvidenceClaim = read_json(&evidence_path).unwrap();
+        assert!(observation.check_id());
+        assert!(evidence.check_id());
+        assert_eq!(evidence.claim_id, claim.id);
+        assert_eq!(evidence.status, ClaimStatus::Observed);
+        assert_ne!(evidence.status, ClaimStatus::Proved);
+
+        fs::write(&payload_path, b"tampered").unwrap();
+        let err = cmd_ingest_bench_export(&BenchIngestRequest {
+            claim_path: &claim_path,
+            manifest_path: &manifest_path,
+            entry_id: "run-17",
+            payload_path: Some(&payload_path),
+            observation_output: &observation_path,
+            evidence_output: &evidence_path,
+        })
+        .expect_err("digest mismatch");
+        assert!(err.contains("digest mismatch"));
+        let _ = fs::remove_dir_all(&tmp);
     }
 
     #[test]
