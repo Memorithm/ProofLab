@@ -341,8 +341,12 @@ pub enum BenchExportError {
 impl fmt::Display for BenchExportError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::EmptySourceRepository => formatter.write_str("bench export source_repository is empty"),
-            Self::EmptySourceRevision => formatter.write_str("bench export source_revision is empty"),
+            Self::EmptySourceRepository => {
+                formatter.write_str("bench export source_repository is empty")
+            }
+            Self::EmptySourceRevision => {
+                formatter.write_str("bench export source_revision is empty")
+            }
             Self::EmptyExportId => formatter.write_str("bench export export_id is empty"),
             Self::EmptyEntries => formatter.write_str("bench export contains no entries"),
             Self::EmptyEntryId => formatter.write_str("bench export entry_id is empty"),
@@ -358,7 +362,10 @@ impl fmt::Display for BenchExportError {
                 write!(formatter, "bench export entry not found: {entry_id}")
             }
             Self::PayloadDigestMismatch { entry_id } => {
-                write!(formatter, "bench export payload digest mismatch for entry {entry_id}")
+                write!(
+                    formatter,
+                    "bench export payload digest mismatch for entry {entry_id}"
+                )
             }
             Self::Evidence(error) => write!(formatter, "{error}"),
         }
@@ -455,7 +462,12 @@ mod tests {
         assert_eq!(ingest.source_label, BenchSourceLabel::Numerical);
         assert_eq!(ingest.payload_digest, sha256_bytes(payload));
         assert_eq!(ingest.observation.payload_digest, sha256_bytes(payload));
-        assert!(ingest.observation.source_label.starts_with("bench-export://tdi/"));
+        assert!(
+            ingest
+                .observation
+                .source_label
+                .starts_with("bench-export://tdi/")
+        );
         assert_eq!(ingest.evidence.strength, EvidenceStrength::Suggestive);
         assert_eq!(ingest.evidence.status, ClaimStatus::Observed);
         assert_ne!(ingest.evidence.status, ClaimStatus::Proved);
