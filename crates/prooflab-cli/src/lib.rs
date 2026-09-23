@@ -436,16 +436,16 @@ pub fn execute(cli: Cli) -> Result<CliReport, String> {
             promoter_id,
             rationale,
             output,
-        } => cmd_promote(
-            &claim,
-            &evidence,
-            &statement_sketch,
-            &assumptions,
+        } => cmd_promote(PromoteRequest {
+            claim_path: &claim,
+            evidence_paths: &evidence,
+            statement_sketch: &statement_sketch,
+            assumptions: &assumptions,
             authority,
-            &promoter_id,
-            &rationale,
-            &output,
-        ),
+            promoter_id: &promoter_id,
+            rationale: &rationale,
+            output: &output,
+        }),
         Commands::Formalize {
             conjecture,
             formal,
@@ -667,16 +667,28 @@ fn cmd_minimize(
     })
 }
 
-fn cmd_promote(
-    claim_path: &Path,
-    evidence_paths: &[PathBuf],
-    statement_sketch: &str,
-    assumptions: &[String],
+struct PromoteRequest<'a> {
+    claim_path: &'a Path,
+    evidence_paths: &'a [PathBuf],
+    statement_sketch: &'a str,
+    assumptions: &'a [String],
     authority: ActorAuthority,
-    promoter_id: &str,
-    rationale: &str,
-    output: &Path,
-) -> Result<CliReport, String> {
+    promoter_id: &'a str,
+    rationale: &'a str,
+    output: &'a Path,
+}
+
+fn cmd_promote(request: PromoteRequest<'_>) -> Result<CliReport, String> {
+    let PromoteRequest {
+        claim_path,
+        evidence_paths,
+        statement_sketch,
+        assumptions,
+        authority,
+        promoter_id,
+        rationale,
+        output,
+    } = request;
     let claim: Claim = read_json(claim_path)?;
     if Claim::new(claim.body.clone()).id != claim.id {
         return Err("claim content address mismatch".into());
@@ -1359,16 +1371,18 @@ mod tests {
         )
         .unwrap();
 
-        let promote = cmd_promote(
-            &claim_path,
-            &[evidence_path],
-            "n = n",
-            &["n : Nat".into()],
-            ActorAuthority::Agent,
-            "agent-promoter",
-            "promote a typed evidence claim into a conjecture candidate",
-            &conjecture_path,
-        )
+        let evidence_paths = [evidence_path];
+        let assumptions = ["n : Nat".into()];
+        let promote = cmd_promote(PromoteRequest {
+            claim_path: &claim_path,
+            evidence_paths: &evidence_paths,
+            statement_sketch: "n = n",
+            assumptions: &assumptions,
+            authority: ActorAuthority::Agent,
+            promoter_id: "agent-promoter",
+            rationale: "promote a typed evidence claim into a conjecture candidate",
+            output: &conjecture_path,
+        })
         .expect("promote");
         assert!(promote.ok);
         let conjecture: ConjectureCandidate = read_json(&conjecture_path).unwrap();
