@@ -17,9 +17,9 @@ use prooflab_core::{
     EnvironmentLock, EvidenceClaim, FormalStatement, FormalizationAuthority, FormalizationMeta,
     KernelResult, Observation, ObservationKind, PromotionAuthority, PromotionMeta, ProofArtifact,
     ProofObligation, ReproMeta, ReproduceOk, RiemannStubEntry, TdiStubEntry, ingest_bench_export,
-    ingest_riemann_stub, ingest_tdi_stub,
-    refuse_empirical_proof_seal, refuse_evidence_proof_seal, refuse_riemann_stub_proof_seal,
-    refuse_tdi_stub_proof_seal, reproduce as core_reproduce, verify_bench_export_payload,
+    ingest_riemann_stub, ingest_tdi_stub, refuse_empirical_proof_seal, refuse_evidence_proof_seal,
+    refuse_riemann_stub_proof_seal, refuse_tdi_stub_proof_seal, reproduce as core_reproduce,
+    verify_bench_export_payload,
 };
 use prooflab_lean::{
     ExpectedOutcome, ExpectedRemovalOutcome, FalseConjectureReport, LeanKernel,
@@ -574,7 +574,7 @@ fn cmd_reproduce(
                 minimize: None,
                 inspect: None,
                 transition: None,
-                bench_ingest: None,
+        bench_ingest: None,
             })
         }
         (Some(formal_path), Some(source_path)) => {
@@ -603,7 +603,7 @@ fn cmd_reproduce(
                 minimize: None,
                 inspect: None,
                 transition: None,
-                bench_ingest: None,
+        bench_ingest: None,
             })
         }
         _ => Err(
@@ -636,7 +636,7 @@ fn cmd_falsify() -> Result<CliReport, String> {
         minimize: None,
         inspect: None,
         transition: None,
-                bench_ingest: None,
+        bench_ingest: None,
     })
 }
 
@@ -688,7 +688,7 @@ fn cmd_verify_corpus(
         minimize: None,
         inspect: None,
         transition: None,
-                bench_ingest: None,
+        bench_ingest: None,
     })
 }
 
@@ -733,7 +733,7 @@ fn cmd_minimize(
         minimize: Some(entries),
         inspect: None,
         transition: None,
-                bench_ingest: None,
+        bench_ingest: None,
     })
 }
 
@@ -779,7 +779,8 @@ fn cmd_ingest_bench_export(request: &BenchIngestRequest<'_>) -> Result<CliReport
             if payload_verified {
                 "local payload bytes matched the manifest SHA-256".into()
             } else {
-                "payload bytes were not supplied; provenance uses the manifest-pinned SHA-256".into()
+                "payload bytes were not supplied; provenance uses the manifest-pinned SHA-256"
+                    .into()
             },
             "outputs are Observation + EvidenceClaim only; never PROVED".into(),
         ],
@@ -953,7 +954,7 @@ fn cmd_inspect(
         minimize: None,
         inspect: Some(inspect),
         transition: None,
-                bench_ingest: None,
+        bench_ingest: None,
     })
 }
 
@@ -1507,10 +1508,8 @@ mod tests {
 
     #[test]
     fn bench_export_ingest_verifies_payload_and_writes_observation_evidence() {
-        let tmp = std::env::temp_dir().join(format!(
-            "prooflab-cli-bench-export-{}",
-            std::process::id()
-        ));
+        let tmp =
+            std::env::temp_dir().join(format!("prooflab-cli-bench-export-{}", std::process::id()));
         let _ = fs::remove_dir_all(&tmp);
         fs::create_dir_all(&tmp).unwrap();
 
@@ -1542,7 +1541,11 @@ mod tests {
         let observation_path = tmp.join("observation.json");
         let evidence_path = tmp.join("evidence.json");
         fs::write(&claim_path, serde_json::to_vec_pretty(&claim).unwrap()).unwrap();
-        fs::write(&manifest_path, serde_json::to_vec_pretty(&manifest).unwrap()).unwrap();
+        fs::write(
+            &manifest_path,
+            serde_json::to_vec_pretty(&manifest).unwrap(),
+        )
+        .unwrap();
         fs::write(&payload_path, payload).unwrap();
 
         let report = cmd_ingest_bench_export(&BenchIngestRequest {
