@@ -574,7 +574,7 @@ fn cmd_reproduce(
                 minimize: None,
                 inspect: None,
                 transition: None,
-        bench_ingest: None,
+                bench_ingest: None,
             })
         }
         (Some(formal_path), Some(source_path)) => {
