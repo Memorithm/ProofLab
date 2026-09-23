@@ -63,5 +63,14 @@ the content-addressed candidate identity (`prooflab-conjecture-candidate:v2`). N
 stub / solver observations cannot auto-upgrade (`refuse_auto_upgrade_from_empirical`).
 Promotion never yields `PROVED`; Lean remains the sole proof authority.
 
+### Stage-2 status
+Delivered in this slice: `ConjectureCandidate` → `ProofObligation` requires
+explicit `FormalizationMeta` (`FormalizationAuthority::{Human,Agent}`, non-empty
+formalizer id and rationale). The metadata is bound into
+`prooflab-proof-obligation:v2` identity so the same formal statement attributed
+to different formalization authorities/rationales yields a different obligation.
+This transition records translation provenance only; only Lean acceptance may
+seal `PROVED`.
+
 ## Relationship to PL-DC
 These conjecture programmes are additive and must not weaken or displace the existing descriptive-complexity programme. Reusable finite-structure, counterexample and provenance machinery should be shared where technically appropriate.
