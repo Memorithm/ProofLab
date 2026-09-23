@@ -11,6 +11,13 @@ cargo run -p prooflab-cli -- reproduce --artifact artifact.json --lock lock.json
   --formal formal.json --source path/to/File.lean
 cargo run -p prooflab-cli -- verify-corpus --repo-root .
 cargo run -p prooflab-cli -- minimize --repo-root .
+cargo run -p prooflab-cli -- ingest-bench-export \
+  --claim claim.json \
+  --manifest tdi-export.json \
+  --entry-id run-17 \
+  --payload artifacts/run-17.bin \
+  --observation-output observation.json \
+  --evidence-output evidence.json
 cargo run -p prooflab-cli -- promote \
   --claim claim.json \
   --evidence evidence.json \
@@ -43,3 +50,5 @@ cargo run -p prooflab-cli -- inspect --kind observation --input observation.json
 
 - `promote` creates `ConjectureCandidate` only through explicit `PromotionMeta`; it never proves anything.
 - `formalize` creates `ProofObligation` only through explicit `FormalizationMeta`; it does not run Lean or imply acceptance.
+
+- `ingest-bench-export` binds one revision-pinned bench entry to a claim and emits only `Observation` + `EvidenceClaim`; optional `--payload` verification must match the manifest SHA-256.
