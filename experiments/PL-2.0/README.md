@@ -1,8 +1,8 @@
-# PL-2.0 — Typed scientific evidence (Stage-0 + Stage-1)
+# PL-2.0 — Typed scientific evidence (Stage-0 + Stage-1 + Stage-2)
 
 PL-2.0 implements the smallest tested type system for the
 observation → conjecture → obligation → kernel → proof chain (PL-C15),
-including Stage-1 explicit human/agent promotion into `ConjectureCandidate`.
+including Stage-1 explicit conjecture promotion and Stage-2 explicit formalization provenance.
 
 ## Control
 
@@ -30,6 +30,10 @@ including Stage-1 explicit human/agent promotion into `ConjectureCandidate`.
    Numerical / stub / solver observations cannot auto-upgrade
    (`refuse_auto_upgrade_from_empirical`). Status is always `Conjectured`,
    never `PROVED`.
+8. Stage-2: `ProofObligation::from_conjecture` requires `FormalizationMeta`
+   (`FormalizationAuthority::{Human,Agent}`, non-empty formalizer id + rationale).
+   These fields are content-addressed into the obligation. Formalization remains
+   untrusted for proof status; Lean acceptance is still required.
 
 ## Success criteria
 
@@ -109,3 +113,13 @@ authority is required; empty promoter id / rationale fail closed. Numerical,
 stub, and solver observations have no silent auto-upgrade path
 (`refuse_auto_upgrade_from_empirical`). Promotion never seals `PROVED`.
 `empirical ≠ proof`.
+
+
+## Stage-2 formalization provenance
+
+`ProofObligation::from_conjecture` now requires `FormalizationMeta`. The
+formalizer authority, identifier, and rationale are bound into
+`prooflab-proof-obligation:v2`. This makes conjecture→formal-statement translation
+provenance replayable and prevents a silent formalization transition. Human and
+agent formalizations are both untrusted with respect to proof status; only a
+consistent accepting Lean `KernelResult` may seal `PROVED`.
