@@ -1107,12 +1107,8 @@ mod tests {
             "translate the promoted candidate into the pinned Lean statement",
         )
         .expect("formalization");
-        let obligation = ProofObligation::from_conjecture(
-            &conjecture,
-            &formal,
-            formalization,
-        )
-        .expect("obligation");
+        let obligation = ProofObligation::from_conjecture(&conjecture, &formal, formalization)
+            .expect("obligation");
         (claim, observation, evidence, conjecture, formal, obligation)
     }
 
