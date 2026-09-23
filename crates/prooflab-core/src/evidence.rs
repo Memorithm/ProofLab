@@ -1,11 +1,13 @@
-//! PL-2.0 Stage-0 typed scientific evidence plumbing (PL-C15).
+//! PL-2.0 typed scientific evidence plumbing (PL-C15 Stage-0 + Stage-1).
 //!
 //! This module introduces immutable, content-addressed types along the
 //! observation → conjecture → obligation → kernel → proof chain. Empirical
 //! evidence, solver output and LLM assertions remain untrusted proposers:
-//! they may construct observations, evidence claims and conjecture candidates,
-//! but they cannot construct a [`crate::ProofArtifact`] or authorize
-//! [`ClaimStatus::Proved`].
+//! they may construct observations and evidence claims, but Stage-1 requires
+//! an explicit human/agent [`PromotionMeta`] to construct a
+//! [`ConjectureCandidate`]. Numerical / stub / solver observations cannot
+//! auto-upgrade into conjectures. No evidence path may construct a
+//! [`crate::ProofArtifact`] or authorize [`ClaimStatus::Proved`].
 //!
 //! Lean acceptance via an [`AcceptedKernel`] (wrapping a successful
 //! [`KernelOutcome::Accepted`]) is the sole path that may seal a proof
@@ -29,7 +31,7 @@ use crate::{
 
 const OBSERVATION_DOMAIN: &[u8] = b"prooflab-observation:v1\0";
 const EVIDENCE_CLAIM_DOMAIN: &[u8] = b"prooflab-evidence-claim:v1\0";
-const CONJECTURE_CANDIDATE_DOMAIN: &[u8] = b"prooflab-conjecture-candidate:v1\0";
+const CONJECTURE_CANDIDATE_DOMAIN: &[u8] = b"prooflab-conjecture-candidate:v2\0";
 const PROOF_OBLIGATION_DOMAIN: &[u8] = b"prooflab-proof-obligation:v1\0";
 const KERNEL_RESULT_DOMAIN: &[u8] = b"prooflab-kernel-result:v1\0";
 
@@ -201,6 +203,9 @@ pub enum EvidenceError {
     FormalStatementIntegrity,
     ClaimMismatch,
     EmptySketch,
+    EmptyPromoterId,
+    EmptyPromotionRationale,
+    AutoUpgradeRefused(&'static str),
     KernelNotAccepted,
     KernelReceiptInconsistent,
     EmpiricalCannotSealProof(&'static str),
@@ -227,6 +232,24 @@ impl fmt::Display for EvidenceError {
                 )
             }
             Self::EmptySketch => write!(formatter, "conjecture statement sketch is empty"),
+            Self::EmptyPromoterId => {
+                write!(
+                    formatter,
+                    "conjecture promotion requires a non-empty promoter id"
+                )
+            }
+            Self::EmptyPromotionRationale => {
+                write!(
+                    formatter,
+                    "conjecture promotion requires a non-empty rationale"
+                )
+            }
+            Self::AutoUpgradeRefused(kind) => {
+                write!(
+                    formatter,
+                    "refusing auto-upgrade of {kind} evidence to ConjectureCandidate; explicit human/agent promotion is required"
+                )
+            }
             Self::KernelNotAccepted => {
                 write!(formatter, "kernel result is not an accepted Lean outcome")
             }
@@ -302,14 +325,78 @@ impl EvidenceClaim {
     }
 }
 
+/// Who explicitly authorized `EvidenceClaim` → `ConjectureCandidate` promotion.
+///
+/// Stage-1 (PL-C15): numerical / stub / solver evidence cannot auto-upgrade.
+/// A human or agent must supply [`PromotionMeta`]. This authority never confers
+/// [`ClaimStatus::Proved`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum PromotionAuthority {
+    /// Explicit human promotion decision.
+    Human,
+    /// Explicit agent (LLM / automation) promotion decision. Still untrusted for proof.
+    Agent,
+}
+
+impl PromotionAuthority {
+    fn tag(self) -> &'static str {
+        match self {
+            Self::Human => "human",
+            Self::Agent => "agent",
+        }
+    }
+}
+
+/// Explicit Stage-1 promotion fields required to construct a [`ConjectureCandidate`].
+///
+/// Binding these fields into the content-addressed body makes silent
+/// `EvidenceClaim` → `ConjectureCandidate` upgrades unrepresentable.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PromotionMeta {
+    pub authority: PromotionAuthority,
+    /// Stable promoter identifier (human handle, agent run id, …). Must be non-empty.
+    pub promoter_id: String,
+    /// Free-text rationale for promoting this evidence. Must be non-empty.
+    pub rationale: String,
+}
+
+impl PromotionMeta {
+    /// Build promotion metadata after validating non-empty promoter/rationale.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EvidenceError::EmptyPromoterId`] or
+    /// [`EvidenceError::EmptyPromotionRationale`] when trimmed fields are blank.
+    pub fn new(
+        authority: PromotionAuthority,
+        promoter_id: impl Into<String>,
+        rationale: impl Into<String>,
+    ) -> Result<Self, EvidenceError> {
+        let promoter_id = promoter_id.into();
+        if promoter_id.trim().is_empty() {
+            return Err(EvidenceError::EmptyPromoterId);
+        }
+        let rationale = rationale.into();
+        if rationale.trim().is_empty() {
+            return Err(EvidenceError::EmptyPromotionRationale);
+        }
+        Ok(Self {
+            authority,
+            promoter_id,
+            rationale,
+        })
+    }
+}
+
 /// Stable identity of an immutable conjecture candidate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ConjectureCandidateId(pub [u8; 32]);
 
 /// Candidate mathematical statement motivated by evidence.
 ///
-/// Always records [`ClaimStatus::Conjectured`]. External solvers/LLMs may emit
-/// candidates through this type; they never emit `PROVED`.
+/// Always records [`ClaimStatus::Conjectured`]. Stage-1 requires explicit
+/// [`PromotionMeta`] (human or agent). External solvers/LLMs / numerical stubs
+/// never auto-upgrade into this type and never emit `PROVED`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConjectureCandidate {
     pub id: ConjectureCandidateId,
@@ -317,6 +404,7 @@ pub struct ConjectureCandidate {
     pub evidence_ids: Vec<EvidenceClaimId>,
     pub statement_sketch: String,
     pub assumptions: Vec<String>,
+    pub promotion: PromotionMeta,
     pub status: ClaimStatus,
 }
 
@@ -326,20 +414,29 @@ struct ConjectureCandidateBody {
     evidence_ids: Vec<EvidenceClaimId>,
     statement_sketch: String,
     assumptions: Vec<String>,
+    promotion_authority: PromotionAuthority,
+    promoter_id: String,
+    promotion_rationale: String,
     status: ClaimStatus,
 }
 
 impl ConjectureCandidate {
-    /// Promote evidence into a conjecture candidate (still not a proof).
+    /// Promote evidence into a conjecture candidate with explicit human/agent fields.
+    ///
+    /// This is the sole Stage-1 constructor. It never yields [`ClaimStatus::Proved`].
+    /// Callers that want to surface the auto-upgrade deny path for numerical /
+    /// stub / solver observations should use [`refuse_auto_upgrade_from_empirical`].
     ///
     /// # Errors
     ///
-    /// Fails on empty evidence, empty sketch, or evidence integrity failure.
+    /// Fails on empty evidence, empty sketch, invalid promotion metadata, or
+    /// evidence integrity failure.
     pub fn from_evidence(
         claim_id: ClaimId,
         evidence: &[&EvidenceClaim],
         statement_sketch: impl Into<String>,
         mut assumptions: Vec<String>,
+        promotion: PromotionMeta,
     ) -> Result<Self, EvidenceError> {
         if evidence.is_empty() {
             return Err(EvidenceError::EmptyEvidence);
@@ -348,6 +445,12 @@ impl ConjectureCandidate {
         if statement_sketch.trim().is_empty() {
             return Err(EvidenceError::EmptySketch);
         }
+        // Re-validate promotion fields (defends against hand-built structs).
+        let promotion = PromotionMeta::new(
+            promotion.authority,
+            promotion.promoter_id,
+            promotion.rationale,
+        )?;
         let mut evidence_ids = Vec::with_capacity(evidence.len());
         for item in evidence {
             if !item.check_id() {
@@ -364,6 +467,9 @@ impl ConjectureCandidate {
             evidence_ids,
             statement_sketch,
             assumptions,
+            promotion_authority: promotion.authority,
+            promoter_id: promotion.promoter_id.clone(),
+            promotion_rationale: promotion.rationale.clone(),
             status: ClaimStatus::Conjectured,
         };
         Ok(Self {
@@ -372,6 +478,7 @@ impl ConjectureCandidate {
             evidence_ids: body.evidence_ids,
             statement_sketch: body.statement_sketch,
             assumptions: body.assumptions,
+            promotion,
             status: ClaimStatus::Conjectured,
         })
     }
@@ -387,6 +494,9 @@ impl ConjectureCandidate {
             evidence_ids: self.evidence_ids.clone(),
             statement_sketch: self.statement_sketch.clone(),
             assumptions: self.assumptions.clone(),
+            promotion_authority: self.promotion.authority,
+            promoter_id: self.promotion.promoter_id.clone(),
+            promotion_rationale: self.promotion.rationale.clone(),
             status: self.status,
         };
         self.id == ConjectureCandidateId(sha256_canonical(CONJECTURE_CANDIDATE_DOMAIN, &body))
@@ -660,6 +770,41 @@ pub fn refuse_evidence_proof_seal(
     Err(EvidenceError::EmpiricalCannotSealProof(strength.tag()))
 }
 
+/// Observation kinds that must not silently become [`ConjectureCandidate`]s.
+#[must_use]
+pub fn empirical_auto_upgrade_refused(kind: ObservationKind) -> bool {
+    matches!(
+        kind,
+        ObservationKind::Numerical | ObservationKind::StubAdapter | ObservationKind::SolverOutput
+    )
+}
+
+/// Explicit Stage-1 deny path: numerical / stub / solver evidence cannot
+/// auto-upgrade into a [`ConjectureCandidate`].
+///
+/// Prefer constructing candidates only via
+/// [`ConjectureCandidate::from_evidence`] with [`PromotionMeta`]. This helper
+/// documents the trust boundary for adapters and tests. Falsify bridges (when
+/// present) must likewise refuse silent conjecture promotion.
+///
+/// # Errors
+///
+/// Always returns [`EvidenceError::AutoUpgradeRefused`] for refused kinds, or
+/// [`EvidenceError::AutoUpgradeRefused`] with a generic label when called on a
+/// kind that already requires promotion (fail-closed documentation path).
+pub fn refuse_auto_upgrade_from_empirical(
+    kind: ObservationKind,
+) -> Result<ConjectureCandidate, EvidenceError> {
+    let label = if empirical_auto_upgrade_refused(kind) {
+        kind.tag()
+    } else {
+        // ManualAnnotation / SymbolicExperiment still cannot auto-upgrade;
+        // they also require PromotionMeta via from_evidence.
+        "non_promoted_observation"
+    };
+    Err(EvidenceError::AutoUpgradeRefused(label))
+}
+
 // --- Canonical encodings ---------------------------------------------------
 
 impl Canonical for ObservationId {
@@ -698,12 +843,21 @@ impl Canonical for ConjectureCandidateId {
     }
 }
 
+impl Canonical for PromotionAuthority {
+    fn encode(&self, encoder: &mut CanonicalEncoder) {
+        encoder.str(self.tag());
+    }
+}
+
 impl Canonical for ConjectureCandidateBody {
     fn encode(&self, encoder: &mut CanonicalEncoder) {
         encoder.value(&self.claim_id);
         encoder.value(&self.evidence_ids);
         encoder.value(&self.statement_sketch);
         encoder.value(&self.assumptions);
+        encoder.value(&self.promotion_authority);
+        encoder.value(&self.promoter_id);
+        encoder.value(&self.promotion_rationale);
         encoder.str(status_tag(self.status));
     }
 }
@@ -823,11 +977,18 @@ mod tests {
         let evidence =
             EvidenceClaim::from_observations(claim.id, &[&observation], EvidenceStrength::Strong)
                 .expect("evidence");
+        let promotion = PromotionMeta::new(
+            PromotionAuthority::Human,
+            "test-operator",
+            "stage-1 explicit promotion of stub evidence for type plumbing",
+        )
+        .expect("promotion");
         let conjecture = ConjectureCandidate::from_evidence(
             claim.id,
             &[&evidence],
             "n + 0 = n",
             vec!["n : Nat".into()],
+            promotion,
         )
         .expect("conjecture");
         let formal = formal_for(&claim);
@@ -1049,6 +1210,7 @@ mod tests {
         assert_eq!(evidence.status, ClaimStatus::Observed);
         assert_eq!(conjecture.status, ClaimStatus::Conjectured);
         assert_eq!(obligation.status, ClaimStatus::Formalized);
+        assert_eq!(conjecture.promotion.authority, PromotionAuthority::Human);
         for status in [
             evidence.status,
             conjecture.status,
@@ -1057,5 +1219,100 @@ mod tests {
         ] {
             assert_ne!(status, ClaimStatus::Proved);
         }
+    }
+
+    #[test]
+    fn stage1_requires_explicit_promotion_fields() {
+        let claim = claim();
+        let observation = Observation::stub("stub://stage1", b"samples");
+        let evidence =
+            EvidenceClaim::from_observations(claim.id, &[&observation], EvidenceStrength::Strong)
+                .unwrap();
+
+        assert_eq!(
+            PromotionMeta::new(PromotionAuthority::Agent, "  ", "rationale"),
+            Err(EvidenceError::EmptyPromoterId)
+        );
+        assert_eq!(
+            PromotionMeta::new(PromotionAuthority::Agent, "agent-1", ""),
+            Err(EvidenceError::EmptyPromotionRationale)
+        );
+
+        let promotion = PromotionMeta::new(
+            PromotionAuthority::Agent,
+            "agent-run-42",
+            "propose conjecture from corroborating stub samples",
+        )
+        .unwrap();
+        let conjecture = ConjectureCandidate::from_evidence(
+            claim.id,
+            &[&evidence],
+            "n + 0 = n",
+            vec!["n : Nat".into()],
+            promotion.clone(),
+        )
+        .unwrap();
+        assert_eq!(conjecture.status, ClaimStatus::Conjectured);
+        assert_ne!(conjecture.status, ClaimStatus::Proved);
+        assert_eq!(conjecture.promotion, promotion);
+        assert!(conjecture.check_id());
+
+        // Promotion fields participate in content addressing.
+        let other = PromotionMeta::new(
+            PromotionAuthority::Human,
+            "agent-run-42",
+            "propose conjecture from corroborating stub samples",
+        )
+        .unwrap();
+        let other_cj = ConjectureCandidate::from_evidence(
+            claim.id,
+            &[&evidence],
+            "n + 0 = n",
+            vec!["n : Nat".into()],
+            other,
+        )
+        .unwrap();
+        assert_ne!(conjecture.id, other_cj.id);
+    }
+
+    #[test]
+    fn numerical_stub_solver_refuse_auto_upgrade() {
+        for kind in [
+            ObservationKind::Numerical,
+            ObservationKind::StubAdapter,
+            ObservationKind::SolverOutput,
+        ] {
+            assert!(empirical_auto_upgrade_refused(kind));
+            assert_eq!(
+                refuse_auto_upgrade_from_empirical(kind),
+                Err(EvidenceError::AutoUpgradeRefused(kind.tag()))
+            );
+        }
+        // Manual annotations also have no silent auto path.
+        assert!(!empirical_auto_upgrade_refused(
+            ObservationKind::ManualAnnotation
+        ));
+        assert_eq!(
+            refuse_auto_upgrade_from_empirical(ObservationKind::ManualAnnotation),
+            Err(EvidenceError::AutoUpgradeRefused(
+                "non_promoted_observation"
+            ))
+        );
+    }
+
+    #[test]
+    fn serde_cannot_drop_promotion_or_upgrade_to_proved() {
+        let (_c, _o, _e, conjecture, _f, _ob) = pipeline();
+        let mut json = serde_json::to_value(&conjecture).unwrap();
+        json["status"] = serde_json::json!("Proved");
+        let tampered: ConjectureCandidate = serde_json::from_value(json).unwrap();
+        assert!(!tampered.check_id());
+        assert_ne!(tampered.status, ClaimStatus::Conjectured);
+
+        let round: ConjectureCandidate =
+            serde_json::from_slice(&serde_json::to_vec(&conjecture).unwrap()).unwrap();
+        assert!(round.check_id());
+        assert_eq!(round.promotion.authority, PromotionAuthority::Human);
+        assert_ne!(round.status, ClaimStatus::Proved);
     }
 }

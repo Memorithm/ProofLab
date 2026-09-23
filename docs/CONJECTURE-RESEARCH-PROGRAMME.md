@@ -56,5 +56,12 @@ gate, deny helpers for empirical sealing, and serde integrity tests. Lean verify
 `LeanKernel::verify_obligation` emits typed `Accepted` / `Rejected` / `Unknown` /
 `Timeout` outcomes and seals `ProofArtifact` only via `AcceptedKernel`. Riemann / TDI stub adapters (`bench_adapter`) preserve `exact` / `numerical` / `conjecture` / `formal_asymptotic` labels into `Observation` / `EvidenceClaim` only (never `PROVED`). PL-1.1 `falsify_evidence` bridges falsification records into the same typed chain without proof or conjecture promotion. `prooflab inspect` exposes these objects/manifests read-only and never seals `PROVED`. No live TDI/Riemann network ingest; Lean remains sole `PROVED` authority. See `experiments/PL-2.0/`.
 
+### Stage-1 status
+Delivered: `EvidenceClaim` → `ConjectureCandidate` requires explicit `PromotionMeta`
+(`PromotionAuthority::{Human,Agent}`, non-empty `promoter_id` and `rationale`) bound into
+the content-addressed candidate identity (`prooflab-conjecture-candidate:v2`). Numerical /
+stub / solver observations cannot auto-upgrade (`refuse_auto_upgrade_from_empirical`).
+Promotion never yields `PROVED`; Lean remains the sole proof authority.
+
 ## Relationship to PL-DC
 These conjecture programmes are additive and must not weaken or displace the existing descriptive-complexity programme. Reusable finite-structure, counterexample and provenance machinery should be shared where technically appropriate.
