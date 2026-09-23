@@ -689,12 +689,8 @@ fn cmd_promote(
         .map(|path| read_json(path))
         .collect::<Result<Vec<_>, String>>()?;
     let refs: Vec<&EvidenceClaim> = evidence.iter().collect();
-    let promotion = PromotionMeta::new(
-        authority.promotion(),
-        promoter_id,
-        rationale,
-    )
-    .map_err(err_string)?;
+    let promotion =
+        PromotionMeta::new(authority.promotion(), promoter_id, rationale).map_err(err_string)?;
     let candidate = ConjectureCandidate::from_evidence(
         claim.id,
         &refs,
@@ -739,12 +735,8 @@ fn cmd_formalize(
 ) -> Result<CliReport, String> {
     let conjecture: ConjectureCandidate = read_json(conjecture_path)?;
     let formal: FormalStatement = read_json(formal_path)?;
-    let meta = FormalizationMeta::new(
-        authority.formalization(),
-        formalizer_id,
-        rationale,
-    )
-    .map_err(err_string)?;
+    let meta = FormalizationMeta::new(authority.formalization(), formalizer_id, rationale)
+        .map_err(err_string)?;
     let obligation =
         ProofObligation::from_conjecture(&conjecture, &formal, meta).map_err(err_string)?;
     write_json(output, &obligation)?;
@@ -1340,10 +1332,8 @@ mod tests {
 
     #[test]
     fn promote_and_formalize_write_typed_transition_objects() {
-        let tmp = std::env::temp_dir().join(format!(
-            "prooflab-cli-transitions-{}",
-            std::process::id()
-        ));
+        let tmp =
+            std::env::temp_dir().join(format!("prooflab-cli-transitions-{}", std::process::id()));
         let _ = fs::remove_dir_all(&tmp);
         fs::create_dir_all(&tmp).unwrap();
 
@@ -1363,7 +1353,11 @@ mod tests {
         let evidence_path = tmp.join("evidence.json");
         let conjecture_path = tmp.join("conjecture.json");
         fs::write(&claim_path, serde_json::to_vec_pretty(&claim).unwrap()).unwrap();
-        fs::write(&evidence_path, serde_json::to_vec_pretty(&evidence).unwrap()).unwrap();
+        fs::write(
+            &evidence_path,
+            serde_json::to_vec_pretty(&evidence).unwrap(),
+        )
+        .unwrap();
 
         let promote = cmd_promote(
             &claim_path,
