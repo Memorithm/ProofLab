@@ -13,9 +13,9 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use prooflab_core::{
-    BenchExportManifest, Claim, ClaimBody, ClaimStatus, ConjectureCandidate,
-    EnvironmentLock, EvidenceClaim, FormalStatement, FormalizationAuthority, FormalizationMeta,
-    KernelResult, Observation, ObservationKind, PromotionAuthority, PromotionMeta, ProofArtifact,
+    BenchExportManifest, Claim, ClaimBody, ClaimStatus, ConjectureCandidate, EnvironmentLock,
+    EvidenceClaim, FormalStatement, FormalizationAuthority, FormalizationMeta, KernelResult,
+    Observation, ObservationKind, PromotionAuthority, PromotionMeta, ProofArtifact,
     ProofObligation, ReproMeta, ReproduceOk, RiemannStubEntry, TdiStubEntry, ingest_bench_export,
     ingest_riemann_stub, ingest_tdi_stub, refuse_empirical_proof_seal, refuse_evidence_proof_seal,
     refuse_riemann_stub_proof_seal, refuse_tdi_stub_proof_seal, reproduce as core_reproduce,
