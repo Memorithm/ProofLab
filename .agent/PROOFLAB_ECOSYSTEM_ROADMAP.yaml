@@ -1,0 +1,25 @@
+schema_version: 1
+kind: prooflab_ecosystem_roadmap
+status: active
+last_updated: "2026-09-27"
+repository: Memorithm/ProofLab
+merge_policy: never_merge_this_file_to_default_branch_unless_user_explicitly_requests
+mission:
+  role: formal_discovery_and_trusted_kernel_task_consumer
+  boundary: proof_status_is_owned_only_by_the_configured_trusted_proof_kernel
+ax_task_program:
+  external_reference: google_ax_architecture_only
+  objective: >-
+    Isolate conjecture search, falsification, minimization and proof attempts in
+    exact workspaces with explicit budgets while preserving the trusted Lean
+    verification boundary.
+  phases:
+    - AXPL1_pin_claim_environment_Lean_mathlib_and_corpus_identity
+    - AXPL2_isolate_search_and_untrusted_generated_proof_attempts
+    - AXPL3_attach_cpu_ram_time_and_solver_budgets
+    - AXPL4_bind_kernel_verdict_and_task_attempt_as_distinct_evidence
+    - AXPL5_checkpoint_only_reproducible_search_state
+  invariants:
+    - task_success_is_never_PROVED
+    - only_the_trusted_kernel_may_establish_proof_status
+    - failed_counterexamples_and_attempts_remain_retained_evidence
