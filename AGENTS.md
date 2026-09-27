@@ -339,3 +339,12 @@ Stop and report explicitly when:
 - a required invariant would need to be weakened.
 
 In those cases, preserve the artifacts and state the exact blocker. Do not invent a successful result.
+
+
+## AX-inspired isolated task execution
+
+Before work involving autonomous execution, generated or untrusted code, remote workers, task-scoped tool authority, workspace materialization, resource envelopes, network egress, sandboxing, checkpoint/suspend/resume, or cross-repository execution, also read:
+
+`origin/agent/ecosystem-roadmap:.agent/PROOFLAB_ECOSYSTEM_ROADMAP.yaml`
+
+Google AX is an architectural reference only. The Memorithm contract is Rust-native: SciRust Hub owns task lifecycle/identity, RemoteOps owns concrete host enforcement, ElasticXxx owns adaptive resource policy, and this repository retains its domain authority. A supervised process must never be described as a hostile-code sandbox.
