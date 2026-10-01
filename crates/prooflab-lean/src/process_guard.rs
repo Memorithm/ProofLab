@@ -147,8 +147,7 @@ pub(crate) fn run_command(
 
     let (status, timed_out) = loop {
         if Instant::now() >= deadline {
-            let status =
-                terminate_and_reap(&mut child, process_group, limits.termination_grace)?;
+            let status = terminate_and_reap(&mut child, process_group, limits.termination_grace)?;
             break (status, true);
         }
         let child_exited = match child_exited_without_reaping(process_group) {
@@ -162,8 +161,7 @@ pub(crate) fn run_command(
         };
         if child_exited {
             let timed_out = Instant::now() >= deadline;
-            let status =
-                terminate_and_reap(&mut child, process_group, limits.termination_grace)?;
+            let status = terminate_and_reap(&mut child, process_group, limits.termination_grace)?;
             break (status, timed_out);
         }
         thread::sleep(
