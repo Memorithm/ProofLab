@@ -150,8 +150,6 @@ impl BubblewrapIsolation {
             .arg("--die-with-parent")
             .arg("--new-session")
             .arg("--unshare-all")
-            .arg("--cap-drop")
-            .arg("ALL")
             .arg("--proc")
             .arg("/proc")
             .arg("--dev")

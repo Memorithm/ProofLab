@@ -39,6 +39,7 @@ if grep -Eq '^[[:space:]]*(eth|en|wl)[^:]*:' /proc/net/dev; then
   echo "non-loopback network interface is visible" >&2
   exit 72
 fi
+grep -E '^CapEff:[[:space:]]+0+$' /proc/self/status >/dev/null
 grep -E 'Max processes[[:space:]]+32[[:space:]]+32' /proc/self/limits >/dev/null
 "#,
             outside_secret.display()
