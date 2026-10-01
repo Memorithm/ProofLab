@@ -416,8 +416,7 @@ impl LeanKernel {
         let output = process_guard::run_command(&mut command, self.limits)?;
 
         Ok(LeanProcessResult {
-            accepted: output.status.success()
-                && output.termination == ProcessTermination::Exited,
+            accepted: output.status.success() && output.termination == ProcessTermination::Exited,
             exit_code: output.status.code(),
             termination: output.termination,
             stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
@@ -1000,10 +999,8 @@ mod tests {
         impl FakeLake {
             fn new(body: &str) -> Self {
                 let unique = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
-                let root = std::env::temp_dir().join(format!(
-                    "prooflab-process-{}-{unique}",
-                    std::process::id()
-                ));
+                let root = std::env::temp_dir()
+                    .join(format!("prooflab-process-{}-{unique}", std::process::id()));
                 fs::create_dir_all(&root).unwrap();
                 fs::write(root.join("lakefile.lean"), "").unwrap();
                 let source = root.join("Input.lean");
@@ -1071,9 +1068,7 @@ mod tests {
             assert!(!result.accepted);
             assert!(matches!(
                 result.termination,
-                ProcessTermination::Signaled {
-                    signal: Some(15)
-                }
+                ProcessTermination::Signaled { signal: Some(15) }
             ));
             assert!(matches!(
                 kernel_outcome_from_process(&result, FormalBackend::Lean4, LEAN_INVOCATION),

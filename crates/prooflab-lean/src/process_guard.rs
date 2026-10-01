@@ -63,12 +63,7 @@ pub(crate) fn run_command(
         limits.max_stdout_bytes,
         capture_tx.clone(),
     );
-    spawn_capture(
-        Stream::Stderr,
-        stderr,
-        limits.max_stderr_bytes,
-        capture_tx,
-    );
+    spawn_capture(Stream::Stderr, stderr, limits.max_stderr_bytes, capture_tx);
 
     let started = Instant::now();
     let (status, timed_out) = loop {
@@ -161,14 +156,17 @@ fn collect_captures(
     let mut stderr = None;
     for _ in 0..2 {
         let remaining = deadline.saturating_duration_since(Instant::now());
-        let capture = receiver.recv_timeout(remaining).map_err(|error| match error {
-            RecvTimeoutError::Timeout => {
-                io::Error::new(io::ErrorKind::TimedOut, "Lean output drain deadline exceeded")
-            }
-            RecvTimeoutError::Disconnected => {
-                io::Error::other("Lean output capture worker disconnected")
-            }
-        })?;
+        let capture = receiver
+            .recv_timeout(remaining)
+            .map_err(|error| match error {
+                RecvTimeoutError::Timeout => io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "Lean output drain deadline exceeded",
+                ),
+                RecvTimeoutError::Disconnected => {
+                    io::Error::other("Lean output capture worker disconnected")
+                }
+            })?;
         if let Some(error) = capture.read_error {
             return Err(io::Error::other(format!(
                 "Lean {:?} capture failed: {error}",
@@ -209,7 +207,8 @@ fn terminate_and_confirm(process_group: Pid, grace: Duration) -> io::Result<()> 
     loop {
         match killpg(process_group, Option::<Signal>::None) {
             Err(Errno::ESRCH) => return Ok(()),
-            Ok(()) => {
+            Ok(()) =>
+            {
                 #[cfg(target_os = "linux")]
                 if !linux_process_group_has_live_members(process_group.as_raw())? {
                     return Ok(());
@@ -251,12 +250,12 @@ fn linux_process_group_has_live_members(process_group: i32) -> io::Result<bool> 
             )
         })?;
         let mut fields = fields.split_whitespace();
-        let state = fields.next().ok_or_else(|| {
-            io::Error::new(io::ErrorKind::InvalidData, "missing process state")
-        })?;
-        let _parent = fields.next().ok_or_else(|| {
-            io::Error::new(io::ErrorKind::InvalidData, "missing parent pid")
-        })?;
+        let state = fields
+            .next()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "missing process state"))?;
+        let _parent = fields
+            .next()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "missing parent pid"))?;
         let member_group = fields
             .next()
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "missing process group"))?
