@@ -966,12 +966,13 @@ mod tests {
     #[test]
     fn isolated_jobs_have_a_distinct_content_addressed_contract() {
         let kernel = LeanKernel::new("/usr/bin/false").with_isolation(BubblewrapIsolation::new(
+            "/usr/bin/unshare",
             "/usr/bin/bwrap",
             "/usr/bin/prlimit",
         ));
         let isolated = kernel.isolated_invocation_contract().unwrap();
         assert_ne!(isolated, kernel.invocation_contract());
-        assert!(isolated.contains("isolation=linux-bubblewrap-v1"));
+        assert!(isolated.contains("isolation=linux-unshare-bubblewrap-v1"));
         assert!(isolated.contains("network=deny_all"));
     }
 
