@@ -2,7 +2,6 @@
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
 
 use prooflab_lean::{BubblewrapIsolation, LeanIsolationLimits, LeanKernel};
 
@@ -68,5 +67,5 @@ grep -E 'Max processes[[:space:]]+32[[:space:]]+32' /proc/self/limits >/dev/null
         result.stdout, result.stderr
     );
     assert!(!project.join("host-write").exists());
-    fs::remove_dir_all(PathBuf::from(root)).unwrap();
+    fs::remove_dir_all(root).unwrap();
 }
