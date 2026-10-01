@@ -62,13 +62,8 @@ fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
         repro_meta(),
     )
     .unwrap();
-    let rejected_job = VerificationJob::new(
-        &rejected_formal,
-        rejected_source,
-        &invocation,
-        repro_meta(),
-    )
-    .unwrap();
+    let rejected_job =
+        VerificationJob::new(&rejected_formal, rejected_source, &invocation, repro_meta()).unwrap();
 
     let accepted = kernel
         .verify_job(&accepted_job, &accepted_formal, &accepted_path)
