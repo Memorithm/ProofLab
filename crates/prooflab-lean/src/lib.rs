@@ -798,9 +798,13 @@ mod tests {
             parents: vec![],
         });
         let formal = FormalStatement::lean4(claim.id, b"different source", vec![]);
-        let job =
-            VerificationJob::new(&formal, b"different source", DEFAULT_LEAN_INVOCATION, repro())
-                .unwrap();
+        let job = VerificationJob::new(
+            &formal,
+            b"different source",
+            DEFAULT_LEAN_INVOCATION,
+            repro(),
+        )
+        .unwrap();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
             kernel.verify_job(&job, &formal, source),
@@ -1007,13 +1011,8 @@ mod tests {
         });
         let other_formal =
             FormalStatement::lean4(other_claim.id, &source_bytes, vec!["Mathlib".into()]);
-        let job = VerificationJob::new(
-            &formal,
-            &source_bytes,
-            DEFAULT_LEAN_INVOCATION,
-            repro(),
-        )
-        .unwrap();
+        let job =
+            VerificationJob::new(&formal, &source_bytes, DEFAULT_LEAN_INVOCATION, repro()).unwrap();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
             kernel.verify_obligation(&obligation, &other_formal, &job, &source),
@@ -1033,14 +1032,13 @@ mod tests {
         let source =
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ProofLab/Core/Smoke.lean");
         let (formal, obligation) = obligation_pipeline(b"different source");
-        let job =
-            VerificationJob::new(
-                &formal,
-                b"different source",
-                DEFAULT_LEAN_INVOCATION,
-                repro(),
-            )
-            .unwrap();
+        let job = VerificationJob::new(
+            &formal,
+            b"different source",
+            DEFAULT_LEAN_INVOCATION,
+            repro(),
+        )
+        .unwrap();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
             kernel.verify_obligation(&obligation, &formal, &job, source),
@@ -1119,11 +1117,7 @@ mod tests {
             ));
             assert_eq!(result.limits, fixture.kernel().limits());
             assert!(matches!(
-                kernel_outcome_from_process(
-                    &result,
-                    FormalBackend::Lean4,
-                    DEFAULT_LEAN_INVOCATION,
-                ),
+                kernel_outcome_from_process(&result, FormalBackend::Lean4, DEFAULT_LEAN_INVOCATION,),
                 KernelOutcome::Timeout { elapsed_ms } if elapsed_ms >= 100
             ));
         }
