@@ -147,9 +147,8 @@ pub(crate) fn run_command(
 
     let (status, timed_out) = loop {
         if Instant::now() >= deadline {
-            terminate_group(process_group)?;
-            let status = child.wait()?;
-            confirm_group_terminated(process_group, limits.termination_grace)?;
+            let status =
+                terminate_and_reap(&mut child, process_group, limits.termination_grace)?;
             break (status, true);
         }
         let child_exited = match child_exited_without_reaping(process_group) {
@@ -163,9 +162,8 @@ pub(crate) fn run_command(
         };
         if child_exited {
             let timed_out = Instant::now() >= deadline;
-            terminate_group(process_group)?;
-            let status = child.wait()?;
-            confirm_group_terminated(process_group, limits.termination_grace)?;
+            let status =
+                terminate_and_reap(&mut child, process_group, limits.termination_grace)?;
             break (status, timed_out);
         }
         thread::sleep(
@@ -339,9 +337,25 @@ fn abort_child(
     process_group: Pid,
     grace: Duration,
 ) -> io::Result<()> {
+    terminate_and_reap(child, process_group, grace).map(|_| ())
+}
+
+#[cfg(unix)]
+fn terminate_and_reap(
+    child: &mut std::process::Child,
+    process_group: Pid,
+    grace: Duration,
+) -> io::Result<ExitStatus> {
+    let deadline = Instant::now().checked_add(grace).ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidInput, "invalid termination deadline")
+    })?;
     terminate_group(process_group)?;
-    child.wait()?;
-    confirm_group_terminated(process_group, grace)
+    wait_for_child_exit_until(process_group, deadline)?;
+    // waitid(WNOWAIT) above guarantees that this reap cannot block while keeping
+    // the leader PID/PGID anchored until every signal has been sent.
+    let status = child.wait()?;
+    confirm_group_terminated_until(process_group, deadline)?;
+    Ok(status)
 }
 
 #[cfg(unix)]
@@ -374,10 +388,25 @@ fn child_exited_without_reaping(child: Pid) -> io::Result<bool> {
 }
 
 #[cfg(unix)]
-fn confirm_group_terminated(process_group: Pid, grace: Duration) -> io::Result<()> {
-    let deadline = Instant::now().checked_add(grace).ok_or_else(|| {
-        io::Error::new(io::ErrorKind::InvalidInput, "invalid termination deadline")
-    })?;
+fn wait_for_child_exit_until(child: Pid, deadline: Instant) -> io::Result<()> {
+    loop {
+        if child_exited_without_reaping(child)? {
+            return Ok(());
+        }
+        if Instant::now() >= deadline {
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "Lean process leader remained live after SIGKILL",
+            ));
+        }
+        thread::sleep(
+            Duration::from_millis(10).min(deadline.saturating_duration_since(Instant::now())),
+        );
+    }
+}
+
+#[cfg(unix)]
+fn confirm_group_terminated_until(process_group: Pid, deadline: Instant) -> io::Result<()> {
     loop {
         match killpg(process_group, Option::<Signal>::None) {
             Err(Errno::ESRCH) => return Ok(()),
@@ -478,5 +507,27 @@ mod tests {
             collect_captures(&receiver, Duration::from_millis(20), vec![worker]).unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::TimedOut);
         assert!(started.elapsed() < Duration::from_secs(1));
+    }
+
+    #[test]
+    fn child_exit_polling_obeys_its_deadline() {
+        let mut child = Command::new("sh")
+            .arg("-c")
+            .arg("sleep 60")
+            .spawn()
+            .unwrap();
+        let pid = Pid::from_raw(pid_to_i32(child.id()).unwrap());
+        let started = Instant::now();
+        let error = wait_for_child_exit_until(
+            pid,
+            Instant::now()
+                .checked_add(Duration::from_millis(20))
+                .unwrap(),
+        )
+        .unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::TimedOut);
+        assert!(started.elapsed() < Duration::from_secs(1));
+        child.kill().unwrap();
+        child.wait().unwrap();
     }
 }
