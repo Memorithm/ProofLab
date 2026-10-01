@@ -87,7 +87,7 @@ pub(crate) fn run_command(
         terminate_and_confirm(process_group, limits.termination_grace)?;
     }
 
-    let (stdout, stderr) = collect_captures(capture_rx, limits.drain_timeout)?;
+    let (stdout, stderr) = collect_captures(&capture_rx, limits.drain_timeout)?;
     let termination = if timed_out {
         ProcessTermination::TimedOut {
             elapsed_ms: duration_millis(started.elapsed()),
@@ -96,7 +96,7 @@ pub(crate) fn run_command(
         ProcessTermination::Exited
     } else {
         ProcessTermination::Signaled {
-            signal: exit_signal(&status),
+            signal: exit_signal(status),
         }
     };
 
@@ -146,7 +146,7 @@ fn spawn_capture(
 }
 
 fn collect_captures(
-    receiver: Receiver<Capture>,
+    receiver: &Receiver<Capture>,
     drain_timeout: Duration,
 ) -> io::Result<(Vec<u8>, Vec<u8>)> {
     let deadline = Instant::now()
@@ -278,12 +278,12 @@ fn terminate_child(child: &mut std::process::Child) -> io::Result<()> {
 }
 
 #[cfg(unix)]
-fn exit_signal(status: &ExitStatus) -> Option<i32> {
+fn exit_signal(status: ExitStatus) -> Option<i32> {
     status.signal()
 }
 
 #[cfg(not(unix))]
-fn exit_signal(_status: &ExitStatus) -> Option<i32> {
+fn exit_signal(_status: ExitStatus) -> Option<i32> {
     None
 }
 
