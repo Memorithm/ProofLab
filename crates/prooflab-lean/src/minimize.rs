@@ -23,7 +23,7 @@ use prooflab_core::{
 
 use crate::{LeanKernel, VerificationError, VerificationOutcome};
 
-const LEAN_INVOCATION: &str = "lake env lean";
+use crate::DEFAULT_LEAN_INVOCATION;
 
 /// Expected control outcome for one curated removal trial.
 ///
@@ -326,7 +326,7 @@ impl MinimizationEntry {
         let full_job = VerificationJob::new(
             &full_formal_statement,
             &full_source_bytes,
-            LEAN_INVOCATION,
+            DEFAULT_LEAN_INVOCATION,
             repro.clone(),
         )
         .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
@@ -366,7 +366,7 @@ impl MinimizationEntry {
             let job = VerificationJob::new(
                 &formal_statement,
                 &source_bytes,
-                LEAN_INVOCATION,
+                DEFAULT_LEAN_INVOCATION,
                 repro.clone(),
             )
             .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;

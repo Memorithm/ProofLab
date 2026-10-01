@@ -14,9 +14,7 @@ use prooflab_core::{
     Claim, ClaimBody, EnvironmentLock, FormalStatement, ReproMeta, VerificationJob,
 };
 
-use crate::{LeanKernel, VerificationError, VerificationOutcome};
-
-const LEAN_INVOCATION: &str = "lake env lean";
+use crate::{DEFAULT_LEAN_INVOCATION, LeanKernel, VerificationError, VerificationOutcome};
 
 /// Expected trusted-kernel outcome for a corpus entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -207,8 +205,13 @@ impl CorpusEntry {
                 .map(|import| (*import).to_owned())
                 .collect(),
         );
-        let job = VerificationJob::new(&formal_statement, &source_bytes, LEAN_INVOCATION, repro)
-            .map_err(|error| CorpusError::JobConstruction(error.to_string()))?;
+        let job = VerificationJob::new(
+            &formal_statement,
+            &source_bytes,
+            DEFAULT_LEAN_INVOCATION,
+            repro,
+        )
+        .map_err(|error| CorpusError::JobConstruction(error.to_string()))?;
         Ok(CorpusPrepared {
             entry_id: self.id,
             claim,

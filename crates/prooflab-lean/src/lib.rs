@@ -56,8 +56,7 @@ use prooflab_core::{
 };
 
 const LEAN_COMMAND: &str = "lake env lean";
-#[cfg(test)]
-const LEAN_INVOCATION: &str = "lake env lean;supervisor=unix-v1;timeout_ns=120000000000;drain_timeout_ns=1000000000;termination_grace_ns=1000000000;max_stdout_bytes=1048576;max_stderr_bytes=1048576";
+pub(crate) const DEFAULT_LEAN_INVOCATION: &str = "lake env lean;supervisor=unix-v1;timeout_ns=120000000000;drain_timeout_ns=1000000000;termination_grace_ns=1000000000;max_stdout_bytes=1048576;max_stderr_bytes=1048576";
 
 /// Resource limits for one Lean kernel process.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -745,7 +744,10 @@ mod tests {
     #[test]
     fn default_boundary_uses_lake() {
         assert_eq!(LeanKernel::default().lake_binary, PathBuf::from("lake"));
-        assert_eq!(LeanKernel::default().invocation_contract(), LEAN_INVOCATION);
+        assert_eq!(
+            LeanKernel::default().invocation_contract(),
+            DEFAULT_LEAN_INVOCATION
+        );
     }
 
     #[test]
@@ -797,7 +799,8 @@ mod tests {
         });
         let formal = FormalStatement::lean4(claim.id, b"different source", vec![]);
         let job =
-            VerificationJob::new(&formal, b"different source", LEAN_INVOCATION, repro()).unwrap();
+            VerificationJob::new(&formal, b"different source", DEFAULT_LEAN_INVOCATION, repro())
+                .unwrap();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
             kernel.verify_job(&job, &formal, source),
@@ -817,7 +820,7 @@ mod tests {
         });
         let formal = FormalStatement::lean4(claim.id, &source_bytes, vec!["Mathlib".into()]);
         let mut job =
-            VerificationJob::new(&formal, &source_bytes, LEAN_INVOCATION, repro()).unwrap();
+            VerificationJob::new(&formal, &source_bytes, DEFAULT_LEAN_INVOCATION, repro()).unwrap();
         job.invocation = "lean directly".into();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
@@ -837,7 +840,8 @@ mod tests {
             parents: vec![],
         });
         let formal = FormalStatement::lean4(claim.id, &source_bytes, vec!["Mathlib".into()]);
-        let job = VerificationJob::new(&formal, &source_bytes, LEAN_INVOCATION, repro()).unwrap();
+        let job =
+            VerificationJob::new(&formal, &source_bytes, DEFAULT_LEAN_INVOCATION, repro()).unwrap();
         let observed = EnvironmentLock::new(
             "v4.33.1",
             "0df444a360eaa60ab8c11dca51a86af692955474",
@@ -916,7 +920,7 @@ mod tests {
         let accepted = kernel_outcome_from_process(
             &process(true, Some(0), ProcessTermination::Exited, "ok", ""),
             FormalBackend::Lean4,
-            LEAN_INVOCATION,
+            DEFAULT_LEAN_INVOCATION,
         );
         assert!(matches!(accepted, KernelOutcome::Accepted { .. }));
         assert!(accepted.is_accepting());
@@ -924,7 +928,7 @@ mod tests {
         let rejected = kernel_outcome_from_process(
             &process(false, Some(1), ProcessTermination::Exited, "", "error"),
             FormalBackend::Lean4,
-            LEAN_INVOCATION,
+            DEFAULT_LEAN_INVOCATION,
         );
         assert!(matches!(rejected, KernelOutcome::Rejected { .. }));
         assert!(!rejected.is_accepting());
@@ -938,7 +942,7 @@ mod tests {
                 "killed",
             ),
             FormalBackend::Lean4,
-            LEAN_INVOCATION,
+            DEFAULT_LEAN_INVOCATION,
         );
         assert!(matches!(timeout, KernelOutcome::Timeout { elapsed_ms: 37 }));
         assert!(!timeout.is_accepting());
@@ -946,7 +950,7 @@ mod tests {
         let unknown = kernel_outcome_from_process(
             &process(true, Some(2), ProcessTermination::Exited, "weird", ""),
             FormalBackend::Lean4,
-            LEAN_INVOCATION,
+            DEFAULT_LEAN_INVOCATION,
         );
         assert!(matches!(unknown, KernelOutcome::Unknown { .. }));
         assert!(!unknown.is_accepting());
@@ -959,7 +963,7 @@ mod tests {
             kernel_outcome_from_process(
                 &process(false, Some(1), ProcessTermination::Exited, "", "err"),
                 FormalBackend::Lean4,
-                LEAN_INVOCATION,
+                DEFAULT_LEAN_INVOCATION,
             ),
             KernelOutcome::Unknown {
                 reason: "garbled".into(),
@@ -978,7 +982,7 @@ mod tests {
         let outcome = kernel_outcome_from_process(
             &process(true, Some(0), ProcessTermination::Exited, "ok", ""),
             FormalBackend::Lean4,
-            LEAN_INVOCATION,
+            DEFAULT_LEAN_INVOCATION,
         );
         let result = KernelResult::new(&obligation, &formal, outcome).unwrap();
         let accepted = result.into_accepted().expect("accepted");
@@ -1003,7 +1007,13 @@ mod tests {
         });
         let other_formal =
             FormalStatement::lean4(other_claim.id, &source_bytes, vec!["Mathlib".into()]);
-        let job = VerificationJob::new(&formal, &source_bytes, LEAN_INVOCATION, repro()).unwrap();
+        let job = VerificationJob::new(
+            &formal,
+            &source_bytes,
+            DEFAULT_LEAN_INVOCATION,
+            repro(),
+        )
+        .unwrap();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
             kernel.verify_obligation(&obligation, &other_formal, &job, &source),
@@ -1024,7 +1034,13 @@ mod tests {
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ProofLab/Core/Smoke.lean");
         let (formal, obligation) = obligation_pipeline(b"different source");
         let job =
-            VerificationJob::new(&formal, b"different source", LEAN_INVOCATION, repro()).unwrap();
+            VerificationJob::new(
+                &formal,
+                b"different source",
+                DEFAULT_LEAN_INVOCATION,
+                repro(),
+            )
+            .unwrap();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
             kernel.verify_obligation(&obligation, &formal, &job, source),
@@ -1103,7 +1119,11 @@ mod tests {
             ));
             assert_eq!(result.limits, fixture.kernel().limits());
             assert!(matches!(
-                kernel_outcome_from_process(&result, FormalBackend::Lean4, LEAN_INVOCATION),
+                kernel_outcome_from_process(
+                    &result,
+                    FormalBackend::Lean4,
+                    DEFAULT_LEAN_INVOCATION,
+                ),
                 KernelOutcome::Timeout { elapsed_ms } if elapsed_ms >= 100
             ));
         }
@@ -1142,7 +1162,11 @@ mod tests {
                 ProcessTermination::Signaled { signal: Some(15) }
             ));
             assert!(matches!(
-                kernel_outcome_from_process(&result, FormalBackend::Lean4, LEAN_INVOCATION),
+                kernel_outcome_from_process(
+                    &result,
+                    FormalBackend::Lean4,
+                    DEFAULT_LEAN_INVOCATION,
+                ),
                 KernelOutcome::Unknown { .. }
             ));
         }
