@@ -3,7 +3,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const BACKEND_VERSION: &str = "linux-unshare-bubblewrap-v1";
+const BACKEND_VERSION: &str = "linux-setuid-bubblewrap-v1";
 
 /// Kernel-enforced resource budgets applied inside the isolated Lean boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,15 +57,14 @@ impl LeanIsolationLimits {
 
 /// Linux namespace boundary for generated or third-party Lean sources.
 ///
-/// `unshare` supplies an empty network namespace; Bubblewrap supplies mount,
-/// PID, IPC, UTS and cgroup namespaces inside it.
+/// An administrator-owned setuid Bubblewrap helper supplies mount, PID, IPC,
+/// UTS, cgroup and network namespaces.
 /// The project and runtime roots are mounted read-only; `/tmp` is the only
 /// writable filesystem. `prlimit` applies CPU, memory, process, file-size and
 /// descriptor limits before Lake starts. The outer `ProofLab` process guard
 /// retains the independent wall-clock and bounded-output controls.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BubblewrapIsolation {
-    unshare_binary: PathBuf,
     bubblewrap_binary: PathBuf,
     prlimit_binary: PathBuf,
     runtime_roots: Vec<PathBuf>,
@@ -74,13 +73,8 @@ pub struct BubblewrapIsolation {
 
 impl BubblewrapIsolation {
     #[must_use]
-    pub fn new(
-        unshare_binary: impl Into<PathBuf>,
-        bubblewrap_binary: impl Into<PathBuf>,
-        prlimit_binary: impl Into<PathBuf>,
-    ) -> Self {
+    pub fn new(bubblewrap_binary: impl Into<PathBuf>, prlimit_binary: impl Into<PathBuf>) -> Self {
         Self {
-            unshare_binary: unshare_binary.into(),
             bubblewrap_binary: bubblewrap_binary.into(),
             prlimit_binary: prlimit_binary.into(),
             runtime_roots: Vec::new(),
@@ -120,8 +114,8 @@ impl BubblewrapIsolation {
         source: &Path,
     ) -> io::Result<Command> {
         self.limits.validate()?;
-        let unshare_binary = canonical_executable(&self.unshare_binary, "unshare")?;
         let bubblewrap_binary = canonical_executable(&self.bubblewrap_binary, "bubblewrap")?;
+        validate_setuid_root(&bubblewrap_binary)?;
         let prlimit_binary = canonical_executable(&self.prlimit_binary, "prlimit")?;
         let lake_binary = canonical_executable(lake_binary, "lake")?;
         let project_root = canonical_directory(project_root, "Lake project root")?;
@@ -153,8 +147,8 @@ impl BubblewrapIsolation {
                 ),
             ));
         }
-        let mut command = Command::new(unshare_binary);
-        configure_namespace(&mut command, &bubblewrap_binary, &project_root, roots);
+        let mut command = Command::new(&bubblewrap_binary);
+        configure_namespace(&mut command, &project_root, roots);
         configure_limits_and_lean(
             &mut command,
             &prlimit_binary,
@@ -168,20 +162,13 @@ impl BubblewrapIsolation {
 
 fn configure_namespace(
     command: &mut Command,
-    bubblewrap_binary: &Path,
     project_root: &Path,
     roots: BTreeSet<PathBuf>,
 ) {
     command
-        .arg("--user")
-        .arg("--map-root-user")
-        .arg("--net")
-        .arg("--")
-        .arg(bubblewrap_binary)
         .arg("--die-with-parent")
         .arg("--new-session")
         .arg("--unshare-all")
-        .arg("--share-net")
         .arg("--disable-userns")
         .arg("--cap-drop")
         .arg("ALL")
@@ -271,6 +258,28 @@ fn canonical_executable(path: &Path, label: &str) -> io::Result<PathBuf> {
     Ok(path)
 }
 
+#[cfg(unix)]
+fn validate_setuid_root(path: &Path) -> io::Result<()> {
+    use std::os::unix::fs::MetadataExt;
+
+    let metadata = path.metadata()?;
+    if metadata.uid() != 0 || metadata.mode() & 0o4000 == 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "isolated Bubblewrap must be an administrator-owned setuid-root helper",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn validate_setuid_root(_path: &Path) -> io::Result<()> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "isolated Bubblewrap requires Unix setuid metadata",
+    ))
+}
+
 fn canonical_directory(path: &Path, label: &str) -> io::Result<PathBuf> {
     let path = path.canonicalize()?;
     if !path.is_dir() {
@@ -288,17 +297,17 @@ mod tests {
 
     #[test]
     fn isolation_limits_are_bound_into_the_contract() {
-        let isolation =
-            BubblewrapIsolation::new("/usr/bin/unshare", "/usr/bin/bwrap", "/usr/bin/prlimit")
-                .with_limits(LeanIsolationLimits {
-                    max_address_space_bytes: 10,
-                    max_cpu_seconds: 11,
-                    max_processes: 12,
-                    max_file_size_bytes: 13,
-                    max_open_files: 14,
-                });
+        let isolation = BubblewrapIsolation::new("/usr/bin/bwrap", "/usr/bin/prlimit").with_limits(
+            LeanIsolationLimits {
+                max_address_space_bytes: 10,
+                max_cpu_seconds: 11,
+                max_processes: 12,
+                max_file_size_bytes: 13,
+                max_open_files: 14,
+            },
+        );
         let contract = isolation.invocation_contract();
-        assert!(contract.contains("isolation=linux-unshare-bubblewrap-v1"));
+        assert!(contract.contains("isolation=linux-setuid-bubblewrap-v1"));
         assert!(contract.contains("network=deny_all"));
         assert!(contract.contains("max_as_bytes=10"));
         assert!(contract.contains("max_open_files=14"));

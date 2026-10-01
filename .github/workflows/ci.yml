@@ -28,6 +28,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes bubblewrap
+          sudo chown root:root /usr/bin/bwrap
+          sudo chmod 4755 /usr/bin/bwrap
+          test "$(stat -c '%U %a' /usr/bin/bwrap)" = "root 4755"
           bwrap --version
           prlimit --version
       - name: Qualify untrusted Lean OS isolation

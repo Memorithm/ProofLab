@@ -50,15 +50,15 @@ grep -E 'Max processes[[:space:]]+32[[:space:]]+32' /proc/self/limits >/dev/null
     permissions.set_mode(0o755);
     fs::set_permissions(&fake_lake, permissions).unwrap();
 
-    let isolation =
-        BubblewrapIsolation::new("/usr/bin/unshare", "/usr/bin/bwrap", "/usr/bin/prlimit")
-            .with_limits(LeanIsolationLimits {
-                max_address_space_bytes: 512 * 1024 * 1024,
-                max_cpu_seconds: 10,
-                max_processes: 32,
-                max_file_size_bytes: 1024 * 1024,
-                max_open_files: 64,
-            });
+    let isolation = BubblewrapIsolation::new("/usr/bin/bwrap", "/usr/bin/prlimit").with_limits(
+        LeanIsolationLimits {
+            max_address_space_bytes: 512 * 1024 * 1024,
+            max_cpu_seconds: 10,
+            max_processes: 32,
+            max_file_size_bytes: 1024 * 1024,
+            max_open_files: 64,
+        },
+    );
     let kernel = LeanKernel::new(fake_lake.canonicalize().unwrap()).with_isolation(isolation);
     let result = kernel.verify_untrusted_file(&source).unwrap();
 

@@ -72,9 +72,9 @@ The default `verify_file` path remains resource supervision, not an OS security
 sandbox. Generated or third-party Lean must use `verify_untrusted_file`,
 `verify_untrusted_job` or `verify_untrusted_obligation`. Those entrypoints fail
 closed unless the caller configures `BubblewrapIsolation` with absolute,
-verified `unshare`, Bubblewrap and `prlimit` executables plus the exact
-read-only Lean runtime roots. The Linux backend creates a network namespace
-with no configured interface, then fresh mount, PID, IPC, UTS and cgroup namespaces,
+verified `prlimit` executable, an administrator-owned setuid-root Bubblewrap
+helper and the exact read-only Lean runtime roots. The Linux backend creates
+fresh mount, PID, IPC, UTS, cgroup and network namespaces,
 drops capabilities, exposes only read-only system/runtime/project trees plus a
 private writable `/tmp`, and applies CPU, address-space, PID, file-size and
 descriptor limits with `prlimit`. The independent process-group, wall-clock,
