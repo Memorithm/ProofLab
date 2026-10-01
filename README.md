@@ -68,10 +68,18 @@ exit before output is accepted. The current fail-closed implementation requires
 Unix process and nonblocking-pipe primitives; non-Unix invocation is rejected as
 unsupported rather than making a weaker process-tree or drain guarantee.
 
-This is resource supervision, not an OS security sandbox. Generated or hostile
-Lean projects additionally require the ecosystem's isolated runner contract
-for CPU, RAM, PID, network and filesystem enforcement before they may be
-treated as untrusted execution.
+The default `verify_file` path remains resource supervision, not an OS security
+sandbox. Generated or third-party Lean must use `verify_untrusted_file`,
+`verify_untrusted_job` or `verify_untrusted_obligation`. Those entrypoints fail
+closed unless the caller configures `BubblewrapIsolation` with absolute,
+verified executables and the exact read-only Lean runtime roots. The Linux
+backend creates fresh mount, PID, IPC, UTS, cgroup and network namespaces,
+drops capabilities, exposes only read-only system/runtime/project trees plus a
+private writable `/tmp`, and applies CPU, address-space, PID, file-size and
+descriptor limits with `prlimit`. The independent process-group, wall-clock,
+bounded-output and drain controls remain active outside the namespace. Every
+isolation policy and budget is embedded in the content-addressed invocation
+contract, so a supervised-only job cannot be replayed as an isolated one.
 
 ## SciRust / SOS reuse
 

@@ -21,6 +21,7 @@
 
 mod corpus;
 mod false_conjectures;
+mod isolation;
 mod minimize;
 mod process_guard;
 
@@ -42,6 +43,7 @@ pub use false_conjectures::{
     CONTROLLED_FALSE_CONJECTURES, FalseConjectureEntry, FalseConjectureError,
     FalseConjectureReport, run_controlled_false_conjecture_battery,
 };
+pub use isolation::{BubblewrapIsolation, LeanIsolationLimits};
 pub use minimize::{
     ASSUMPTION_MINIMIZATION_CORPUS, ExpectedRemovalOutcome, MinimizationEntry, MinimizationError,
     MinimizationPrepared, MinimizationRunReport, PreparedRemovalTrial, RemovalCandidate,
@@ -373,6 +375,7 @@ pub fn kernel_outcome_from_process(
 pub struct LeanKernel {
     lake_binary: PathBuf,
     limits: LeanProcessLimits,
+    isolation: Option<BubblewrapIsolation>,
 }
 
 impl Default for LeanKernel {
@@ -380,6 +383,7 @@ impl Default for LeanKernel {
         Self {
             lake_binary: PathBuf::from("lake"),
             limits: LeanProcessLimits::default(),
+            isolation: None,
         }
     }
 }
@@ -390,6 +394,7 @@ impl LeanKernel {
         Self {
             lake_binary: lake_binary.into(),
             limits: LeanProcessLimits::default(),
+            isolation: None,
         }
     }
 
@@ -397,6 +402,13 @@ impl LeanKernel {
     #[must_use]
     pub fn with_limits(mut self, limits: LeanProcessLimits) -> Self {
         self.limits = limits;
+        self
+    }
+
+    /// Configure the mandatory OS boundary used for generated or third-party sources.
+    #[must_use]
+    pub fn with_isolation(mut self, isolation: BubblewrapIsolation) -> Self {
+        self.isolation = Some(isolation);
         self
     }
 
@@ -409,6 +421,25 @@ impl LeanKernel {
     #[must_use]
     pub fn invocation_contract(&self) -> String {
         self.limits.invocation_contract()
+    }
+
+    /// Stable invocation contract for untrusted-source verification.
+    ///
+    /// # Errors
+    ///
+    /// Fails closed when no OS isolation backend has been configured.
+    pub fn isolated_invocation_contract(&self) -> std::io::Result<String> {
+        let isolation = self.isolation.as_ref().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "untrusted Lean verification requires an OS isolation backend",
+            )
+        })?;
+        Ok(format!(
+            "{};{}",
+            self.limits.invocation_contract(),
+            isolation.invocation_contract()
+        ))
     }
 
     /// Verify a Lean file through the pinned Lake environment that owns it.
@@ -432,7 +463,38 @@ impl LeanKernel {
             .arg("env")
             .arg("lean")
             .arg(&source);
-        let output = process_guard::run_command(&mut command, self.limits)?;
+        self.run_command(&mut command)
+    }
+
+    /// Verify generated or third-party Lean only through the configured OS boundary.
+    ///
+    /// The project and runtime trees are mounted read-only, network access is
+    /// denied, and kernel resource limits are applied. This method fails closed
+    /// when no isolation backend is configured; the supervised [`Self::verify_file`]
+    /// path is intentionally not an acceptable fallback.
+    ///
+    /// # Errors
+    ///
+    /// Returns an I/O error for a missing/misconfigured isolation backend, an
+    /// invalid source location, process launch failure or bounded-output failure.
+    pub fn verify_untrusted_file(
+        &self,
+        source: impl AsRef<Path>,
+    ) -> std::io::Result<LeanProcessResult> {
+        let source = source.as_ref().canonicalize()?;
+        let project_root = lake_project_root(&source)?;
+        let isolation = self.isolation.as_ref().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "untrusted Lean verification requires an OS isolation backend",
+            )
+        })?;
+        let mut command = isolation.command(&self.lake_binary, &project_root, &source)?;
+        self.run_command(&mut command)
+    }
+
+    fn run_command(&self, command: &mut Command) -> std::io::Result<LeanProcessResult> {
+        let output = process_guard::run_command(command, self.limits)?;
 
         Ok(LeanProcessResult {
             accepted: output.status.success() && output.termination == ProcessTermination::Exited,
@@ -465,7 +527,23 @@ impl LeanKernel {
         formal_statement: &FormalStatement,
         source: impl AsRef<Path>,
     ) -> Result<VerificationOutcome, VerificationError> {
-        self.verify_job_inner(job, formal_statement, source.as_ref(), None)
+        self.verify_job_inner(job, formal_statement, source.as_ref(), None, false)
+    }
+
+    /// Verify a content-addressed job whose source is generated or third-party.
+    ///
+    /// # Errors
+    ///
+    /// Applies the same integrity checks as [`Self::verify_job`] and additionally
+    /// fails closed unless the job identity and execution use the configured OS
+    /// isolation boundary.
+    pub fn verify_untrusted_job(
+        &self,
+        job: &VerificationJob,
+        formal_statement: &FormalStatement,
+        source: impl AsRef<Path>,
+    ) -> Result<VerificationOutcome, VerificationError> {
+        self.verify_job_inner(job, formal_statement, source.as_ref(), None, true)
     }
 
     /// Like [`Self::verify_job`], but fail closed unless `observed` binds the job's
@@ -483,7 +561,36 @@ impl LeanKernel {
         source: impl AsRef<Path>,
         observed: &EnvironmentLock,
     ) -> Result<VerificationOutcome, VerificationError> {
-        self.verify_job_inner(job, formal_statement, source.as_ref(), Some(observed))
+        self.verify_job_inner(
+            job,
+            formal_statement,
+            source.as_ref(),
+            Some(observed),
+            false,
+        )
+    }
+
+    /// Verify an untrusted job while also binding its environment lock.
+    ///
+    /// # Errors
+    ///
+    /// Combines the fail-closed OS-isolation requirement of
+    /// [`Self::verify_untrusted_job`] with the drift checks of
+    /// [`Self::verify_job_with_lock`].
+    pub fn verify_untrusted_job_with_lock(
+        &self,
+        job: &VerificationJob,
+        formal_statement: &FormalStatement,
+        source: impl AsRef<Path>,
+        observed: &EnvironmentLock,
+    ) -> Result<VerificationOutcome, VerificationError> {
+        self.verify_job_inner(
+            job,
+            formal_statement,
+            source.as_ref(),
+            Some(observed),
+            true,
+        )
     }
 
     /// Verify a PL-2.0 [`ProofObligation`] through Lean into a typed [`KernelResult`].
@@ -504,7 +611,37 @@ impl LeanKernel {
         job: &VerificationJob,
         source: impl AsRef<Path>,
     ) -> Result<EvidenceVerificationOutcome, VerificationError> {
-        self.verify_obligation_inner(obligation, formal_statement, job, source.as_ref(), None)
+        self.verify_obligation_inner(
+            obligation,
+            formal_statement,
+            job,
+            source.as_ref(),
+            None,
+            false,
+        )
+    }
+
+    /// Verify an untrusted proof obligation through the configured OS boundary.
+    ///
+    /// # Errors
+    ///
+    /// Applies the same typed evidence and integrity checks as
+    /// [`Self::verify_obligation`] and fails closed without OS isolation.
+    pub fn verify_untrusted_obligation(
+        &self,
+        obligation: &ProofObligation,
+        formal_statement: &FormalStatement,
+        job: &VerificationJob,
+        source: impl AsRef<Path>,
+    ) -> Result<EvidenceVerificationOutcome, VerificationError> {
+        self.verify_obligation_inner(
+            obligation,
+            formal_statement,
+            job,
+            source.as_ref(),
+            None,
+            true,
+        )
     }
 
     /// Like [`Self::verify_obligation`], but fail closed unless `observed` binds
@@ -529,6 +666,32 @@ impl LeanKernel {
             job,
             source.as_ref(),
             Some(observed),
+            false,
+        )
+    }
+
+    /// Verify an untrusted obligation while also binding its environment lock.
+    ///
+    /// # Errors
+    ///
+    /// Combines the fail-closed OS-isolation requirement of
+    /// [`Self::verify_untrusted_obligation`] with the drift checks of
+    /// [`Self::verify_obligation_with_lock`].
+    pub fn verify_untrusted_obligation_with_lock(
+        &self,
+        obligation: &ProofObligation,
+        formal_statement: &FormalStatement,
+        job: &VerificationJob,
+        source: impl AsRef<Path>,
+        observed: &EnvironmentLock,
+    ) -> Result<EvidenceVerificationOutcome, VerificationError> {
+        self.verify_obligation_inner(
+            obligation,
+            formal_statement,
+            job,
+            source.as_ref(),
+            Some(observed),
+            true,
         )
     }
 
@@ -598,9 +761,10 @@ impl LeanKernel {
         formal_statement: &FormalStatement,
         source: &Path,
         observed: Option<&EnvironmentLock>,
+        untrusted: bool,
     ) -> Result<VerificationOutcome, VerificationError> {
         let (result, source_bytes) =
-            self.run_verified_process(job, formal_statement, source, observed)?;
+            self.run_verified_process(job, formal_statement, source, observed, untrusted)?;
         let proof = if result.accepted {
             let receipt = KernelReceipt::new(
                 job.backend,
@@ -630,6 +794,7 @@ impl LeanKernel {
         job: &VerificationJob,
         source: &Path,
         observed: Option<&EnvironmentLock>,
+        untrusted: bool,
     ) -> Result<EvidenceVerificationOutcome, VerificationError> {
         if !obligation.check_id() {
             return Err(VerificationError::ObligationIntegrity);
@@ -639,7 +804,7 @@ impl LeanKernel {
         }
 
         let (process, source_bytes) =
-            self.run_verified_process(job, formal_statement, source, observed)?;
+            self.run_verified_process(job, formal_statement, source, observed, untrusted)?;
         let kernel_outcome =
             kernel_outcome_from_process(&process, job.backend, job.invocation.clone());
         let kernel_result = KernelResult::new(obligation, formal_statement, kernel_outcome)?;
@@ -667,6 +832,7 @@ impl LeanKernel {
         formal_statement: &FormalStatement,
         source: &Path,
         observed: Option<&EnvironmentLock>,
+        untrusted: bool,
     ) -> Result<(LeanProcessResult, Vec<u8>), VerificationError> {
         if !job.check_id() {
             return Err(VerificationError::VerificationJobIntegrity);
@@ -680,7 +846,12 @@ impl LeanKernel {
         if job.backend != FormalBackend::Lean4 || formal_statement.backend != FormalBackend::Lean4 {
             return Err(VerificationError::BackendMismatch);
         }
-        if job.invocation != self.invocation_contract() {
+        let invocation = if untrusted {
+            self.isolated_invocation_contract()?
+        } else {
+            self.invocation_contract()
+        };
+        if job.invocation != invocation {
             return Err(VerificationError::InvocationMismatch);
         }
 
@@ -703,7 +874,11 @@ impl LeanKernel {
             return Err(VerificationError::SourceDigestMismatch);
         }
 
-        let result = self.verify_file(source)?;
+        let result = if untrusted {
+            self.verify_untrusted_file(source)?
+        } else {
+            self.verify_file(source)?
+        };
         Ok((result, source_bytes))
     }
 }
@@ -777,6 +952,30 @@ mod tests {
             kernel.verify_job(&job, &formal, source),
             Err(VerificationError::InvocationMismatch)
         ));
+    }
+
+    #[test]
+    fn untrusted_source_fails_closed_without_isolation() {
+        let source =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ProofLab/Core/Smoke.lean");
+        let error = LeanKernel::default()
+            .verify_untrusted_file(source)
+            .unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+        assert!(error.to_string().contains("requires an OS isolation backend"));
+    }
+
+    #[test]
+    fn isolated_jobs_have_a_distinct_content_addressed_contract() {
+        let kernel = LeanKernel::new("/usr/bin/false")
+            .with_isolation(BubblewrapIsolation::new(
+                "/usr/bin/bwrap",
+                "/usr/bin/prlimit",
+            ));
+        let isolated = kernel.isolated_invocation_contract().unwrap();
+        assert_ne!(isolated, kernel.invocation_contract());
+        assert!(isolated.contains("isolation=linux-bubblewrap-v1"));
+        assert!(isolated.contains("network=deny_all"));
     }
 
     #[test]
