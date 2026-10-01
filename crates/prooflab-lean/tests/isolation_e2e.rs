@@ -15,10 +15,7 @@ fn untrusted_boundary_enforces_filesystem_network_and_resource_policy() {
         "the ignored isolation gate must only run when explicitly enabled"
     );
 
-    let root = std::env::temp_dir().join(format!(
-        "prooflab-isolation-e2e-{}",
-        std::process::id()
-    ));
+    let root = std::env::temp_dir().join(format!("prooflab-isolation-e2e-{}", std::process::id()));
     let project = root.join("project");
     fs::create_dir_all(&project).unwrap();
     fs::write(project.join("lakefile.lean"), "").unwrap();

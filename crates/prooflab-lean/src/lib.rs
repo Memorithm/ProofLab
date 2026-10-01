@@ -584,13 +584,7 @@ impl LeanKernel {
         source: impl AsRef<Path>,
         observed: &EnvironmentLock,
     ) -> Result<VerificationOutcome, VerificationError> {
-        self.verify_job_inner(
-            job,
-            formal_statement,
-            source.as_ref(),
-            Some(observed),
-            true,
-        )
+        self.verify_job_inner(job, formal_statement, source.as_ref(), Some(observed), true)
     }
 
     /// Verify a PL-2.0 [`ProofObligation`] through Lean into a typed [`KernelResult`].
@@ -962,16 +956,19 @@ mod tests {
             .verify_untrusted_file(source)
             .unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
-        assert!(error.to_string().contains("requires an OS isolation backend"));
+        assert!(
+            error
+                .to_string()
+                .contains("requires an OS isolation backend")
+        );
     }
 
     #[test]
     fn isolated_jobs_have_a_distinct_content_addressed_contract() {
-        let kernel = LeanKernel::new("/usr/bin/false")
-            .with_isolation(BubblewrapIsolation::new(
-                "/usr/bin/bwrap",
-                "/usr/bin/prlimit",
-            ));
+        let kernel = LeanKernel::new("/usr/bin/false").with_isolation(BubblewrapIsolation::new(
+            "/usr/bin/bwrap",
+            "/usr/bin/prlimit",
+        ));
         let isolated = kernel.isolated_invocation_contract().unwrap();
         assert_ne!(isolated, kernel.invocation_contract());
         assert!(isolated.contains("isolation=linux-bubblewrap-v1"));
