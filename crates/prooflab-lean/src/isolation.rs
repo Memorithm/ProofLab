@@ -60,7 +60,7 @@ impl LeanIsolationLimits {
 /// Bubblewrap supplies mount, PID, IPC, UTS, cgroup and network namespaces.
 /// The project and runtime roots are mounted read-only; `/tmp` is the only
 /// writable filesystem. `prlimit` applies CPU, memory, process, file-size and
-/// descriptor limits before Lake starts. The outer ProofLab process guard
+/// descriptor limits before Lake starts. The outer `ProofLab` process guard
 /// retains the independent wall-clock and bounded-output controls.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BubblewrapIsolation {
@@ -265,8 +265,10 @@ mod tests {
 
     #[test]
     fn zero_isolation_limit_fails_closed() {
-        let mut limits = LeanIsolationLimits::default();
-        limits.max_processes = 0;
+        let limits = LeanIsolationLimits {
+            max_processes: 0,
+            ..LeanIsolationLimits::default()
+        };
         assert_eq!(
             limits.validate().unwrap_err().kind(),
             io::ErrorKind::InvalidInput
