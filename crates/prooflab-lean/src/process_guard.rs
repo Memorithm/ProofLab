@@ -105,6 +105,10 @@ pub(crate) fn run_command(
     limits: LeanProcessLimits,
 ) -> io::Result<GuardedOutput> {
     limits.validate()?;
+    let started = Instant::now();
+    let deadline = started.checked_add(limits.timeout).ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidInput, "invalid Lean process deadline")
+    })?;
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
     command.process_group(0);
 
@@ -141,9 +145,8 @@ pub(crate) fn run_command(
         }
     };
 
-    let started = Instant::now();
     let (status, timed_out) = loop {
-        if started.elapsed() >= limits.timeout {
+        if Instant::now() >= deadline {
             terminate_group(process_group)?;
             let status = child.wait()?;
             confirm_group_terminated(process_group, limits.termination_grace)?;
@@ -159,13 +162,14 @@ pub(crate) fn run_command(
             }
         };
         if child_exited {
+            let timed_out = Instant::now() >= deadline;
             terminate_group(process_group)?;
             let status = child.wait()?;
             confirm_group_terminated(process_group, limits.termination_grace)?;
-            break (status, false);
+            break (status, timed_out);
         }
         thread::sleep(
-            Duration::from_millis(10).min(limits.timeout.saturating_sub(started.elapsed())),
+            Duration::from_millis(10).min(deadline.saturating_duration_since(Instant::now())),
         );
     };
 
