@@ -9,6 +9,9 @@ description = "Lean verification boundary for ProofLab"
 [dependencies]
 prooflab-core = { path = "../prooflab-core" }
 
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.31.3", default-features = false, features = ["process", "signal"] }
+
 [dev-dependencies]
 prooflab-store = { path = "../prooflab-store" }
 

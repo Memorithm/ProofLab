@@ -55,6 +55,21 @@ Claim -> (cheap falsify?) -> FormalStatement -> VerificationJob -> Lean -> Kerne
 
 Cheap falsification may terminate at `FALSIFIED` before proof search. Empirical / solver evidence may motivate conjectures but cannot seal proof status. Only Lean acceptance (via `AcceptedKernel` / `ProofArtifact::new_verified`) seals `PROVED`.
 
+### Lean process resource boundary
+
+The Rust-to-Lean boundary supervises each invocation with explicit wall-clock,
+stdout, stderr, process-group termination and post-termination drain budgets.
+Timeout, ordinary rejection, signal termination, launch failure and incomplete
+capture remain distinct fail-closed outcomes. On Unix, descendants in the
+dedicated process group are terminated after both timeout and normal parent
+exit before output is accepted. Non-Unix builds retain child-level termination
+plus bounded capture and make no process-tree claim.
+
+This is resource supervision, not an OS security sandbox. Generated or hostile
+Lean projects additionally require the ecosystem's isolated runner contract
+for CPU, RAM, PID, network and filesystem enforcement before they may be
+treated as untrusted execution.
+
 ## SciRust / SOS reuse
 
 ProofLab selectively reuses ideas and, where appropriate, code from the SciRust/SOS research substrate instead of rebuilding generic scientific infrastructure.
