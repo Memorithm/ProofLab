@@ -5,8 +5,6 @@ use prooflab_core::{Claim, ClaimBody, FormalStatement, ReproMeta, VerificationJo
 use prooflab_lean::LeanKernel;
 use prooflab_store::{MemoryProofStore, ProofStore};
 
-const LEAN_INVOCATION: &str = "lake env lean";
-
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
@@ -36,6 +34,8 @@ fn claim(statement: &str) -> Claim {
 #[ignore = "requires the pinned Lean/mathlib environment"]
 fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
     let root = repo_root();
+    let kernel = LeanKernel::default();
+    let invocation = kernel.invocation_contract();
     let accepted_path = root.join("ProofLab/Core/Smoke.lean");
     let accepted_source = fs::read(&accepted_path).unwrap();
 
@@ -58,19 +58,13 @@ fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
     let accepted_job = VerificationJob::new(
         &accepted_formal,
         &accepted_source,
-        LEAN_INVOCATION,
+        &invocation,
         repro_meta(),
     )
     .unwrap();
-    let rejected_job = VerificationJob::new(
-        &rejected_formal,
-        rejected_source,
-        LEAN_INVOCATION,
-        repro_meta(),
-    )
-    .unwrap();
+    let rejected_job =
+        VerificationJob::new(&rejected_formal, rejected_source, &invocation, repro_meta()).unwrap();
 
-    let kernel = LeanKernel::default();
     let accepted = kernel
         .verify_job(&accepted_job, &accepted_formal, &accepted_path)
         .unwrap();

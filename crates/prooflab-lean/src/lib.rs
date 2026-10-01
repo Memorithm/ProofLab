@@ -22,6 +22,7 @@
 mod corpus;
 mod false_conjectures;
 mod minimize;
+mod process_guard;
 
 use std::collections::BTreeSet;
 use std::fmt;
@@ -29,6 +30,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::Duration;
 
 pub use prooflab_core::VerificationJob;
 
@@ -53,13 +55,74 @@ use prooflab_core::{
     reproduce as core_reproduce, sha256_bytes,
 };
 
-const LEAN_INVOCATION: &str = "lake env lean";
+const LEAN_COMMAND: &str = "lake env lean";
+pub(crate) const DEFAULT_LEAN_INVOCATION: &str = "lake env lean;supervisor=unix-v1;timeout_ns=120000000000;drain_timeout_ns=1000000000;termination_grace_ns=1000000000;max_stdout_bytes=1048576;max_stderr_bytes=1048576";
+
+/// Resource limits for one Lean kernel process.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LeanProcessLimits {
+    pub timeout: Duration,
+    pub drain_timeout: Duration,
+    pub termination_grace: Duration,
+    pub max_stdout_bytes: usize,
+    pub max_stderr_bytes: usize,
+}
+
+impl Default for LeanProcessLimits {
+    fn default() -> Self {
+        Self {
+            timeout: Duration::from_secs(120),
+            drain_timeout: Duration::from_secs(1),
+            termination_grace: Duration::from_secs(1),
+            max_stdout_bytes: 1024 * 1024,
+            max_stderr_bytes: 1024 * 1024,
+        }
+    }
+}
+
+impl LeanProcessLimits {
+    fn validate(self) -> io::Result<()> {
+        if self.timeout.is_zero()
+            || self.drain_timeout.is_zero()
+            || self.termination_grace.is_zero()
+            || self.max_stdout_bytes == 0
+            || self.max_stderr_bytes == 0
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Lean process limits must be non-zero",
+            ));
+        }
+        Ok(())
+    }
+
+    fn invocation_contract(self) -> String {
+        format!(
+            "{LEAN_COMMAND};supervisor=unix-v1;timeout_ns={};drain_timeout_ns={};termination_grace_ns={};max_stdout_bytes={};max_stderr_bytes={}",
+            self.timeout.as_nanos(),
+            self.drain_timeout.as_nanos(),
+            self.termination_grace.as_nanos(),
+            self.max_stdout_bytes,
+            self.max_stderr_bytes,
+        )
+    }
+}
+
+/// Why the supervised Lean entrypoint stopped.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProcessTermination {
+    Exited,
+    TimedOut { elapsed_ms: u64 },
+    Signaled { signal: Option<i32> },
+}
 
 /// Raw normalized result returned by the Lean process boundary.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LeanProcessResult {
     pub accepted: bool,
     pub exit_code: Option<i32>,
+    pub termination: ProcessTermination,
+    pub limits: LeanProcessLimits,
     pub stdout: String,
     pub stderr: String,
     pub stdout_digest: [u8; 32],
@@ -247,11 +310,10 @@ impl From<VerificationError> for LeanReproduceError {
 /// Classify a raw Lean process result into a typed PL-2.0 [`KernelOutcome`].
 ///
 /// Mapping (fail-closed, non-upgradable):
-/// - process success with exit code `0` → [`KernelOutcome::Accepted`]
-/// - process failure with an exit code → [`KernelOutcome::Rejected`]
-/// - process failure with no exit code (e.g. signal) → [`KernelOutcome::Timeout`]
-///   with `elapsed_ms = 0` (wall-clock budgets are not yet enforced here)
-/// - any other combination → [`KernelOutcome::Unknown`]
+/// - ordinary process success with exit code `0` → [`KernelOutcome::Accepted`]
+/// - ordinary process failure with an exit code → [`KernelOutcome::Rejected`]
+/// - an elapsed wall-clock budget → [`KernelOutcome::Timeout`] with measured time
+/// - a signal or inconsistent process record → [`KernelOutcome::Unknown`]
 #[must_use]
 pub fn kernel_outcome_from_process(
     process: &LeanProcessResult,
@@ -259,7 +321,10 @@ pub fn kernel_outcome_from_process(
     invocation: impl Into<String>,
 ) -> KernelOutcome {
     let invocation = invocation.into();
-    if process.accepted && process.exit_code == Some(0) {
+    if process.termination == ProcessTermination::Exited
+        && process.accepted
+        && process.exit_code == Some(0)
+    {
         KernelOutcome::Accepted {
             receipt: KernelReceipt::new(
                 backend,
@@ -269,6 +334,12 @@ pub fn kernel_outcome_from_process(
                 process.stdout_digest,
                 process.stderr_digest,
             ),
+        }
+    } else if let ProcessTermination::TimedOut { elapsed_ms } = process.termination {
+        KernelOutcome::Timeout { elapsed_ms }
+    } else if let ProcessTermination::Signaled { signal } = process.termination {
+        KernelOutcome::Unknown {
+            reason: format!("Lean process terminated by signal {signal:?}"),
         }
     } else if !process.accepted {
         if let Some(code) = process.exit_code {
@@ -283,7 +354,9 @@ pub fn kernel_outcome_from_process(
                 ),
             }
         } else {
-            KernelOutcome::Timeout { elapsed_ms: 0 }
+            KernelOutcome::Unknown {
+                reason: "Lean process exited without an exit code or signal record".into(),
+            }
         }
     } else {
         KernelOutcome::Unknown {
@@ -299,12 +372,14 @@ pub fn kernel_outcome_from_process(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LeanKernel {
     lake_binary: PathBuf,
+    limits: LeanProcessLimits,
 }
 
 impl Default for LeanKernel {
     fn default() -> Self {
         Self {
             lake_binary: PathBuf::from("lake"),
+            limits: LeanProcessLimits::default(),
         }
     }
 }
@@ -314,7 +389,26 @@ impl LeanKernel {
     pub fn new(lake_binary: impl Into<PathBuf>) -> Self {
         Self {
             lake_binary: lake_binary.into(),
+            limits: LeanProcessLimits::default(),
         }
+    }
+
+    /// Override the bounded process and output budgets for subsequent invocations.
+    #[must_use]
+    pub fn with_limits(mut self, limits: LeanProcessLimits) -> Self {
+        self.limits = limits;
+        self
+    }
+
+    #[must_use]
+    pub const fn limits(&self) -> LeanProcessLimits {
+        self.limits
+    }
+
+    /// Stable invocation contract bound into verification jobs and receipts.
+    #[must_use]
+    pub fn invocation_contract(&self) -> String {
+        self.limits.invocation_contract()
     }
 
     /// Verify a Lean file through the pinned Lake environment that owns it.
@@ -332,16 +426,19 @@ impl LeanKernel {
     pub fn verify_file(&self, source: impl AsRef<Path>) -> std::io::Result<LeanProcessResult> {
         let source = source.as_ref().canonicalize()?;
         let project_root = lake_project_root(&source)?;
-        let output = Command::new(&self.lake_binary)
+        let mut command = Command::new(&self.lake_binary);
+        command
             .current_dir(project_root)
             .arg("env")
             .arg("lean")
-            .arg(&source)
-            .output()?;
+            .arg(&source);
+        let output = process_guard::run_command(&mut command, self.limits)?;
 
         Ok(LeanProcessResult {
-            accepted: output.status.success(),
+            accepted: output.status.success() && output.termination == ProcessTermination::Exited,
             exit_code: output.status.code(),
+            termination: output.termination,
+            limits: self.limits,
             stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
             stdout_digest: sha256_bytes(&output.stdout),
@@ -474,7 +571,7 @@ impl LeanKernel {
             formal_statement,
             &source_bytes,
             artifact.body.dependencies.clone(),
-            LEAN_INVOCATION,
+            self.invocation_contract(),
             artifact.body.repro.clone(),
         )
         .map_err(|error| VerificationError::JobConstruction(error.to_string()))?;
@@ -583,7 +680,7 @@ impl LeanKernel {
         if job.backend != FormalBackend::Lean4 || formal_statement.backend != FormalBackend::Lean4 {
             return Err(VerificationError::BackendMismatch);
         }
-        if job.invocation != LEAN_INVOCATION {
+        if job.invocation != self.invocation_contract() {
             return Err(VerificationError::InvocationMismatch);
         }
 
@@ -647,6 +744,39 @@ mod tests {
     #[test]
     fn default_boundary_uses_lake() {
         assert_eq!(LeanKernel::default().lake_binary, PathBuf::from("lake"));
+        assert_eq!(
+            LeanKernel::default().invocation_contract(),
+            DEFAULT_LEAN_INVOCATION
+        );
+    }
+
+    #[test]
+    fn supervisor_limits_are_part_of_the_job_identity() {
+        let source =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ProofLab/Core/Smoke.lean");
+        let source_bytes = fs::read(&source).unwrap();
+        let claim = Claim::new(ClaimBody {
+            statement: "forall n : Nat, n = n".into(),
+            assumptions: vec![],
+            parents: vec![],
+        });
+        let formal = FormalStatement::lean4(claim.id, &source_bytes, vec!["Mathlib".into()]);
+        let job = VerificationJob::new(
+            &formal,
+            &source_bytes,
+            LeanKernel::default().invocation_contract(),
+            repro(),
+        )
+        .unwrap();
+        let kernel = LeanKernel::new("this-command-must-not-run").with_limits(LeanProcessLimits {
+            timeout: Duration::from_secs(1),
+            ..LeanProcessLimits::default()
+        });
+        assert_ne!(job.invocation, kernel.invocation_contract());
+        assert!(matches!(
+            kernel.verify_job(&job, &formal, source),
+            Err(VerificationError::InvocationMismatch)
+        ));
     }
 
     #[test]
@@ -668,8 +798,13 @@ mod tests {
             parents: vec![],
         });
         let formal = FormalStatement::lean4(claim.id, b"different source", vec![]);
-        let job =
-            VerificationJob::new(&formal, b"different source", LEAN_INVOCATION, repro()).unwrap();
+        let job = VerificationJob::new(
+            &formal,
+            b"different source",
+            DEFAULT_LEAN_INVOCATION,
+            repro(),
+        )
+        .unwrap();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
             kernel.verify_job(&job, &formal, source),
@@ -689,7 +824,7 @@ mod tests {
         });
         let formal = FormalStatement::lean4(claim.id, &source_bytes, vec!["Mathlib".into()]);
         let mut job =
-            VerificationJob::new(&formal, &source_bytes, LEAN_INVOCATION, repro()).unwrap();
+            VerificationJob::new(&formal, &source_bytes, DEFAULT_LEAN_INVOCATION, repro()).unwrap();
         job.invocation = "lean directly".into();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
@@ -709,7 +844,8 @@ mod tests {
             parents: vec![],
         });
         let formal = FormalStatement::lean4(claim.id, &source_bytes, vec!["Mathlib".into()]);
-        let job = VerificationJob::new(&formal, &source_bytes, LEAN_INVOCATION, repro()).unwrap();
+        let job =
+            VerificationJob::new(&formal, &source_bytes, DEFAULT_LEAN_INVOCATION, repro()).unwrap();
         let observed = EnvironmentLock::new(
             "v4.33.1",
             "0df444a360eaa60ab8c11dca51a86af692955474",
@@ -727,12 +863,15 @@ mod tests {
     fn process(
         accepted: bool,
         exit_code: Option<i32>,
+        termination: ProcessTermination,
         stdout: &str,
         stderr: &str,
     ) -> LeanProcessResult {
         LeanProcessResult {
             accepted,
             exit_code,
+            termination,
+            limits: LeanProcessLimits::default(),
             stdout: stdout.into(),
             stderr: stderr.into(),
             stdout_digest: sha256_bytes(stdout.as_bytes()),
@@ -783,33 +922,39 @@ mod tests {
     #[test]
     fn process_classification_emits_distinct_kernel_outcomes() {
         let accepted = kernel_outcome_from_process(
-            &process(true, Some(0), "ok", ""),
+            &process(true, Some(0), ProcessTermination::Exited, "ok", ""),
             FormalBackend::Lean4,
-            LEAN_INVOCATION,
+            DEFAULT_LEAN_INVOCATION,
         );
         assert!(matches!(accepted, KernelOutcome::Accepted { .. }));
         assert!(accepted.is_accepting());
 
         let rejected = kernel_outcome_from_process(
-            &process(false, Some(1), "", "error"),
+            &process(false, Some(1), ProcessTermination::Exited, "", "error"),
             FormalBackend::Lean4,
-            LEAN_INVOCATION,
+            DEFAULT_LEAN_INVOCATION,
         );
         assert!(matches!(rejected, KernelOutcome::Rejected { .. }));
         assert!(!rejected.is_accepting());
 
         let timeout = kernel_outcome_from_process(
-            &process(false, None, "", "killed"),
+            &process(
+                false,
+                None,
+                ProcessTermination::TimedOut { elapsed_ms: 37 },
+                "",
+                "killed",
+            ),
             FormalBackend::Lean4,
-            LEAN_INVOCATION,
+            DEFAULT_LEAN_INVOCATION,
         );
-        assert!(matches!(timeout, KernelOutcome::Timeout { elapsed_ms: 0 }));
+        assert!(matches!(timeout, KernelOutcome::Timeout { elapsed_ms: 37 }));
         assert!(!timeout.is_accepting());
 
         let unknown = kernel_outcome_from_process(
-            &process(true, Some(2), "weird", ""),
+            &process(true, Some(2), ProcessTermination::Exited, "weird", ""),
             FormalBackend::Lean4,
-            LEAN_INVOCATION,
+            DEFAULT_LEAN_INVOCATION,
         );
         assert!(matches!(unknown, KernelOutcome::Unknown { .. }));
         assert!(!unknown.is_accepting());
@@ -820,9 +965,9 @@ mod tests {
         let (formal, obligation) = obligation_pipeline(b"theorem t : True := trivial\n");
         for outcome in [
             kernel_outcome_from_process(
-                &process(false, Some(1), "", "err"),
+                &process(false, Some(1), ProcessTermination::Exited, "", "err"),
                 FormalBackend::Lean4,
-                LEAN_INVOCATION,
+                DEFAULT_LEAN_INVOCATION,
             ),
             KernelOutcome::Unknown {
                 reason: "garbled".into(),
@@ -839,9 +984,9 @@ mod tests {
         let source = b"theorem t : True := trivial\n";
         let (formal, obligation) = obligation_pipeline(source);
         let outcome = kernel_outcome_from_process(
-            &process(true, Some(0), "ok", ""),
+            &process(true, Some(0), ProcessTermination::Exited, "ok", ""),
             FormalBackend::Lean4,
-            LEAN_INVOCATION,
+            DEFAULT_LEAN_INVOCATION,
         );
         let result = KernelResult::new(&obligation, &formal, outcome).unwrap();
         let accepted = result.into_accepted().expect("accepted");
@@ -866,7 +1011,8 @@ mod tests {
         });
         let other_formal =
             FormalStatement::lean4(other_claim.id, &source_bytes, vec!["Mathlib".into()]);
-        let job = VerificationJob::new(&formal, &source_bytes, LEAN_INVOCATION, repro()).unwrap();
+        let job =
+            VerificationJob::new(&formal, &source_bytes, DEFAULT_LEAN_INVOCATION, repro()).unwrap();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
             kernel.verify_obligation(&obligation, &other_formal, &job, &source),
@@ -886,12 +1032,142 @@ mod tests {
         let source =
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ProofLab/Core/Smoke.lean");
         let (formal, obligation) = obligation_pipeline(b"different source");
-        let job =
-            VerificationJob::new(&formal, b"different source", LEAN_INVOCATION, repro()).unwrap();
+        let job = VerificationJob::new(
+            &formal,
+            b"different source",
+            DEFAULT_LEAN_INVOCATION,
+            repro(),
+        )
+        .unwrap();
         let kernel = LeanKernel::new("this-command-must-not-run");
         assert!(matches!(
             kernel.verify_obligation(&obligation, &formal, &job, source),
             Err(VerificationError::SourceDigestMismatch)
         ));
+    }
+
+    #[cfg(unix)]
+    mod process_supervision {
+        use std::os::unix::fs::PermissionsExt;
+        use std::sync::atomic::{AtomicU64, Ordering};
+        use std::time::{Duration, Instant};
+
+        use super::*;
+
+        static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
+
+        struct FakeLake {
+            root: PathBuf,
+            binary: PathBuf,
+            source: PathBuf,
+        }
+
+        impl FakeLake {
+            fn new(body: &str) -> Self {
+                let unique = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+                let root = std::env::temp_dir()
+                    .join(format!("prooflab-process-{}-{unique}", std::process::id()));
+                fs::create_dir_all(&root).unwrap();
+                fs::write(root.join("lakefile.lean"), "").unwrap();
+                let source = root.join("Input.lean");
+                fs::write(&source, "theorem input : True := trivial\n").unwrap();
+                let binary = root.join("fake-lake");
+                fs::write(&binary, format!("#!/bin/sh\n{body}\n")).unwrap();
+                let mut permissions = fs::metadata(&binary).unwrap().permissions();
+                permissions.set_mode(0o755);
+                fs::set_permissions(&binary, permissions).unwrap();
+                Self {
+                    root,
+                    binary,
+                    source,
+                }
+            }
+
+            fn kernel(&self) -> LeanKernel {
+                self.kernel_with_timeout(Duration::from_millis(150))
+            }
+
+            fn kernel_with_timeout(&self, timeout: Duration) -> LeanKernel {
+                LeanKernel::new(&self.binary).with_limits(LeanProcessLimits {
+                    timeout,
+                    drain_timeout: Duration::from_millis(250),
+                    termination_grace: Duration::from_millis(250),
+                    max_stdout_bytes: 128,
+                    max_stderr_bytes: 128,
+                })
+            }
+        }
+
+        impl Drop for FakeLake {
+            fn drop(&mut self) {
+                let _ = fs::remove_dir_all(&self.root);
+            }
+        }
+
+        #[test]
+        fn timeout_terminates_group_and_reports_measured_timeout() {
+            let fixture = FakeLake::new("sleep 30 &\nwait");
+            let started = Instant::now();
+            let result = fixture.kernel().verify_file(&fixture.source).unwrap();
+            assert!(started.elapsed() < Duration::from_secs(2));
+            assert!(!result.accepted);
+            assert!(matches!(
+                result.termination,
+                ProcessTermination::TimedOut { elapsed_ms } if elapsed_ms >= 100
+            ));
+            assert_eq!(result.limits, fixture.kernel().limits());
+            assert!(matches!(
+                kernel_outcome_from_process(&result, FormalBackend::Lean4, DEFAULT_LEAN_INVOCATION,),
+                KernelOutcome::Timeout { elapsed_ms } if elapsed_ms >= 100
+            ));
+        }
+
+        #[test]
+        fn zero_exit_after_deadline_is_not_accepted() {
+            let fixture = FakeLake::new("sleep 0.05\nexit 0");
+            let result = fixture
+                .kernel_with_timeout(Duration::from_millis(20))
+                .verify_file(&fixture.source)
+                .unwrap();
+            assert!(!result.accepted);
+            assert!(matches!(
+                result.termination,
+                ProcessTermination::TimedOut { .. }
+            ));
+        }
+
+        #[test]
+        fn parent_exit_cleans_descendant_that_retains_pipes() {
+            let fixture = FakeLake::new("sleep 30 &\nexit 0");
+            let started = Instant::now();
+            let result = fixture.kernel().verify_file(&fixture.source).unwrap();
+            assert!(started.elapsed() < Duration::from_secs(2));
+            assert!(result.accepted);
+            assert_eq!(result.termination, ProcessTermination::Exited);
+        }
+
+        #[test]
+        fn signal_is_unknown_and_never_mislabeled_as_timeout() {
+            let fixture = FakeLake::new("kill -TERM $$");
+            let result = fixture.kernel().verify_file(&fixture.source).unwrap();
+            assert!(!result.accepted);
+            assert!(matches!(
+                result.termination,
+                ProcessTermination::Signaled { signal: Some(15) }
+            ));
+            assert!(matches!(
+                kernel_outcome_from_process(&result, FormalBackend::Lean4, DEFAULT_LEAN_INVOCATION,),
+                KernelOutcome::Unknown { .. }
+            ));
+        }
+
+        #[test]
+        fn output_over_limit_fails_closed_without_unbounded_retention() {
+            let fixture = FakeLake::new(
+                "printf 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'",
+            );
+            let error = fixture.kernel().verify_file(&fixture.source).unwrap_err();
+            assert!(error.to_string().contains("output limit"));
+        }
     }
 }

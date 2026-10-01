@@ -23,7 +23,7 @@ use prooflab_core::{
 
 use crate::{LeanKernel, VerificationError, VerificationOutcome};
 
-const LEAN_INVOCATION: &str = "lake env lean";
+use crate::DEFAULT_LEAN_INVOCATION;
 
 /// Expected control outcome for one curated removal trial.
 ///
@@ -309,7 +309,31 @@ impl MinimizationEntry {
         repo_root: impl AsRef<Path>,
         repro: &ReproMeta,
     ) -> Result<MinimizationPrepared, MinimizationError> {
+        self.prepare_with_invocation(repo_root, repro, DEFAULT_LEAN_INVOCATION)
+    }
+
+    /// Prepare this entry for the exact supervisor contract owned by `kernel`.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same preparation errors as [`Self::prepare`].
+    pub fn prepare_for_kernel(
+        &self,
+        kernel: &LeanKernel,
+        repo_root: impl AsRef<Path>,
+        repro: &ReproMeta,
+    ) -> Result<MinimizationPrepared, MinimizationError> {
+        self.prepare_with_invocation(repo_root, repro, kernel.invocation_contract())
+    }
+
+    fn prepare_with_invocation(
+        &self,
+        repo_root: impl AsRef<Path>,
+        repro: &ReproMeta,
+        invocation: impl Into<String>,
+    ) -> Result<MinimizationPrepared, MinimizationError> {
         let repo_root = repo_root.as_ref();
+        let invocation = invocation.into();
         let full_source_path = self.source_path(repo_root, self.relative_path_full);
         if !full_source_path.is_file() {
             return Err(MinimizationError::MissingSource(full_source_path));
@@ -326,7 +350,7 @@ impl MinimizationEntry {
         let full_job = VerificationJob::new(
             &full_formal_statement,
             &full_source_bytes,
-            LEAN_INVOCATION,
+            &invocation,
             repro.clone(),
         )
         .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
@@ -363,13 +387,9 @@ impl MinimizationEntry {
                 parents: vec![full_claim.id],
             });
             let formal_statement = FormalStatement::lean4(claim.id, &source_bytes, imports.clone());
-            let job = VerificationJob::new(
-                &formal_statement,
-                &source_bytes,
-                LEAN_INVOCATION,
-                repro.clone(),
-            )
-            .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
+            let job =
+                VerificationJob::new(&formal_statement, &source_bytes, &invocation, repro.clone())
+                    .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
             trials.push(PreparedRemovalTrial {
                 remove_index: trial.remove_index,
                 removed_assumption: trial.removed_assumption,
@@ -497,7 +517,11 @@ pub fn verify_assumption_minimization(
     repro: &ReproMeta,
     observed: Option<&EnvironmentLock>,
 ) -> Result<Vec<MinimizationRunReport>, MinimizationError> {
-    prepare_minimization_corpus(repo_root, repro)?
+    let repo_root = repo_root.as_ref();
+    ASSUMPTION_MINIMIZATION_CORPUS
+        .iter()
+        .map(|entry| entry.prepare_for_kernel(kernel, repo_root, repro))
+        .collect::<Result<Vec<_>, _>>()?
         .into_iter()
         .map(|prepared| {
             let (_outcomes, report) = prepared.verify(kernel, observed)?;
@@ -653,5 +677,24 @@ mod tests {
         let weakened = &prepared.trials[0].claim;
         assert_ne!(full.id, weakened.id);
         assert_eq!(weakened.body.assumptions, vec!["n : Nat".to_owned()]);
+    }
+
+    #[test]
+    fn kernel_specific_preparation_binds_custom_limits() {
+        let kernel = LeanKernel::default().with_limits(crate::LeanProcessLimits {
+            timeout: std::time::Duration::from_secs(1),
+            ..crate::LeanProcessLimits::default()
+        });
+        let prepared = ASSUMPTION_MINIMIZATION_CORPUS[0]
+            .prepare_for_kernel(&kernel, repo_root(), &repro())
+            .expect("prepare");
+        let invocation = kernel.invocation_contract();
+        assert_eq!(prepared.full_job.invocation, invocation);
+        assert!(
+            prepared
+                .trials
+                .iter()
+                .all(|trial| trial.job.invocation == invocation)
+        );
     }
 }
