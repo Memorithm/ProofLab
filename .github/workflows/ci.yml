@@ -24,6 +24,16 @@ jobs:
         run: cargo +1.98.1 clippy --workspace --all-targets -- -D warnings
       - name: Tests
         run: cargo +1.98.1 test --workspace
+      - name: Install Linux isolation backend
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes bubblewrap
+          bwrap --version
+          prlimit --version
+      - name: Qualify untrusted Lean OS isolation
+        env:
+          PROOFLAB_RUN_ISOLATION_E2E: "1"
+        run: cargo +1.98.1 test -p prooflab-lean --test isolation_e2e -- --ignored --nocapture
 
   lean:
     name: Lean
