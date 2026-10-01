@@ -160,11 +160,7 @@ impl BubblewrapIsolation {
     }
 }
 
-fn configure_namespace(
-    command: &mut Command,
-    project_root: &Path,
-    roots: BTreeSet<PathBuf>,
-) {
+fn configure_namespace(command: &mut Command, project_root: &Path, roots: BTreeSet<PathBuf>) {
     command
         .arg("--die-with-parent")
         .arg("--new-session")
