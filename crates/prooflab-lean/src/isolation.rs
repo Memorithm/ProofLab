@@ -1,7 +1,16 @@
 use std::collections::BTreeSet;
+#[cfg(target_os = "linux")]
+use std::fs::File;
 use std::io;
+#[cfg(target_os = "linux")]
+use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+
+#[cfg(target_os = "linux")]
+use nix::fcntl::{FcntlArg, SealFlag, fcntl};
+#[cfg(target_os = "linux")]
+use nix::sys::memfd::{MFdFlags, memfd_create};
 
 const BACKEND_VERSION: &str = "linux-setuid-bubblewrap-v1";
 
@@ -100,11 +109,32 @@ impl BubblewrapIsolation {
         self.limits
     }
 
-    pub(crate) fn invocation_contract(&self) -> String {
-        format!(
+    pub(crate) fn invocation_contract(&self, lake_binary: &Path) -> io::Result<String> {
+        let bubblewrap = canonical_executable(&self.bubblewrap_binary, "bubblewrap")?;
+        let prlimit = canonical_executable(&self.prlimit_binary, "prlimit")?;
+        let lake = canonical_executable(lake_binary, "lake")?;
+        let mut roots = BTreeSet::new();
+        for root in &self.runtime_roots {
+            let root = canonical_directory(root, "Lean runtime root")?;
+            if root == Path::new("/") {
+                return Err(io::Error::new(
+                    io::ErrorKind::PermissionDenied,
+                    "the filesystem root cannot be exposed as a Lean runtime root",
+                ));
+            }
+            roots.insert(root);
+        }
+        let mut contract = format!(
             "isolation={BACKEND_VERSION};network=deny_all;filesystem=project_ro_runtime_ro_tmpfs;{}",
             self.limits.contract()
-        )
+        );
+        push_path_contract(&mut contract, "bubblewrap", &bubblewrap);
+        push_path_contract(&mut contract, "prlimit", &prlimit);
+        push_path_contract(&mut contract, "lake", &lake);
+        for root in roots {
+            push_path_contract(&mut contract, "runtime_root", &root);
+        }
+        Ok(contract)
     }
 
     pub(crate) fn command(
@@ -112,6 +142,7 @@ impl BubblewrapIsolation {
         lake_binary: &Path,
         project_root: &Path,
         source: &Path,
+        source_bytes: &[u8],
     ) -> io::Result<Command> {
         self.limits.validate()?;
         let bubblewrap_binary = canonical_executable(&self.bubblewrap_binary, "bubblewrap")?;
@@ -149,11 +180,11 @@ impl BubblewrapIsolation {
         }
         let mut command = Command::new(&bubblewrap_binary);
         configure_namespace(&mut command, &project_root, roots);
+        attach_sealed_source(&mut command, source_bytes)?;
         configure_limits_and_lean(
             &mut command,
             &prlimit_binary,
             &lake_binary,
-            &source,
             self.limits,
         );
         Ok(command)
@@ -165,6 +196,7 @@ fn configure_namespace(command: &mut Command, project_root: &Path, roots: BTreeS
         .arg("--die-with-parent")
         .arg("--new-session")
         .arg("--unshare-all")
+        .arg("--unshare-user")
         .arg("--disable-userns")
         .arg("--cap-drop")
         .arg("ALL")
@@ -204,7 +236,6 @@ fn configure_limits_and_lean(
     command: &mut Command,
     prlimit_binary: &Path,
     lake_binary: &Path,
-    source: &Path,
     limits: LeanIsolationLimits,
 ) {
     command
@@ -234,7 +265,46 @@ fn configure_limits_and_lean(
         .arg(lake_binary)
         .arg("env")
         .arg("lean")
-        .arg(source);
+        .arg("/tmp/prooflab-source.lean");
+}
+
+fn push_path_contract(contract: &mut String, label: &str, path: &Path) {
+    let value = path.as_os_str().as_encoded_bytes();
+    contract.push(';');
+    contract.push_str(label);
+    contract.push('=');
+    contract.push_str(&value.len().to_string());
+    contract.push(':');
+    contract.push_str(&String::from_utf8_lossy(value));
+}
+
+#[cfg(target_os = "linux")]
+fn attach_sealed_source(command: &mut Command, source_bytes: &[u8]) -> io::Result<()> {
+    let descriptor = memfd_create("prooflab-lean-source", MFdFlags::MFD_ALLOW_SEALING)
+        .map_err(io::Error::other)?;
+    let mut source = File::from(descriptor);
+    source.write_all(source_bytes)?;
+    source.flush()?;
+    source.rewind()?;
+    let seals = SealFlag::F_SEAL_SEAL
+        | SealFlag::F_SEAL_SHRINK
+        | SealFlag::F_SEAL_GROW
+        | SealFlag::F_SEAL_WRITE;
+    fcntl(&source, FcntlArg::F_ADD_SEALS(seals)).map_err(io::Error::other)?;
+    command
+        .arg("--file")
+        .arg("0")
+        .arg("/tmp/prooflab-source.lean")
+        .stdin(Stdio::from(source));
+    Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn attach_sealed_source(_command: &mut Command, _source_bytes: &[u8]) -> io::Result<()> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "sealed untrusted Lean source staging requires Linux memfd",
+    ))
 }
 
 fn canonical_executable(path: &Path, label: &str) -> io::Result<PathBuf> {
@@ -293,7 +363,7 @@ mod tests {
 
     #[test]
     fn isolation_limits_are_bound_into_the_contract() {
-        let isolation = BubblewrapIsolation::new("/usr/bin/bwrap", "/usr/bin/prlimit").with_limits(
+        let isolation = BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false").with_limits(
             LeanIsolationLimits {
                 max_address_space_bytes: 10,
                 max_cpu_seconds: 11,
@@ -302,11 +372,37 @@ mod tests {
                 max_open_files: 14,
             },
         );
-        let contract = isolation.invocation_contract();
+        let contract = isolation
+            .invocation_contract(Path::new("/usr/bin/false"))
+            .unwrap();
         assert!(contract.contains("isolation=linux-setuid-bubblewrap-v1"));
         assert!(contract.contains("network=deny_all"));
         assert!(contract.contains("max_as_bytes=10"));
         assert!(contract.contains("max_open_files=14"));
+    }
+
+    #[test]
+    fn runtime_roots_are_bound_into_the_contract() {
+        let base = BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false");
+        let usr = base.clone().with_runtime_root("/usr");
+        let tmp = base.with_runtime_root("/tmp");
+        assert_ne!(
+            usr.invocation_contract(Path::new("/usr/bin/false")).unwrap(),
+            tmp.invocation_contract(Path::new("/usr/bin/false")).unwrap()
+        );
+    }
+
+    #[test]
+    fn filesystem_root_is_rejected_as_a_runtime_root() {
+        let isolation = BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false")
+            .with_runtime_root("/");
+        assert_eq!(
+            isolation
+                .invocation_contract(Path::new("/usr/bin/false"))
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::PermissionDenied
+        );
     }
 
     #[test]
