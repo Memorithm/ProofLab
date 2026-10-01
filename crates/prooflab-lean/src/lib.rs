@@ -1018,8 +1018,12 @@ mod tests {
             }
 
             fn kernel(&self) -> LeanKernel {
+                self.kernel_with_timeout(Duration::from_millis(150))
+            }
+
+            fn kernel_with_timeout(&self, timeout: Duration) -> LeanKernel {
                 LeanKernel::new(&self.binary).with_limits(LeanProcessLimits {
-                    timeout: Duration::from_millis(150),
+                    timeout,
                     drain_timeout: Duration::from_millis(250),
                     termination_grace: Duration::from_millis(250),
                     max_stdout_bytes: 128,
@@ -1048,6 +1052,20 @@ mod tests {
             assert!(matches!(
                 kernel_outcome_from_process(&result, FormalBackend::Lean4, LEAN_INVOCATION),
                 KernelOutcome::Timeout { elapsed_ms } if elapsed_ms >= 100
+            ));
+        }
+
+        #[test]
+        fn zero_exit_after_deadline_is_not_accepted() {
+            let fixture = FakeLake::new("sleep 0.05\nexit 0");
+            let result = fixture
+                .kernel_with_timeout(Duration::from_millis(20))
+                .verify_file(&fixture.source)
+                .unwrap();
+            assert!(!result.accepted);
+            assert!(matches!(
+                result.termination,
+                ProcessTermination::TimedOut { .. }
             ));
         }
 

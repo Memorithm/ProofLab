@@ -62,8 +62,9 @@ stdout, stderr, process-group termination and post-termination drain budgets.
 Timeout, ordinary rejection, signal termination, launch failure and incomplete
 capture remain distinct fail-closed outcomes. On Unix, descendants in the
 dedicated process group are terminated after both timeout and normal parent
-exit before output is accepted. Non-Unix builds retain child-level termination
-plus bounded capture and make no process-tree claim.
+exit before output is accepted. The current fail-closed implementation requires
+Unix process and nonblocking-pipe primitives; non-Unix invocation is rejected as
+unsupported rather than making a weaker process-tree or drain guarantee.
 
 This is resource supervision, not an OS security sandbox. Generated or hostile
 Lean projects additionally require the ecosystem's isolated runner contract
