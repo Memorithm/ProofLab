@@ -154,78 +154,104 @@ impl BubblewrapIsolation {
             ));
         }
         let mut command = Command::new(unshare_binary);
-        command
-            .arg("--user")
-            .arg("--map-root-user")
-            .arg("--net")
-            .arg("--")
-            .arg(bubblewrap_binary)
-            .arg("--die-with-parent")
-            .arg("--new-session")
-            .arg("--unshare-all")
-            .arg("--share-net")
-            .arg("--disable-userns")
-            .arg("--cap-drop")
-            .arg("ALL")
-            .arg("--proc")
-            .arg("/proc")
-            .arg("--dev")
-            .arg("/dev")
-            .arg("--tmpfs")
-            .arg("/tmp")
-            .arg("--ro-bind")
-            .arg("/usr")
-            .arg("/usr");
-        for system_root in ["/bin", "/lib", "/lib64", "/sbin"] {
-            if Path::new(system_root).exists() {
-                command.arg("--ro-bind").arg(system_root).arg(system_root);
-            }
-        }
-        for root in roots {
-            command.arg("--ro-bind").arg(&root).arg(&root);
-        }
-        command
-            .arg("--chdir")
-            .arg(&project_root)
-            .arg("--clearenv")
-            .arg("--setenv")
-            .arg("PATH")
-            .arg("/usr/bin:/bin")
-            .arg("--setenv")
-            .arg("HOME")
-            .arg("/tmp")
-            .arg("--setenv")
-            .arg("TMPDIR")
-            .arg("/tmp")
-            .arg("--")
-            .arg(prlimit_binary)
-            .arg(format!(
-                "--as={}:{}",
-                self.limits.max_address_space_bytes, self.limits.max_address_space_bytes
-            ))
-            .arg(format!(
-                "--cpu={}:{}",
-                self.limits.max_cpu_seconds, self.limits.max_cpu_seconds
-            ))
-            .arg(format!(
-                "--nproc={}:{}",
-                self.limits.max_processes, self.limits.max_processes
-            ))
-            .arg(format!(
-                "--fsize={}:{}",
-                self.limits.max_file_size_bytes, self.limits.max_file_size_bytes
-            ))
-            .arg(format!(
-                "--nofile={}:{}",
-                self.limits.max_open_files, self.limits.max_open_files
-            ))
-            .arg("--")
-            .arg(lake_binary)
-            .arg("env")
-            .arg("lean")
-            .arg(source);
+        configure_namespace(&mut command, &bubblewrap_binary, &project_root, roots);
+        configure_limits_and_lean(
+            &mut command,
+            &prlimit_binary,
+            &lake_binary,
+            &source,
+            self.limits,
+        );
         Ok(command)
     }
+}
+
+fn configure_namespace(
+    command: &mut Command,
+    bubblewrap_binary: &Path,
+    project_root: &Path,
+    roots: BTreeSet<PathBuf>,
+) {
+    command
+        .arg("--user")
+        .arg("--map-root-user")
+        .arg("--net")
+        .arg("--")
+        .arg(bubblewrap_binary)
+        .arg("--die-with-parent")
+        .arg("--new-session")
+        .arg("--unshare-all")
+        .arg("--share-net")
+        .arg("--disable-userns")
+        .arg("--cap-drop")
+        .arg("ALL")
+        .arg("--proc")
+        .arg("/proc")
+        .arg("--dev")
+        .arg("/dev")
+        .arg("--tmpfs")
+        .arg("/tmp")
+        .arg("--ro-bind")
+        .arg("/usr")
+        .arg("/usr");
+    for system_root in ["/bin", "/lib", "/lib64", "/sbin"] {
+        if Path::new(system_root).exists() {
+            command.arg("--ro-bind").arg(system_root).arg(system_root);
+        }
+    }
+    for root in roots {
+        command.arg("--ro-bind").arg(&root).arg(&root);
+    }
+    command
+        .arg("--chdir")
+        .arg(project_root)
+        .arg("--clearenv")
+        .arg("--setenv")
+        .arg("PATH")
+        .arg("/usr/bin:/bin")
+        .arg("--setenv")
+        .arg("HOME")
+        .arg("/tmp")
+        .arg("--setenv")
+        .arg("TMPDIR")
+        .arg("/tmp");
+}
+
+fn configure_limits_and_lean(
+    command: &mut Command,
+    prlimit_binary: &Path,
+    lake_binary: &Path,
+    source: &Path,
+    limits: LeanIsolationLimits,
+) {
+    command
+        .arg("--")
+        .arg(prlimit_binary)
+        .arg(format!(
+            "--as={}:{}",
+            limits.max_address_space_bytes, limits.max_address_space_bytes
+        ))
+        .arg(format!(
+            "--cpu={}:{}",
+            limits.max_cpu_seconds, limits.max_cpu_seconds
+        ))
+        .arg(format!(
+            "--nproc={}:{}",
+            limits.max_processes, limits.max_processes
+        ))
+        .arg(format!(
+            "--fsize={}:{}",
+            limits.max_file_size_bytes, limits.max_file_size_bytes
+        ))
+        .arg(format!(
+            "--nofile={}:{}",
+            limits.max_open_files, limits.max_open_files
+        ))
+        .arg("--")
+        .arg(lake_binary)
+        .arg("env")
+        .arg("lean")
+        .arg(source);
 }
 
 fn canonical_executable(path: &Path, label: &str) -> io::Result<PathBuf> {
