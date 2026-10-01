@@ -19,11 +19,11 @@ use std::os::unix::process::{CommandExt, ExitStatusExt};
 #[cfg(unix)]
 use std::process::Stdio;
 #[cfg(unix)]
+use std::sync::Arc;
+#[cfg(unix)]
 use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(unix)]
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
-#[cfg(unix)]
-use std::sync::Arc;
 #[cfg(unix)]
 use std::thread::{self, JoinHandle};
 #[cfg(unix)]
@@ -124,8 +124,7 @@ pub(crate) fn run_command(
         limits.max_stdout_bytes,
         capture_tx.clone(),
     )?;
-    let stderr_worker =
-        spawn_capture(Stream::Stderr, stderr, limits.max_stderr_bytes, capture_tx)?;
+    let stderr_worker = spawn_capture(Stream::Stderr, stderr, limits.max_stderr_bytes, capture_tx)?;
     let capture_workers = vec![stdout_worker, stderr_worker];
 
     let started = Instant::now();
@@ -149,8 +148,7 @@ pub(crate) fn run_command(
         confirm_group_terminated(process_group, limits.termination_grace)?;
     }
 
-    let (stdout, stderr) =
-        collect_captures(&capture_rx, limits.drain_timeout, capture_workers)?;
+    let (stdout, stderr) = collect_captures(&capture_rx, limits.drain_timeout, capture_workers)?;
     let termination = if timed_out {
         ProcessTermination::TimedOut {
             elapsed_ms: duration_millis(started.elapsed()),
@@ -178,9 +176,7 @@ fn spawn_capture(
     limit: usize,
     sender: Sender<Capture>,
 ) -> io::Result<CaptureWorker> {
-    let flags = OFlag::from_bits_truncate(
-        fcntl(&reader, FcntlArg::F_GETFL).map_err(errno_to_io)?,
-    );
+    let flags = OFlag::from_bits_truncate(fcntl(&reader, FcntlArg::F_GETFL).map_err(errno_to_io)?);
     fcntl(&reader, FcntlArg::F_SETFL(flags | OFlag::O_NONBLOCK)).map_err(errno_to_io)?;
 
     let cancel = Arc::new(AtomicBool::new(false));
@@ -411,8 +407,8 @@ mod tests {
         let (sender, receiver) = mpsc::channel();
         let worker = spawn_capture(Stream::Stdout, reader, 64, sender).unwrap();
         let started = Instant::now();
-        let error = collect_captures(&receiver, Duration::from_millis(20), vec![worker])
-            .unwrap_err();
+        let error =
+            collect_captures(&receiver, Duration::from_millis(20), vec![worker]).unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::TimedOut);
         assert!(started.elapsed() < Duration::from_secs(1));
     }
