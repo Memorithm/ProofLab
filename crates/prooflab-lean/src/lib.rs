@@ -438,7 +438,7 @@ impl LeanKernel {
         Ok(format!(
             "{};{}",
             self.limits.invocation_contract(),
-            isolation.invocation_contract()
+            isolation.invocation_contract(&self.lake_binary)?
         ))
     }
 
@@ -482,6 +482,15 @@ impl LeanKernel {
         source: impl AsRef<Path>,
     ) -> std::io::Result<LeanProcessResult> {
         let source = source.as_ref().canonicalize()?;
+        let source_bytes = fs::read(&source)?;
+        self.verify_untrusted_bytes(&source, &source_bytes)
+    }
+
+    fn verify_untrusted_bytes(
+        &self,
+        source: &Path,
+        source_bytes: &[u8],
+    ) -> std::io::Result<LeanProcessResult> {
         let project_root = lake_project_root(&source)?;
         let isolation = self.isolation.as_ref().ok_or_else(|| {
             io::Error::new(
@@ -489,7 +498,8 @@ impl LeanKernel {
                 "untrusted Lean verification requires an OS isolation backend",
             )
         })?;
-        let mut command = isolation.command(&self.lake_binary, &project_root, &source)?;
+        let mut command =
+            isolation.command(&self.lake_binary, &project_root, &source, source_bytes)?;
         self.run_command(&mut command)
     }
 
@@ -724,16 +734,21 @@ impl LeanKernel {
             return Err(VerificationError::FormalStatementMismatch.into());
         }
 
+        let untrusted = self.reproduction_is_untrusted(&artifact.body.kernel.invocation)?;
         let job = VerificationJob::new_with_dependencies(
             formal_statement,
             &source_bytes,
             artifact.body.dependencies.clone(),
-            self.invocation_contract(),
+            artifact.body.kernel.invocation.clone(),
             artifact.body.repro.clone(),
         )
         .map_err(|error| VerificationError::JobConstruction(error.to_string()))?;
 
-        let outcome = self.verify_job_with_lock(&job, formal_statement, source, observed)?;
+        let outcome = if untrusted {
+            self.verify_untrusted_job_with_lock(&job, formal_statement, source, observed)?
+        } else {
+            self.verify_job_with_lock(&job, formal_statement, source, observed)?
+        };
 
         if !outcome.result.accepted {
             return Err(LeanReproduceError::KernelRejected);
@@ -747,6 +762,19 @@ impl LeanKernel {
             result: outcome.result,
             reverified: Some(reverified),
         })
+    }
+
+    fn reproduction_is_untrusted(
+        &self,
+        artifact_invocation: &str,
+    ) -> Result<bool, VerificationError> {
+        if artifact_invocation == self.invocation_contract() {
+            return Ok(false);
+        }
+        if artifact_invocation == self.isolated_invocation_contract()? {
+            return Ok(true);
+        }
+        Err(VerificationError::InvocationMismatch)
     }
 
     fn verify_job_inner(
@@ -869,7 +897,7 @@ impl LeanKernel {
         }
 
         let result = if untrusted {
-            self.verify_untrusted_file(source)?
+            self.verify_untrusted_bytes(source, &source_bytes)?
         } else {
             self.verify_file(source)?
         };
@@ -966,13 +994,32 @@ mod tests {
     #[test]
     fn isolated_jobs_have_a_distinct_content_addressed_contract() {
         let kernel = LeanKernel::new("/usr/bin/false").with_isolation(BubblewrapIsolation::new(
-            "/usr/bin/bwrap",
-            "/usr/bin/prlimit",
+            "/usr/bin/false",
+            "/usr/bin/false",
         ));
         let isolated = kernel.isolated_invocation_contract().unwrap();
         assert_ne!(isolated, kernel.invocation_contract());
         assert!(isolated.contains("isolation=linux-setuid-bubblewrap-v1"));
         assert!(isolated.contains("network=deny_all"));
+    }
+
+    #[test]
+    fn reproduction_preserves_the_original_isolation_mode() {
+        let kernel = LeanKernel::new("/usr/bin/false").with_isolation(BubblewrapIsolation::new(
+            "/usr/bin/false",
+            "/usr/bin/false",
+        ));
+        let isolated = kernel.isolated_invocation_contract().unwrap();
+        assert!(kernel.reproduction_is_untrusted(&isolated).unwrap());
+        assert!(
+            !kernel
+                .reproduction_is_untrusted(&kernel.invocation_contract())
+                .unwrap()
+        );
+        assert!(matches!(
+            kernel.reproduction_is_untrusted("unknown invocation"),
+            Err(VerificationError::InvocationMismatch)
+        ));
     }
 
     #[test]
