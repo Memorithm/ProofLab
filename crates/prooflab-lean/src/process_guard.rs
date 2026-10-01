@@ -9,6 +9,8 @@ use nix::fcntl::{FcntlArg, OFlag, fcntl};
 #[cfg(unix)]
 use nix::sys::signal::{Signal, killpg};
 #[cfg(unix)]
+use nix::sys::wait::{Id, WaitPidFlag, WaitStatus, waitid};
+#[cfg(unix)]
 use nix::unistd::Pid;
 #[cfg(unix)]
 use std::io::Read;
@@ -109,23 +111,35 @@ pub(crate) fn run_command(
     let mut child = command.spawn()?;
     let process_group = Pid::from_raw(pid_to_i32(child.id())?);
 
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| io::Error::other("Lean stdout pipe was not created"))?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| io::Error::other("Lean stderr pipe was not created"))?;
-    let (capture_tx, capture_rx) = mpsc::channel();
-    let stdout_worker = spawn_capture(
-        Stream::Stdout,
-        stdout,
-        limits.max_stdout_bytes,
-        capture_tx.clone(),
-    )?;
-    let stderr_worker = spawn_capture(Stream::Stderr, stderr, limits.max_stderr_bytes, capture_tx)?;
-    let capture_workers = vec![stdout_worker, stderr_worker];
+    let capture_setup = (|| {
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| io::Error::other("Lean stdout pipe was not created"))?;
+        let stderr = child
+            .stderr
+            .take()
+            .ok_or_else(|| io::Error::other("Lean stderr pipe was not created"))?;
+        let (capture_tx, capture_rx) = mpsc::channel();
+        let stdout_worker = spawn_capture(
+            Stream::Stdout,
+            stdout,
+            limits.max_stdout_bytes,
+            capture_tx.clone(),
+        )?;
+        let stderr_worker =
+            spawn_capture(Stream::Stderr, stderr, limits.max_stderr_bytes, capture_tx)?;
+        Ok::<_, io::Error>((capture_rx, vec![stdout_worker, stderr_worker]))
+    })();
+    let (capture_rx, capture_workers) = match capture_setup {
+        Ok(capture_setup) => capture_setup,
+        Err(error) => {
+            return Err(with_cleanup_result(
+                error,
+                abort_child(&mut child, process_group, limits.termination_grace),
+            ));
+        }
+    };
 
     let started = Instant::now();
     let (status, timed_out) = loop {
@@ -135,18 +149,25 @@ pub(crate) fn run_command(
             confirm_group_terminated(process_group, limits.termination_grace)?;
             break (status, true);
         }
-        if let Some(status) = child.try_wait()? {
+        let child_exited = match child_exited_without_reaping(process_group) {
+            Ok(exited) => exited,
+            Err(error) => {
+                return Err(with_cleanup_result(
+                    error,
+                    abort_child(&mut child, process_group, limits.termination_grace),
+                ));
+            }
+        };
+        if child_exited {
+            terminate_group(process_group)?;
+            let status = child.wait()?;
+            confirm_group_terminated(process_group, limits.termination_grace)?;
             break (status, false);
         }
         thread::sleep(
             Duration::from_millis(10).min(limits.timeout.saturating_sub(started.elapsed())),
         );
     };
-
-    if !timed_out {
-        terminate_group(process_group)?;
-        confirm_group_terminated(process_group, limits.termination_grace)?;
-    }
 
     let (stdout, stderr) = collect_captures(&capture_rx, limits.drain_timeout, capture_workers)?;
     let termination = if timed_out {
@@ -181,42 +202,44 @@ fn spawn_capture(
 
     let cancel = Arc::new(AtomicBool::new(false));
     let worker_cancel = Arc::clone(&cancel);
-    let handle = thread::spawn(move || {
-        let mut bytes = Vec::with_capacity(limit.min(64 * 1024));
-        let mut buffer = [0_u8; 8 * 1024];
-        let mut limit_exceeded = false;
-        let mut read_error = None;
-        loop {
-            if worker_cancel.load(Ordering::Acquire) {
-                break;
-            }
-            match reader.read(&mut buffer) {
-                Ok(0) => break,
-                Ok(read) => {
-                    let remaining = limit.saturating_sub(bytes.len());
-                    let retained = remaining.min(read);
-                    bytes.extend_from_slice(&buffer[..retained]);
-                    if retained < read {
-                        limit_exceeded = true;
-                    }
-                }
-                Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
-                    thread::sleep(Duration::from_millis(5));
-                }
-                Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
-                Err(error) => {
-                    read_error = Some(error.to_string());
+    let handle = thread::Builder::new()
+        .name(format!("prooflab-lean-{stream:?}"))
+        .spawn(move || {
+            let mut bytes = Vec::with_capacity(limit.min(64 * 1024));
+            let mut buffer = [0_u8; 8 * 1024];
+            let mut limit_exceeded = false;
+            let mut read_error = None;
+            loop {
+                if worker_cancel.load(Ordering::Acquire) {
                     break;
                 }
+                match reader.read(&mut buffer) {
+                    Ok(0) => break,
+                    Ok(read) => {
+                        let remaining = limit.saturating_sub(bytes.len());
+                        let retained = remaining.min(read);
+                        bytes.extend_from_slice(&buffer[..retained]);
+                        if retained < read {
+                            limit_exceeded = true;
+                        }
+                    }
+                    Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
+                        thread::sleep(Duration::from_millis(5));
+                    }
+                    Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
+                    Err(error) => {
+                        read_error = Some(error.to_string());
+                        break;
+                    }
+                }
             }
-        }
-        let _ = sender.send(Capture {
-            stream,
-            bytes,
-            limit_exceeded,
-            read_error,
-        });
-    });
+            let _ = sender.send(Capture {
+                stream,
+                bytes,
+                limit_exceeded,
+                read_error,
+            });
+        })?;
     Ok(CaptureWorker {
         cancel,
         handle: Some(handle),
@@ -304,6 +327,46 @@ fn terminate_group(process_group: Pid) -> io::Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(unix)]
+fn abort_child(
+    child: &mut std::process::Child,
+    process_group: Pid,
+    grace: Duration,
+) -> io::Result<()> {
+    terminate_group(process_group)?;
+    child.wait()?;
+    confirm_group_terminated(process_group, grace)
+}
+
+#[cfg(unix)]
+fn with_cleanup_result(original: io::Error, cleanup: io::Result<()>) -> io::Error {
+    match cleanup {
+        Ok(()) => original,
+        Err(cleanup) => io::Error::other(format!(
+            "{original}; Lean child cleanup also failed: {cleanup}"
+        )),
+    }
+}
+
+#[cfg(unix)]
+fn child_exited_without_reaping(child: Pid) -> io::Result<bool> {
+    let status = match waitid(
+        Id::Pid(child),
+        WaitPidFlag::WEXITED | WaitPidFlag::WNOHANG | WaitPidFlag::WNOWAIT,
+    ) {
+        Ok(status) => status,
+        Err(Errno::EINTR) => return Ok(false),
+        Err(error) => return Err(errno_to_io(error)),
+    };
+    match status {
+        WaitStatus::StillAlive => Ok(false),
+        WaitStatus::Exited(_, _) | WaitStatus::Signaled(_, _, _) => Ok(true),
+        status => Err(io::Error::other(format!(
+            "unexpected wait status for Lean process: {status:?}"
+        ))),
+    }
 }
 
 #[cfg(unix)]

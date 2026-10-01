@@ -60,7 +60,9 @@ Cheap falsification may terminate at `FALSIFIED` before proof search. Empirical 
 The Rust-to-Lean boundary supervises each invocation with explicit wall-clock,
 stdout, stderr, process-group termination and post-termination drain budgets.
 Timeout, ordinary rejection, signal termination, launch failure and incomplete
-capture remain distinct fail-closed outcomes. On Unix, descendants in the
+capture remain distinct fail-closed outcomes. The exact supervisor limits are
+embedded in the content-addressed invocation contract and retained with the
+raw process result. On Unix, descendants in the
 dedicated process group are terminated after both timeout and normal parent
 exit before output is accepted. The current fail-closed implementation requires
 Unix process and nonblocking-pipe primitives; non-Unix invocation is rejected as

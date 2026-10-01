@@ -55,7 +55,8 @@ use prooflab_core::{
     reproduce as core_reproduce, sha256_bytes,
 };
 
-const LEAN_INVOCATION: &str = "lake env lean";
+const LEAN_COMMAND: &str = "lake env lean";
+const LEAN_INVOCATION: &str = "lake env lean;supervisor=unix-v1;timeout_ns=120000000000;drain_timeout_ns=1000000000;termination_grace_ns=1000000000;max_stdout_bytes=1048576;max_stderr_bytes=1048576";
 
 /// Resource limits for one Lean kernel process.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,6 +95,17 @@ impl LeanProcessLimits {
         }
         Ok(())
     }
+
+    fn invocation_contract(self) -> String {
+        format!(
+            "{LEAN_COMMAND};supervisor=unix-v1;timeout_ns={};drain_timeout_ns={};termination_grace_ns={};max_stdout_bytes={};max_stderr_bytes={}",
+            self.timeout.as_nanos(),
+            self.drain_timeout.as_nanos(),
+            self.termination_grace.as_nanos(),
+            self.max_stdout_bytes,
+            self.max_stderr_bytes,
+        )
+    }
 }
 
 /// Why the supervised Lean entrypoint stopped.
@@ -110,6 +122,7 @@ pub struct LeanProcessResult {
     pub accepted: bool,
     pub exit_code: Option<i32>,
     pub termination: ProcessTermination,
+    pub limits: LeanProcessLimits,
     pub stdout: String,
     pub stderr: String,
     pub stdout_digest: [u8; 32],
@@ -392,6 +405,12 @@ impl LeanKernel {
         self.limits
     }
 
+    /// Stable invocation contract bound into verification jobs and receipts.
+    #[must_use]
+    pub fn invocation_contract(&self) -> String {
+        self.limits.invocation_contract()
+    }
+
     /// Verify a Lean file through the pinned Lake environment that owns it.
     ///
     /// The source must live below a directory containing `lakefile.lean` or
@@ -419,6 +438,7 @@ impl LeanKernel {
             accepted: output.status.success() && output.termination == ProcessTermination::Exited,
             exit_code: output.status.code(),
             termination: output.termination,
+            limits: self.limits,
             stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
             stdout_digest: sha256_bytes(&output.stdout),
@@ -551,7 +571,7 @@ impl LeanKernel {
             formal_statement,
             &source_bytes,
             artifact.body.dependencies.clone(),
-            LEAN_INVOCATION,
+            self.invocation_contract(),
             artifact.body.repro.clone(),
         )
         .map_err(|error| VerificationError::JobConstruction(error.to_string()))?;
@@ -660,7 +680,7 @@ impl LeanKernel {
         if job.backend != FormalBackend::Lean4 || formal_statement.backend != FormalBackend::Lean4 {
             return Err(VerificationError::BackendMismatch);
         }
-        if job.invocation != LEAN_INVOCATION {
+        if job.invocation != self.invocation_contract() {
             return Err(VerificationError::InvocationMismatch);
         }
 
@@ -724,6 +744,36 @@ mod tests {
     #[test]
     fn default_boundary_uses_lake() {
         assert_eq!(LeanKernel::default().lake_binary, PathBuf::from("lake"));
+        assert_eq!(LeanKernel::default().invocation_contract(), LEAN_INVOCATION);
+    }
+
+    #[test]
+    fn supervisor_limits_are_part_of_the_job_identity() {
+        let source =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ProofLab/Core/Smoke.lean");
+        let source_bytes = fs::read(&source).unwrap();
+        let claim = Claim::new(ClaimBody {
+            statement: "forall n : Nat, n = n".into(),
+            assumptions: vec![],
+            parents: vec![],
+        });
+        let formal = FormalStatement::lean4(claim.id, &source_bytes, vec!["Mathlib".into()]);
+        let job = VerificationJob::new(
+            &formal,
+            &source_bytes,
+            LeanKernel::default().invocation_contract(),
+            repro(),
+        )
+        .unwrap();
+        let kernel = LeanKernel::new("this-command-must-not-run").with_limits(LeanProcessLimits {
+            timeout: Duration::from_secs(1),
+            ..LeanProcessLimits::default()
+        });
+        assert_ne!(job.invocation, kernel.invocation_contract());
+        assert!(matches!(
+            kernel.verify_job(&job, &formal, source),
+            Err(VerificationError::InvocationMismatch)
+        ));
     }
 
     #[test]
@@ -812,6 +862,7 @@ mod tests {
             accepted,
             exit_code,
             termination,
+            limits: LeanProcessLimits::default(),
             stdout: stdout.into(),
             stderr: stderr.into(),
             stdout_digest: sha256_bytes(stdout.as_bytes()),
@@ -1049,6 +1100,7 @@ mod tests {
                 result.termination,
                 ProcessTermination::TimedOut { elapsed_ms } if elapsed_ms >= 100
             ));
+            assert_eq!(result.limits, fixture.kernel().limits());
             assert!(matches!(
                 kernel_outcome_from_process(&result, FormalBackend::Lean4, LEAN_INVOCATION),
                 KernelOutcome::Timeout { elapsed_ms } if elapsed_ms >= 100
