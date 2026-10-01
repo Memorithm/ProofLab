@@ -181,12 +181,7 @@ impl BubblewrapIsolation {
         let mut command = Command::new(&bubblewrap_binary);
         configure_namespace(&mut command, &project_root, roots);
         attach_sealed_source(&mut command, source_bytes)?;
-        configure_limits_and_lean(
-            &mut command,
-            &prlimit_binary,
-            &lake_binary,
-            self.limits,
-        );
+        configure_limits_and_lean(&mut command, &prlimit_binary, &lake_binary, self.limits);
         Ok(command)
     }
 }
@@ -387,15 +382,17 @@ mod tests {
         let usr = base.clone().with_runtime_root("/usr");
         let tmp = base.with_runtime_root("/tmp");
         assert_ne!(
-            usr.invocation_contract(Path::new("/usr/bin/false")).unwrap(),
-            tmp.invocation_contract(Path::new("/usr/bin/false")).unwrap()
+            usr.invocation_contract(Path::new("/usr/bin/false"))
+                .unwrap(),
+            tmp.invocation_contract(Path::new("/usr/bin/false"))
+                .unwrap()
         );
     }
 
     #[test]
     fn filesystem_root_is_rejected_as_a_runtime_root() {
-        let isolation = BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false")
-            .with_runtime_root("/");
+        let isolation =
+            BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false").with_runtime_root("/");
         assert_eq!(
             isolation
                 .invocation_contract(Path::new("/usr/bin/false"))
