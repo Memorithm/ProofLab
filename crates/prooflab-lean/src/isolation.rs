@@ -262,18 +262,15 @@ mod tests {
 
     #[test]
     fn isolation_limits_are_bound_into_the_contract() {
-        let isolation = BubblewrapIsolation::new(
-            "/usr/bin/unshare",
-            "/usr/bin/bwrap",
-            "/usr/bin/prlimit",
-        )
-        .with_limits(LeanIsolationLimits {
-            max_address_space_bytes: 10,
-            max_cpu_seconds: 11,
-            max_processes: 12,
-            max_file_size_bytes: 13,
-            max_open_files: 14,
-        });
+        let isolation =
+            BubblewrapIsolation::new("/usr/bin/unshare", "/usr/bin/bwrap", "/usr/bin/prlimit")
+                .with_limits(LeanIsolationLimits {
+                    max_address_space_bytes: 10,
+                    max_cpu_seconds: 11,
+                    max_processes: 12,
+                    max_file_size_bytes: 13,
+                    max_open_files: 14,
+                });
         let contract = isolation.invocation_contract();
         assert!(contract.contains("isolation=linux-unshare-bubblewrap-v1"));
         assert!(contract.contains("network=deny_all"));
