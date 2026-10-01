@@ -491,7 +491,7 @@ impl LeanKernel {
         source: &Path,
         source_bytes: &[u8],
     ) -> std::io::Result<LeanProcessResult> {
-        let project_root = lake_project_root(&source)?;
+        let project_root = lake_project_root(source)?;
         let isolation = self.isolation.as_ref().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::PermissionDenied,
@@ -499,7 +499,7 @@ impl LeanKernel {
             )
         })?;
         let mut command =
-            isolation.command(&self.lake_binary, &project_root, &source, source_bytes)?;
+            isolation.command(&self.lake_binary, &project_root, source, source_bytes)?;
         self.run_command(&mut command)
     }
 
