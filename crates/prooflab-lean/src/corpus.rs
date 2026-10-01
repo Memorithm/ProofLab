@@ -191,6 +191,29 @@ impl CorpusEntry {
         repo_root: impl AsRef<Path>,
         repro: ReproMeta,
     ) -> Result<CorpusPrepared, CorpusError> {
+        self.prepare_with_invocation(repo_root, repro, DEFAULT_LEAN_INVOCATION)
+    }
+
+    /// Prepare this entry for the exact supervisor contract owned by `kernel`.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same preparation errors as [`Self::prepare`].
+    pub fn prepare_for_kernel(
+        &self,
+        kernel: &LeanKernel,
+        repo_root: impl AsRef<Path>,
+        repro: ReproMeta,
+    ) -> Result<CorpusPrepared, CorpusError> {
+        self.prepare_with_invocation(repo_root, repro, kernel.invocation_contract())
+    }
+
+    fn prepare_with_invocation(
+        &self,
+        repo_root: impl AsRef<Path>,
+        repro: ReproMeta,
+        invocation: impl Into<String>,
+    ) -> Result<CorpusPrepared, CorpusError> {
         let source_path = self.source_path(repo_root);
         if !source_path.is_file() {
             return Err(CorpusError::MissingSource(source_path));
@@ -208,7 +231,7 @@ impl CorpusEntry {
         let job = VerificationJob::new(
             &formal_statement,
             &source_bytes,
-            DEFAULT_LEAN_INVOCATION,
+            invocation,
             repro,
         )
         .map_err(|error| CorpusError::JobConstruction(error.to_string()))?;
@@ -294,7 +317,11 @@ pub fn verify_corpus(
     repro: &ReproMeta,
     observed: Option<&EnvironmentLock>,
 ) -> Result<Vec<(VerificationOutcome, CorpusRunReport)>, CorpusError> {
-    prepare_corpus(repo_root, repro)?
+    let repo_root = repo_root.as_ref();
+    KNOWN_THEOREM_CORPUS
+        .iter()
+        .map(|entry| entry.prepare_for_kernel(kernel, repo_root, repro.clone()))
+        .collect::<Result<Vec<_>, _>>()?
         .into_iter()
         .map(|prepared| prepared.verify(kernel, observed))
         .collect()
@@ -397,5 +424,18 @@ mod tests {
         let second = KNOWN_THEOREM_CORPUS[0].claim();
         assert_eq!(first.id, second.id);
         assert_ne!(first.id, KNOWN_THEOREM_CORPUS[1].claim().id);
+    }
+
+    #[test]
+    fn kernel_specific_preparation_binds_custom_limits() {
+        let kernel = LeanKernel::default().with_limits(crate::LeanProcessLimits {
+            timeout: std::time::Duration::from_secs(1),
+            ..crate::LeanProcessLimits::default()
+        });
+        let prepared = KNOWN_THEOREM_CORPUS[0]
+            .prepare_for_kernel(&kernel, repo_root(), repro())
+            .expect("prepare");
+        assert_eq!(prepared.job.invocation, kernel.invocation_contract());
+        assert!(prepared.job.check_id());
     }
 }
