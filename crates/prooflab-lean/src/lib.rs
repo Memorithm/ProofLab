@@ -56,6 +56,7 @@ use prooflab_core::{
 };
 
 const LEAN_COMMAND: &str = "lake env lean";
+#[cfg(test)]
 const LEAN_INVOCATION: &str = "lake env lean;supervisor=unix-v1;timeout_ns=120000000000;drain_timeout_ns=1000000000;termination_grace_ns=1000000000;max_stdout_bytes=1048576;max_stderr_bytes=1048576";
 
 /// Resource limits for one Lean kernel process.
