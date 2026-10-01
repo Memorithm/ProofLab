@@ -192,7 +192,6 @@ fn configure_namespace(command: &mut Command, project_root: &Path, roots: BTreeS
         .arg("--new-session")
         .arg("--unshare-all")
         .arg("--unshare-user")
-        .arg("--disable-userns")
         .arg("--cap-drop")
         .arg("ALL")
         .arg("--proc")
