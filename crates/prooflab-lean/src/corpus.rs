@@ -228,13 +228,8 @@ impl CorpusEntry {
                 .map(|import| (*import).to_owned())
                 .collect(),
         );
-        let job = VerificationJob::new(
-            &formal_statement,
-            &source_bytes,
-            invocation,
-            repro,
-        )
-        .map_err(|error| CorpusError::JobConstruction(error.to_string()))?;
+        let job = VerificationJob::new(&formal_statement, &source_bytes, invocation, repro)
+            .map_err(|error| CorpusError::JobConstruction(error.to_string()))?;
         Ok(CorpusPrepared {
             entry_id: self.id,
             claim,

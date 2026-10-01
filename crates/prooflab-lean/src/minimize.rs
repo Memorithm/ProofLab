@@ -387,13 +387,9 @@ impl MinimizationEntry {
                 parents: vec![full_claim.id],
             });
             let formal_statement = FormalStatement::lean4(claim.id, &source_bytes, imports.clone());
-            let job = VerificationJob::new(
-                &formal_statement,
-                &source_bytes,
-                &invocation,
-                repro.clone(),
-            )
-            .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
+            let job =
+                VerificationJob::new(&formal_statement, &source_bytes, &invocation, repro.clone())
+                    .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
             trials.push(PreparedRemovalTrial {
                 remove_index: trial.remove_index,
                 removed_assumption: trial.removed_assumption,
@@ -694,9 +690,11 @@ mod tests {
             .expect("prepare");
         let invocation = kernel.invocation_contract();
         assert_eq!(prepared.full_job.invocation, invocation);
-        assert!(prepared
-            .trials
-            .iter()
-            .all(|trial| trial.job.invocation == invocation));
+        assert!(
+            prepared
+                .trials
+                .iter()
+                .all(|trial| trial.job.invocation == invocation)
+        );
     }
 }
