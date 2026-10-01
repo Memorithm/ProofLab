@@ -993,10 +993,8 @@ mod tests {
 
     #[test]
     fn isolated_jobs_have_a_distinct_content_addressed_contract() {
-        let kernel = LeanKernel::new("/usr/bin/false").with_isolation(BubblewrapIsolation::new(
-            "/usr/bin/false",
-            "/usr/bin/false",
-        ));
+        let kernel = LeanKernel::new("/usr/bin/false")
+            .with_isolation(BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false"));
         let isolated = kernel.isolated_invocation_contract().unwrap();
         assert_ne!(isolated, kernel.invocation_contract());
         assert!(isolated.contains("isolation=linux-setuid-bubblewrap-v1"));
@@ -1005,10 +1003,8 @@ mod tests {
 
     #[test]
     fn reproduction_preserves_the_original_isolation_mode() {
-        let kernel = LeanKernel::new("/usr/bin/false").with_isolation(BubblewrapIsolation::new(
-            "/usr/bin/false",
-            "/usr/bin/false",
-        ));
+        let kernel = LeanKernel::new("/usr/bin/false")
+            .with_isolation(BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false"));
         let isolated = kernel.isolated_invocation_contract().unwrap();
         assert!(kernel.reproduction_is_untrusted(&isolated).unwrap());
         assert!(
