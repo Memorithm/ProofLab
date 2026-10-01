@@ -72,10 +72,7 @@ pub struct BubblewrapIsolation {
 
 impl BubblewrapIsolation {
     #[must_use]
-    pub fn new(
-        bubblewrap_binary: impl Into<PathBuf>,
-        prlimit_binary: impl Into<PathBuf>,
-    ) -> Self {
+    pub fn new(bubblewrap_binary: impl Into<PathBuf>, prlimit_binary: impl Into<PathBuf>) -> Self {
         Self {
             bubblewrap_binary: bubblewrap_binary.into(),
             prlimit_binary: prlimit_binary.into(),
@@ -166,10 +163,7 @@ impl BubblewrapIsolation {
             .arg("/usr");
         for system_root in ["/bin", "/lib", "/lib64", "/sbin"] {
             if Path::new(system_root).exists() {
-                command
-                    .arg("--ro-bind")
-                    .arg(system_root)
-                    .arg(system_root);
+                command.arg("--ro-bind").arg(system_root).arg(system_root);
             }
         }
         for root in roots {
@@ -253,14 +247,15 @@ mod tests {
 
     #[test]
     fn isolation_limits_are_bound_into_the_contract() {
-        let isolation = BubblewrapIsolation::new("/usr/bin/bwrap", "/usr/bin/prlimit")
-            .with_limits(LeanIsolationLimits {
+        let isolation = BubblewrapIsolation::new("/usr/bin/bwrap", "/usr/bin/prlimit").with_limits(
+            LeanIsolationLimits {
                 max_address_space_bytes: 10,
                 max_cpu_seconds: 11,
                 max_processes: 12,
                 max_file_size_bytes: 13,
                 max_open_files: 14,
-            });
+            },
+        );
         let contract = isolation.invocation_contract();
         assert!(contract.contains("isolation=linux-bubblewrap-v1"));
         assert!(contract.contains("network=deny_all"));
