@@ -1156,11 +1156,7 @@ mod tests {
                 ProcessTermination::Signaled { signal: Some(15) }
             ));
             assert!(matches!(
-                kernel_outcome_from_process(
-                    &result,
-                    FormalBackend::Lean4,
-                    DEFAULT_LEAN_INVOCATION,
-                ),
+                kernel_outcome_from_process(&result, FormalBackend::Lean4, DEFAULT_LEAN_INVOCATION,),
                 KernelOutcome::Unknown { .. }
             ));
         }
