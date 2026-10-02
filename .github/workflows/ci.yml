@@ -85,6 +85,6 @@ jobs:
         env:
           PROOFLAB_RUN_ISOLATED_LEAN_E2E: "1"
         run: |
-          export PROOFLAB_LAKE_BINARY="$(realpath "$(command -v lake)")"
+          export PROOFLAB_LAKE_BINARY="$(elan which lake)"
           export PROOFLAB_LEAN_RUNTIME_ROOT="$(dirname "$(dirname "$PROOFLAB_LAKE_BINARY")")"
           cargo +1.98.1 test -p prooflab-lean --test isolation_lean_e2e -- --ignored --nocapture
