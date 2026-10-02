@@ -78,8 +78,10 @@ fresh mount, PID, IPC, UTS, cgroup and network namespaces,
 drops capabilities, exposes only read-only system/runtime/project trees plus a
 private writable `/tmp`, and applies CPU, address-space, PID, file-size and
 descriptor limits with `prlimit`. Untrusted source files are read through a
-separate `max_source_bytes` admission limit before allocation and are then
-sealed into the namespace as immutable bytes. The independent process-group,
+separate `max_source_bytes` admission limit before allocation and then sealed
+into the namespace as immutable bytes. Lean runs with an explicit worker-count
+bound (`max_lean_threads=1` by default), so the runtime cannot derive an
+unbounded pool from host CPU count. The independent process-group,
 wall-clock, bounded-output and drain controls remain active outside the
 namespace. Every isolation policy and budget is embedded in the
 content-addressed invocation contract, so a supervised-only job or an older

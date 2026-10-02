@@ -20,22 +20,24 @@ fi
 touch /tmp/prooflab-private-write
 test "$1" = env
 test "$2" = lean
-test "$3" = /tmp/prooflab-source.lean
-cmp "$3" "$PWD/Input.lean"
-if (printf 'altered source\n' > "$3"); then
+test "$3" = -j
+test "$4" = 1
+test "$5" = /tmp/prooflab-source.lean
+cmp "$5" "$PWD/Input.lean"
+if (printf 'altered source\n' > "$5"); then
   echo "staged proof-source overwrite unexpectedly succeeded" >&2
   exit 73
 fi
 printf 'replacement source\n' > /tmp/prooflab-replacement
-if mv /tmp/prooflab-replacement "$3"; then
+if mv /tmp/prooflab-replacement "$5"; then
   echo "staged proof-source replacement unexpectedly succeeded" >&2
   exit 74
 fi
-if rm "$3"; then
+if rm "$5"; then
   echo "staged proof-source unlink unexpectedly succeeded" >&2
   exit 75
 fi
-cmp "$3" "$PWD/Input.lean"
+cmp "$5" "$PWD/Input.lean"
 echo source-immutability-ok
 if grep -Eq '^[[:space:]]*(eth|en|wl)[^:]*:' /proc/net/dev; then
   echo "non-loopback network interface is visible" >&2
@@ -81,6 +83,7 @@ fn untrusted_boundary_enforces_filesystem_network_and_resource_policy() {
             max_address_space_bytes: 512 * 1024 * 1024,
             max_cpu_seconds: 10,
             max_processes: 32,
+            max_lean_threads: 1,
             max_file_size_bytes: 1024 * 1024,
             max_open_files: 64,
         },
