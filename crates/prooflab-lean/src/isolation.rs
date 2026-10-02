@@ -937,5 +937,4 @@ mod tests {
         );
         validate_cgroup_v2_mount(Path::new("/custom cgroup/prooflab"), mountinfo).unwrap();
     }
-
 }
