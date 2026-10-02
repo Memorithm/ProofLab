@@ -12,7 +12,7 @@ use nix::fcntl::{FcntlArg, SealFlag, fcntl};
 #[cfg(target_os = "linux")]
 use nix::sys::memfd::{MFdFlags, memfd_create};
 
-const BACKEND_VERSION: &str = "linux-setuid-bubblewrap-v1";
+const BACKEND_VERSION: &str = "linux-setuid-bubblewrap-v2";
 
 /// Kernel-enforced resource budgets applied inside the isolated Lean boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -69,9 +69,10 @@ impl LeanIsolationLimits {
 /// An administrator-owned setuid Bubblewrap helper supplies mount, PID, IPC,
 /// UTS, cgroup and network namespaces.
 /// The project and runtime roots are mounted read-only; `/tmp` is the only
-/// writable filesystem. `prlimit` applies CPU, memory, process, file-size and
-/// descriptor limits before Lake starts. The outer `ProofLab` process guard
-/// retains the independent wall-clock and bounded-output controls.
+/// writable filesystem, except for the read-only staged proof-source mount.
+/// `prlimit` applies CPU, memory, process, file-size and descriptor limits before
+/// Lake starts. The outer `ProofLab` process guard retains the independent
+/// wall-clock and bounded-output controls.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BubblewrapIsolation {
     bubblewrap_binary: PathBuf,
@@ -109,23 +110,24 @@ impl BubblewrapIsolation {
         self.limits
     }
 
+    // Contract construction is not a prerequisite for the direct file API.
+    // Both paths must independently apply the same canonical mount admission.
+    fn validated_runtime_roots(&self) -> io::Result<BTreeSet<PathBuf>> {
+        self.limits.validate()?;
+        let mut roots = BTreeSet::new();
+        for root in &self.runtime_roots {
+            roots.insert(canonical_directory(root, "Lean runtime root")?);
+        }
+        Ok(roots)
+    }
+
     pub(crate) fn invocation_contract(&self, lake_binary: &Path) -> io::Result<String> {
+        let roots = self.validated_runtime_roots()?;
         let bubblewrap = canonical_executable(&self.bubblewrap_binary, "bubblewrap")?;
         let prlimit = canonical_executable(&self.prlimit_binary, "prlimit")?;
         let lake = canonical_executable(lake_binary, "lake")?;
-        let mut roots = BTreeSet::new();
-        for root in &self.runtime_roots {
-            let root = canonical_directory(root, "Lean runtime root")?;
-            if root == Path::new("/") {
-                return Err(io::Error::new(
-                    io::ErrorKind::PermissionDenied,
-                    "the filesystem root cannot be exposed as a Lean runtime root",
-                ));
-            }
-            roots.insert(root);
-        }
         let mut contract = format!(
-            "isolation={BACKEND_VERSION};network=deny_all;filesystem=project_ro_runtime_ro_tmpfs;{}",
+            "isolation={BACKEND_VERSION};network=deny_all;filesystem=project_ro_runtime_ro_tmpfs;source=readonly_bind_data;{}",
             self.limits.contract()
         );
         push_path_contract(&mut contract, "bubblewrap", &bubblewrap);
@@ -144,12 +146,12 @@ impl BubblewrapIsolation {
         source: &Path,
         source_bytes: &[u8],
     ) -> io::Result<Command> {
-        self.limits.validate()?;
+        let mut roots = self.validated_runtime_roots()?;
+        let project_root = canonical_directory(project_root, "Lake project root")?;
         let bubblewrap_binary = canonical_executable(&self.bubblewrap_binary, "bubblewrap")?;
         validate_setuid_root(&bubblewrap_binary)?;
         let prlimit_binary = canonical_executable(&self.prlimit_binary, "prlimit")?;
         let lake_binary = canonical_executable(lake_binary, "lake")?;
-        let project_root = canonical_directory(project_root, "Lake project root")?;
         let source = source.canonicalize()?;
         if !source.is_file() || !source.starts_with(&project_root) {
             return Err(io::Error::new(
@@ -158,11 +160,7 @@ impl BubblewrapIsolation {
             ));
         }
 
-        let mut roots = BTreeSet::new();
         roots.insert(project_root.clone());
-        for root in &self.runtime_roots {
-            roots.insert(canonical_directory(root, "Lean runtime root")?);
-        }
         lake_binary.parent().ok_or_else(|| {
             io::Error::new(io::ErrorKind::InvalidInput, "Lake binary has no parent")
         })?;
@@ -285,8 +283,10 @@ fn attach_sealed_source(command: &mut Command, source_bytes: &[u8]) -> io::Resul
         | SealFlag::F_SEAL_GROW
         | SealFlag::F_SEAL_WRITE;
     fcntl(&source, FcntlArg::F_ADD_SEALS(seals)).map_err(io::Error::other)?;
+    // --file would copy the sealed bytes to a writable file inside /tmp.
+    // Keep the destination read-only too, including against unlink/rename.
     command
-        .arg("--file")
+        .arg("--ro-bind-data")
         .arg("0")
         .arg("/tmp/prooflab-source.lean")
         .stdin(Stdio::from(source));
@@ -348,6 +348,12 @@ fn canonical_directory(path: &Path, label: &str) -> io::Result<PathBuf> {
             format!("{label} is not a directory"),
         ));
     }
+    if path == Path::new("/") {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            format!("the filesystem root cannot be exposed as a {label}"),
+        ));
+    }
     Ok(path)
 }
 
@@ -369,8 +375,9 @@ mod tests {
         let contract = isolation
             .invocation_contract(Path::new("/usr/bin/false"))
             .unwrap();
-        assert!(contract.contains("isolation=linux-setuid-bubblewrap-v1"));
+        assert!(contract.contains("isolation=linux-setuid-bubblewrap-v2"));
         assert!(contract.contains("network=deny_all"));
+        assert!(contract.contains("source=readonly_bind_data"));
         assert!(contract.contains("max_as_bytes=10"));
         assert!(contract.contains("max_open_files=14"));
     }
@@ -402,6 +409,46 @@ mod tests {
     }
 
     #[test]
+    fn launch_rejects_root_and_alias_before_executable_resolution() {
+        for root in ["/", "/usr/.."] {
+            let isolation = BubblewrapIsolation::new("missing-bwrap", "missing-prlimit")
+                .with_runtime_root(root);
+            let error = isolation
+                .command(
+                    Path::new("missing-lake"),
+                    Path::new("/tmp"),
+                    Path::new("missing-source"),
+                    b"theorem input : True := trivial\n",
+                )
+                .unwrap_err();
+            assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+            assert!(error.to_string().contains("filesystem root"));
+            assert_eq!(
+                isolation
+                    .invocation_contract(Path::new("missing-lake"))
+                    .unwrap_err()
+                    .kind(),
+                io::ErrorKind::PermissionDenied
+            );
+        }
+    }
+
+    #[test]
+    fn launch_rejects_filesystem_root_as_project() {
+        let isolation = BubblewrapIsolation::new("missing-bwrap", "missing-prlimit");
+        let error = isolation
+            .command(
+                Path::new("missing-lake"),
+                Path::new("/"),
+                Path::new("missing-source"),
+                b"",
+            )
+            .unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+        assert!(error.to_string().contains("Lake project root"));
+    }
+
+    #[test]
     fn zero_isolation_limit_fails_closed() {
         let limits = LeanIsolationLimits {
             max_processes: 0,
@@ -409,6 +456,27 @@ mod tests {
         };
         assert_eq!(
             limits.validate().unwrap_err().kind(),
+            io::ErrorKind::InvalidInput
+        );
+        let isolation =
+            BubblewrapIsolation::new("missing-bwrap", "missing-prlimit").with_limits(limits);
+        assert_eq!(
+            isolation
+                .invocation_contract(Path::new("missing-lake"))
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidInput
+        );
+        assert_eq!(
+            isolation
+                .command(
+                    Path::new("missing-lake"),
+                    Path::new("/tmp"),
+                    Path::new("missing-source"),
+                    b"",
+                )
+                .unwrap_err()
+                .kind(),
             io::ErrorKind::InvalidInput
         );
     }
