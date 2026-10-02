@@ -889,8 +889,7 @@ mod tests {
 
     #[test]
     fn zero_aggregate_cgroup_limit_fails_closed() {
-        let policy =
-            CgroupV2Policy::new("/tmp/prooflab-cgroup").with_limits(0, 8, 50_000, 100_000);
+        let policy = CgroupV2Policy::new("/tmp/prooflab-cgroup").with_limits(0, 8, 50_000, 100_000);
         assert_eq!(
             policy.validate().unwrap_err().kind(),
             io::ErrorKind::InvalidInput
