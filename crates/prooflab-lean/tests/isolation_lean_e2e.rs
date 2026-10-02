@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use prooflab_lean::{BubblewrapIsolation, LeanKernel};
+use prooflab_lean::{BubblewrapIsolation, LeanIsolationLimits, LeanKernel};
 
 #[test]
 #[ignore = "requires the pinned Lean toolchain and administrator-owned setuid Bubblewrap"]
@@ -22,9 +22,16 @@ fn isolated_api_accepts_and_rejects_with_pinned_lean() {
         std::env::var_os("PROOFLAB_LEAN_RUNTIME_ROOT")
             .expect("PROOFLAB_LEAN_RUNTIME_ROOT must name the pinned toolchain root"),
     );
+    let qualification_limits = LeanIsolationLimits {
+        max_address_space_bytes: 8 * 1024 * 1024 * 1024,
+        max_processes: 1024,
+        max_lean_threads: 1,
+        ..LeanIsolationLimits::default()
+    };
     let kernel = LeanKernel::new(lake).with_isolation(
         BubblewrapIsolation::new("/usr/bin/bwrap", "/usr/bin/prlimit")
-            .with_runtime_root(runtime_root),
+            .with_runtime_root(runtime_root)
+            .with_limits(qualification_limits),
     );
 
     let fixture_root = repository.join("target/prooflab-isolated-lean-e2e");
