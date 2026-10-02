@@ -997,8 +997,9 @@ mod tests {
             .with_isolation(BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false"));
         let isolated = kernel.isolated_invocation_contract().unwrap();
         assert_ne!(isolated, kernel.invocation_contract());
-        assert!(isolated.contains("isolation=linux-setuid-bubblewrap-v1"));
+        assert!(isolated.contains("isolation=linux-setuid-bubblewrap-v2"));
         assert!(isolated.contains("network=deny_all"));
+        assert!(isolated.contains("source=readonly_bind_data"));
     }
 
     #[test]
@@ -1014,6 +1015,13 @@ mod tests {
         );
         assert!(matches!(
             kernel.reproduction_is_untrusted("unknown invocation"),
+            Err(VerificationError::InvocationMismatch)
+        ));
+        let legacy = isolated
+            .replace("linux-setuid-bubblewrap-v2", "linux-setuid-bubblewrap-v1")
+            .replace(";source=readonly_bind_data", "");
+        assert!(matches!(
+            kernel.reproduction_is_untrusted(&legacy),
             Err(VerificationError::InvocationMismatch)
         ));
     }
