@@ -31,7 +31,7 @@ impl Default for LeanIsolationLimits {
             max_source_bytes: 8 * 1024 * 1024,
             max_address_space_bytes: 2 * 1024 * 1024 * 1024,
             max_cpu_seconds: 120,
-            max_processes: 128,
+            max_processes: 1024,
             max_file_size_bytes: 64 * 1024 * 1024,
             max_open_files: 256,
         }
