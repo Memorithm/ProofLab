@@ -77,10 +77,13 @@ helper and the exact read-only Lean runtime roots. The Linux backend creates
 fresh mount, PID, IPC, UTS, cgroup and network namespaces,
 drops capabilities, exposes only read-only system/runtime/project trees plus a
 private writable `/tmp`, and applies CPU, address-space, PID, file-size and
-descriptor limits with `prlimit`. The independent process-group, wall-clock,
-bounded-output and drain controls remain active outside the namespace. Every
-isolation policy and budget is embedded in the content-addressed invocation
-contract, so a supervised-only job cannot be replayed as an isolated one.
+descriptor limits with `prlimit`. Untrusted source files are read through a
+separate `max_source_bytes` admission limit before allocation and are then
+sealed into the namespace as immutable bytes. The independent process-group,
+wall-clock, bounded-output and drain controls remain active outside the
+namespace. Every isolation policy and budget is embedded in the
+content-addressed invocation contract, so a supervised-only job or an older
+isolation contract cannot be replayed under the stronger policy.
 
 ## SciRust / SOS reuse
 
