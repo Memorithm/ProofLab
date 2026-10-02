@@ -351,10 +351,7 @@ impl CgroupGuard {
         let mut path = None;
         for _ in 0..32 {
             let sequence = CGROUP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-            let candidate = root.join(format!(
-                "prooflab-{}-{sequence}",
-                std::process::id()
-            ));
+            let candidate = root.join(format!("prooflab-{}-{sequence}", std::process::id()));
             match fs::create_dir(&candidate) {
                 Ok(()) => {
                     path = Some(candidate);
@@ -375,14 +372,20 @@ impl CgroupGuard {
             cleaned: false,
         };
         let configured = (|| {
-            write_and_verify(&guard.path.join("memory.max"), &policy.max_memory_bytes.to_string())?;
+            write_and_verify(
+                &guard.path.join("memory.max"),
+                &policy.max_memory_bytes.to_string(),
+            )?;
             if guard.path.join("memory.swap.max").exists() {
                 write_and_verify(&guard.path.join("memory.swap.max"), "0")?;
             }
             if guard.path.join("memory.oom.group").exists() {
                 write_and_verify(&guard.path.join("memory.oom.group"), "1")?;
             }
-            write_and_verify(&guard.path.join("pids.max"), &policy.max_processes.to_string())?;
+            write_and_verify(
+                &guard.path.join("pids.max"),
+                &policy.max_processes.to_string(),
+            )?;
             write_and_verify(
                 &guard.path.join("cpu.max"),
                 &format!("{} {}", policy.cpu_quota_micros, policy.cpu_period_micros),
@@ -723,10 +726,8 @@ mod tests {
     use super::*;
 
     fn contract_cgroup() -> CgroupV2Policy {
-        let root = std::env::temp_dir().join(format!(
-            "prooflab-cgroup-contract-{}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("prooflab-cgroup-contract-{}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         CgroupV2Policy::new(root).with_limits(16 * 1024 * 1024, 7, 50_000, 100_000)
     }
@@ -888,12 +889,11 @@ mod tests {
 
     #[test]
     fn zero_aggregate_cgroup_limit_fails_closed() {
-        let policy = CgroupV2Policy::new("/tmp/prooflab-cgroup").with_limits(
-            0,
-            8,
-            50_000,
-            100_000,
+        let policy =
+            CgroupV2Policy::new("/tmp/prooflab-cgroup").with_limits(0, 8, 50_000, 100_000);
+        assert_eq!(
+            policy.validate().unwrap_err().kind(),
+            io::ErrorKind::InvalidInput
         );
-        assert_eq!(policy.validate().unwrap_err().kind(), io::ErrorKind::InvalidInput);
     }
 }

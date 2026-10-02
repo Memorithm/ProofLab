@@ -1005,10 +1005,8 @@ mod tests {
     }
 
     fn contract_isolation() -> BubblewrapIsolation {
-        let root = std::env::temp_dir().join(format!(
-            "prooflab-contract-cgroup-{}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("prooflab-contract-cgroup-{}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false")
             .with_cgroup_v2(CgroupV2Policy::new(root))
