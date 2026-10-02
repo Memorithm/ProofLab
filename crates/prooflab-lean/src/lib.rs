@@ -28,7 +28,7 @@ mod process_guard;
 use std::collections::BTreeSet;
 use std::fmt;
 use std::fs;
-use std::io;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
@@ -482,8 +482,22 @@ impl LeanKernel {
         source: impl AsRef<Path>,
     ) -> std::io::Result<LeanProcessResult> {
         let source = source.as_ref().canonicalize()?;
-        let source_bytes = fs::read(&source)?;
+        let source_bytes = self.read_untrusted_source(&source)?;
         self.verify_untrusted_bytes(&source, &source_bytes)
+    }
+
+    fn isolation(&self) -> io::Result<&BubblewrapIsolation> {
+        self.isolation.as_ref().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "untrusted Lean verification requires an OS isolation backend",
+            )
+        })
+    }
+
+    fn read_untrusted_source(&self, source: &Path) -> io::Result<Vec<u8>> {
+        let isolation = self.isolation()?;
+        read_source_bounded(source, isolation.max_source_bytes())
     }
 
     fn verify_untrusted_bytes(
@@ -492,12 +506,7 @@ impl LeanKernel {
         source_bytes: &[u8],
     ) -> std::io::Result<LeanProcessResult> {
         let project_root = lake_project_root(source)?;
-        let isolation = self.isolation.as_ref().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::PermissionDenied,
-                "untrusted Lean verification requires an OS isolation backend",
-            )
-        })?;
+        let isolation = self.isolation()?;
         let mut command =
             isolation.command(&self.lake_binary, &project_root, source, source_bytes)?;
         self.run_command(&mut command)
@@ -724,7 +733,13 @@ impl LeanKernel {
         let environment = core_reproduce(artifact, observed, available_dependencies)?;
 
         let source = source.as_ref();
-        let source_bytes = fs::read(source).map_err(VerificationError::from)?;
+        let untrusted = self.reproduction_is_untrusted(&artifact.body.kernel.invocation)?;
+        let source_bytes = if untrusted {
+            self.read_untrusted_source(source)
+        } else {
+            fs::read(source)
+        }
+        .map_err(VerificationError::from)?;
         if !formal_statement.matches_source(&source_bytes)
             || artifact.body.proof_source_digest != sha256_bytes(&source_bytes)
         {
@@ -734,7 +749,6 @@ impl LeanKernel {
             return Err(VerificationError::FormalStatementMismatch.into());
         }
 
-        let untrusted = self.reproduction_is_untrusted(&artifact.body.kernel.invocation)?;
         let job = VerificationJob::new_with_dependencies(
             formal_statement,
             &source_bytes,
@@ -889,7 +903,11 @@ impl LeanKernel {
             }
         }
 
-        let source_bytes = fs::read(source)?;
+        let source_bytes = if untrusted {
+            self.read_untrusted_source(source)?
+        } else {
+            fs::read(source)?
+        };
         if !formal_statement.matches_source(&source_bytes)
             || !job.matches_proof_source(&source_bytes)
         {
@@ -903,6 +921,46 @@ impl LeanKernel {
         };
         Ok((result, source_bytes))
     }
+}
+
+fn read_source_bounded(source: &Path, max_source_bytes: u64) -> io::Result<Vec<u8>> {
+    if max_source_bytes == 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "max_source_bytes must be non-zero",
+        ));
+    }
+
+    let mut file = fs::File::open(source)?;
+    let metadata = file.metadata()?;
+    if !metadata.is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Lean source must be a regular file",
+        ));
+    }
+    if metadata.len() > max_source_bytes {
+        return Err(source_too_large(max_source_bytes, metadata.len()));
+    }
+
+    let mut source_bytes = Vec::new();
+    file.by_ref()
+        .take(max_source_bytes.saturating_add(1))
+        .read_to_end(&mut source_bytes)?;
+    let observed = u64::try_from(source_bytes.len()).unwrap_or(u64::MAX);
+    if observed > max_source_bytes {
+        return Err(source_too_large(max_source_bytes, observed));
+    }
+    Ok(source_bytes)
+}
+
+fn source_too_large(max_source_bytes: u64, observed: u64) -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidData,
+        format!(
+            "Lean source exceeds max_source_bytes={max_source_bytes} (observed {observed})"
+        ),
+    )
 }
 
 fn lake_project_root(source: &Path) -> io::Result<PathBuf> {
@@ -992,14 +1050,42 @@ mod tests {
     }
 
     #[test]
+    fn oversized_untrusted_source_is_rejected_before_isolation_launch() {
+        let root = std::env::temp_dir().join(format!(
+            "prooflab-source-limit-{}-{}",
+            std::process::id(),
+            line!()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("lakefile.lean"), "").unwrap();
+        let source = root.join("Oversized.lean");
+        fs::write(&source, b"12345").unwrap();
+
+        let kernel = LeanKernel::new("/missing/lake").with_isolation(
+            BubblewrapIsolation::new("/missing/bwrap", "/missing/prlimit").with_limits(
+                LeanIsolationLimits {
+                    max_source_bytes: 4,
+                    ..LeanIsolationLimits::default()
+                },
+            ),
+        );
+        let error = kernel.verify_untrusted_file(&source).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("max_source_bytes=4"));
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn isolated_jobs_have_a_distinct_content_addressed_contract() {
         let kernel = LeanKernel::new("/usr/bin/false")
             .with_isolation(BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false"));
         let isolated = kernel.isolated_invocation_contract().unwrap();
         assert_ne!(isolated, kernel.invocation_contract());
-        assert!(isolated.contains("isolation=linux-setuid-bubblewrap-v2"));
+        assert!(isolated.contains("isolation=linux-setuid-bubblewrap-v3"));
         assert!(isolated.contains("network=deny_all"));
         assert!(isolated.contains("source=readonly_bind_data"));
+        assert!(isolated.contains("max_source_bytes=8388608"));
     }
 
     #[test]
@@ -1018,8 +1104,8 @@ mod tests {
             Err(VerificationError::InvocationMismatch)
         ));
         let legacy = isolated
-            .replace("linux-setuid-bubblewrap-v2", "linux-setuid-bubblewrap-v1")
-            .replace(";source=readonly_bind_data", "");
+            .replace("linux-setuid-bubblewrap-v3", "linux-setuid-bubblewrap-v2")
+            .replace(";max_source_bytes=8388608", "");
         assert!(matches!(
             kernel.reproduction_is_untrusted(&legacy),
             Err(VerificationError::InvocationMismatch)
