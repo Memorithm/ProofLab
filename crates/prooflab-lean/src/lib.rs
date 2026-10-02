@@ -957,9 +957,7 @@ fn read_source_bounded(source: &Path, max_source_bytes: u64) -> io::Result<Vec<u
 fn source_too_large(max_source_bytes: u64, observed: u64) -> io::Error {
     io::Error::new(
         io::ErrorKind::InvalidData,
-        format!(
-            "Lean source exceeds max_source_bytes={max_source_bytes} (observed {observed})"
-        ),
+        format!("Lean source exceeds max_source_bytes={max_source_bytes} (observed {observed})"),
     )
 }
 
