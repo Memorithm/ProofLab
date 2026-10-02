@@ -81,16 +81,14 @@ impl CgroupV2Policy {
         Ok(())
     }
 
-    fn contract(&self, shell: &Path) -> String {
-        let mut contract = format!(
+    fn contract(&self) -> String {
+        format!(
             "cgroup=v2_delegated;max_aggregate_memory_bytes={};max_aggregate_processes={};cpu_quota_micros={};cpu_period_micros={}",
             self.max_memory_bytes,
             self.max_processes,
             self.cpu_quota_micros,
             self.cpu_period_micros,
-        );
-        push_path_contract(&mut contract, "cgroup_shell", shell);
-        contract
+        )
     }
 }
 
@@ -226,7 +224,6 @@ impl BubblewrapIsolation {
         let roots = self.validated_runtime_roots()?;
         let cgroup = self.cgroup_policy()?;
         canonical_cgroup_root(&cgroup.root)?;
-        let shell = canonical_executable(Path::new("/bin/sh"), "cgroup entry shell")?;
         let bubblewrap = canonical_executable(&self.bubblewrap_binary, "bubblewrap")?;
         let prlimit = canonical_executable(&self.prlimit_binary, "prlimit")?;
         let lake = canonical_executable(lake_binary, "lake")?;
@@ -238,7 +235,7 @@ impl BubblewrapIsolation {
         push_path_contract(&mut contract, "prlimit", &prlimit);
         push_path_contract(&mut contract, "lake", &lake);
         contract.push(';');
-        contract.push_str(&cgroup.contract(&shell));
+        contract.push_str(&cgroup.contract());
         for root in roots {
             push_path_contract(&mut contract, "runtime_root", &root);
         }
@@ -258,7 +255,6 @@ impl BubblewrapIsolation {
         validate_setuid_root(&bubblewrap_binary)?;
         let prlimit_binary = canonical_executable(&self.prlimit_binary, "prlimit")?;
         let lake_binary = canonical_executable(lake_binary, "lake")?;
-        let shell = canonical_executable(Path::new("/bin/sh"), "cgroup entry shell")?;
         let source = source.canonicalize()?;
         if !source.is_file() || !source.starts_with(&project_root) {
             return Err(io::Error::new(
@@ -295,13 +291,8 @@ impl BubblewrapIsolation {
         }
         let cgroup_policy = self.cgroup_policy()?;
         let cgroup = CgroupGuard::create(cgroup_policy)?;
-        let mut command = Command::new(shell);
-        command
-            .arg("-c")
-            .arg("printf '%s\\n' \"$$\" > \"$1/cgroup.procs\" || exit 125; shift; exec \"$@\"")
-            .arg("prooflab-cgroup-enter")
-            .arg(cgroup.path())
-            .arg(&bubblewrap_binary);
+        let mut command = Command::new(&bubblewrap_binary);
+        configure_cgroup_entry(&mut command, &cgroup)?;
         configure_namespace(&mut command, &project_root, roots);
         attach_sealed_source(&mut command, source_bytes)?;
         configure_limits_and_lean(&mut command, &prlimit_binary, &lake_binary, self.limits);
@@ -340,6 +331,7 @@ impl PreparedIsolationCommand {
 #[derive(Debug)]
 struct CgroupGuard {
     path: PathBuf,
+    entry: File,
     cleaned: bool,
 }
 
@@ -367,8 +359,19 @@ impl CgroupGuard {
                 "failed to allocate a unique ProofLab cgroup",
             )
         })?;
+        let entry = match fs::OpenOptions::new()
+            .write(true)
+            .open(path.join("cgroup.procs"))
+        {
+            Ok(entry) => entry,
+            Err(error) => {
+                let _ = fs::remove_dir(&path);
+                return Err(error);
+            }
+        };
         let mut guard = Self {
             path,
+            entry,
             cleaned: false,
         };
         let configured = (|| {
@@ -405,10 +408,6 @@ impl CgroupGuard {
             return Err(error);
         }
         Ok(guard)
-    }
-
-    fn path(&self) -> &Path {
-        &self.path
     }
 
     fn cleanup(&mut self) -> io::Result<()> {
@@ -461,13 +460,39 @@ impl CgroupGuard {
         ))
     }
 
-    fn path(&self) -> &Path {
-        Path::new("")
-    }
-
     fn cleanup(&mut self) -> io::Result<()> {
         Ok(())
     }
+}
+
+#[cfg(target_os = "linux")]
+fn configure_cgroup_entry(command: &mut Command, cgroup: &CgroupGuard) -> io::Result<()> {
+    use std::os::fd::AsRawFd;
+    use std::os::unix::process::CommandExt;
+
+    let entry_fd = cgroup.entry.as_raw_fd();
+    // SAFETY: after fork and before exec this hook only invokes libc::write on an
+    // already-open cgroup.procs descriptor. Writing `0` moves the calling task.
+    unsafe {
+        command.pre_exec(move || {
+            let payload = b"0\n";
+            let written = nix::libc::write(entry_fd, payload.as_ptr().cast(), payload.len());
+            if written == payload.len() as isize {
+                Ok(())
+            } else {
+                Err(io::Error::last_os_error())
+            }
+        });
+    }
+    Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn configure_cgroup_entry(_command: &mut Command, _cgroup: &CgroupGuard) -> io::Result<()> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "aggregate cgroup v2 isolation requires Linux",
+    ))
 }
 
 fn canonical_cgroup_root(path: &Path) -> io::Result<PathBuf> {
@@ -486,22 +511,7 @@ fn validate_cgroup_controllers(root: &Path) -> io::Result<()> {
     use std::os::unix::fs::MetadataExt;
 
     let mountinfo = fs::read_to_string("/proc/self/mountinfo")?;
-    let on_cgroup_v2 = mountinfo.lines().any(|line| {
-        let Some((mount, filesystem)) = line.split_once(" - ") else {
-            return false;
-        };
-        let Some(mount_point) = mount.split_whitespace().nth(4) else {
-            return false;
-        };
-        filesystem.split_whitespace().next() == Some("cgroup2")
-            && root.starts_with(Path::new(mount_point))
-    });
-    if !on_cgroup_v2 {
-        return Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            "configured aggregate resource root is not on a cgroup v2 filesystem",
-        ));
-    }
+    validate_cgroup_v2_mount(root, &mountinfo)?;
     let metadata = root.metadata()?;
     if metadata.mode() & 0o022 != 0 {
         return Err(io::Error::new(
@@ -522,6 +532,46 @@ fn validate_cgroup_controllers(root: &Path) -> io::Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn validate_cgroup_v2_mount(root: &Path, mountinfo: &str) -> io::Result<()> {
+    let mut on_cgroup_v2 = false;
+    for line in mountinfo.lines() {
+        let Some((mount, filesystem)) = line.split_once(" - ") else {
+            continue;
+        };
+        if filesystem.split_whitespace().next() != Some("cgroup2") {
+            continue;
+        }
+        let Some(encoded_mount_point) = mount.split_whitespace().nth(4) else {
+            continue;
+        };
+        let mount_point = PathBuf::from(decode_mountinfo_path(encoded_mount_point));
+        if root == mount_point {
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "the cgroup v2 filesystem mount root cannot be used directly",
+            ));
+        }
+        on_cgroup_v2 |= root.starts_with(&mount_point);
+    }
+    if !on_cgroup_v2 {
+        return Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "configured aggregate resource root is not on a cgroup v2 filesystem",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn decode_mountinfo_path(encoded: &str) -> String {
+    encoded
+        .replace("\\040", " ")
+        .replace("\\011", "\t")
+        .replace("\\012", "\n")
+        .replace("\\134", "\\")
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -894,5 +944,42 @@ mod tests {
             policy.validate().unwrap_err().kind(),
             io::ErrorKind::InvalidInput
         );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn actual_cgroup_v2_mount_root_is_refused() {
+        let mountinfo = "29 23 0:26 / /custom\\040cgroup rw - cgroup2 cgroup rw\n";
+        let mount_root = Path::new("/custom cgroup");
+        assert_eq!(
+            validate_cgroup_v2_mount(mount_root, mountinfo)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::PermissionDenied
+        );
+        validate_cgroup_v2_mount(Path::new("/custom cgroup/prooflab"), mountinfo).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn cgroup_placement_failure_is_a_spawn_error() {
+        let root = std::env::temp_dir().join(format!(
+            "prooflab-cgroup-placement-error-{}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let entry_path = root.join("cgroup.procs");
+        fs::write(&entry_path, "").unwrap();
+        let guard = CgroupGuard {
+            path: root.clone(),
+            entry: File::open(&entry_path).unwrap(),
+            cleaned: true,
+        };
+        let mut command = Command::new("/usr/bin/true");
+        configure_cgroup_entry(&mut command, &guard).unwrap();
+        let error = command.spawn().unwrap_err();
+        assert_eq!(error.raw_os_error(), Some(nix::libc::EBADF));
+        drop(guard);
+        fs::remove_dir_all(root).unwrap();
     }
 }
