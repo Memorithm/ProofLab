@@ -122,10 +122,8 @@ fn aggregate_cgroup_rejects_process_fanout_and_is_cleaned() {
         "the ignored isolation gate must only run when explicitly enabled"
     );
 
-    let root = std::env::temp_dir().join(format!(
-        "prooflab-cgroup-fanout-e2e-{}",
-        std::process::id()
-    ));
+    let root =
+        std::env::temp_dir().join(format!("prooflab-cgroup-fanout-e2e-{}", std::process::id()));
     let project = root.join("project");
     fs::create_dir_all(&project).unwrap();
     fs::write(project.join("lakefile.lean"), "").unwrap();
@@ -164,7 +162,10 @@ wait
     let kernel = LeanKernel::new(fake_lake.canonicalize().unwrap()).with_isolation(isolation);
     let result = kernel.verify_untrusted_file(&source).unwrap();
 
-    assert!(!result.accepted, "aggregate PID fanout unexpectedly succeeded");
+    assert!(
+        !result.accepted,
+        "aggregate PID fanout unexpectedly succeeded"
+    );
     assert!(result.exit_code.is_some_and(|code| code != 0));
     assert!(
         result.stderr.contains("Resource temporarily unavailable")
