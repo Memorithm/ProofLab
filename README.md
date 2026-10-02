@@ -78,10 +78,11 @@ subtree delegated exclusively to ProofLab. The delegated root must expose and
 enable the `cpu`, `memory` and `pids` controllers; the cgroup filesystem root is
 refused. The service process must already run inside that delegation (or be
 placed there by its service manager), so it can move children without gaining
-privilege. A fresh leaf is configured and read back for every invocation, the
-launcher enters it in a pre-exec hook (so placement failure is an I/O error,
-never a Lean rejection), and cleanup kills residual descendants and waits a
-bounded interval for `populated 0` before removing the leaf. The Linux
+privilege. A fresh leaf is configured and read back for every invocation. The
+launcher uses a reserved failure status for pre-Lean cgroup placement, which is
+classified as unknown infrastructure failure rather than a Lean rejection.
+Cleanup kills residual descendants and waits a bounded interval for
+`populated 0` before removing the leaf. The Linux
 backend creates fresh mount, PID, IPC, UTS, cgroup and network namespaces,
 drops capabilities, exposes only read-only system/runtime/project trees plus a
 private writable `/tmp`, applies aggregate memory, PID and CPU bandwidth budgets

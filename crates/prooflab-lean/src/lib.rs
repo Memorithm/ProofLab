@@ -44,6 +44,7 @@ pub use false_conjectures::{
     FalseConjectureReport, run_controlled_false_conjecture_battery,
 };
 pub use isolation::{BubblewrapIsolation, CgroupV2Policy, LeanIsolationLimits};
+use isolation::CGROUP_LAUNCH_FAILURE_CODE;
 pub use minimize::{
     ASSUMPTION_MINIMIZATION_CORPUS, ExpectedRemovalOutcome, MinimizationEntry, MinimizationError,
     MinimizationPrepared, MinimizationRunReport, PreparedRemovalTrial, RemovalCandidate,
@@ -313,7 +314,8 @@ impl From<VerificationError> for LeanReproduceError {
 ///
 /// Mapping (fail-closed, non-upgradable):
 /// - ordinary process success with exit code `0` → [`KernelOutcome::Accepted`]
-/// - ordinary process failure with an exit code → [`KernelOutcome::Rejected`]
+/// - reserved isolation-launch failure → [`KernelOutcome::Unknown`]
+/// - any other ordinary process failure with an exit code → [`KernelOutcome::Rejected`]
 /// - an elapsed wall-clock budget → [`KernelOutcome::Timeout`] with measured time
 /// - a signal or inconsistent process record → [`KernelOutcome::Unknown`]
 #[must_use]
@@ -342,6 +344,10 @@ pub fn kernel_outcome_from_process(
     } else if let ProcessTermination::Signaled { signal } = process.termination {
         KernelOutcome::Unknown {
             reason: format!("Lean process terminated by signal {signal:?}"),
+        }
+    } else if process.exit_code == Some(CGROUP_LAUNCH_FAILURE_CODE) {
+        KernelOutcome::Unknown {
+            reason: "isolation launcher failed before Lean execution".into(),
         }
     } else if !process.accepted {
         if let Some(code) = process.exit_code {
@@ -1287,6 +1293,20 @@ mod tests {
         );
         assert!(matches!(rejected, KernelOutcome::Rejected { .. }));
         assert!(!rejected.is_accepting());
+
+        let launch_failure = kernel_outcome_from_process(
+            &process(
+                false,
+                Some(CGROUP_LAUNCH_FAILURE_CODE),
+                ProcessTermination::Exited,
+                "",
+                "ProofLab cgroup placement failed",
+            ),
+            FormalBackend::Lean4,
+            DEFAULT_LEAN_INVOCATION,
+        );
+        assert!(matches!(launch_failure, KernelOutcome::Unknown { .. }));
+        assert!(!launch_failure.is_accepting());
 
         let timeout = kernel_outcome_from_process(
             &process(
