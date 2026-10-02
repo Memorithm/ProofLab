@@ -21,6 +21,7 @@ pub struct LeanIsolationLimits {
     pub max_address_space_bytes: u64,
     pub max_cpu_seconds: u64,
     pub max_processes: u64,
+    pub max_lean_threads: u64,
     pub max_file_size_bytes: u64,
     pub max_open_files: u64,
 }
@@ -32,6 +33,7 @@ impl Default for LeanIsolationLimits {
             max_address_space_bytes: 2 * 1024 * 1024 * 1024,
             max_cpu_seconds: 120,
             max_processes: 128,
+            max_lean_threads: 1,
             max_file_size_bytes: 64 * 1024 * 1024,
             max_open_files: 256,
         }
@@ -44,6 +46,7 @@ impl LeanIsolationLimits {
             || self.max_address_space_bytes == 0
             || self.max_cpu_seconds == 0
             || self.max_processes == 0
+            || self.max_lean_threads == 0
             || self.max_file_size_bytes == 0
             || self.max_open_files == 0
         {
@@ -57,11 +60,12 @@ impl LeanIsolationLimits {
 
     fn contract(self) -> String {
         format!(
-            "max_source_bytes={};max_as_bytes={};max_cpu_seconds={};max_processes={};max_file_bytes={};max_open_files={}",
+            "max_source_bytes={};max_as_bytes={};max_cpu_seconds={};max_processes={};max_lean_threads={};max_file_bytes={};max_open_files={}",
             self.max_source_bytes,
             self.max_address_space_bytes,
             self.max_cpu_seconds,
             self.max_processes,
+            self.max_lean_threads,
             self.max_file_size_bytes,
             self.max_open_files,
         )
@@ -275,6 +279,8 @@ fn configure_limits_and_lean(
         .arg(lake_binary)
         .arg("env")
         .arg("lean")
+        .arg("-j")
+        .arg(limits.max_lean_threads.to_string())
         .arg("/tmp/prooflab-source.lean");
 }
 
@@ -387,8 +393,9 @@ mod tests {
                 max_address_space_bytes: 10,
                 max_cpu_seconds: 11,
                 max_processes: 12,
-                max_file_size_bytes: 13,
-                max_open_files: 14,
+                max_lean_threads: 13,
+                max_file_size_bytes: 14,
+                max_open_files: 15,
             },
         );
         let contract = isolation
@@ -399,7 +406,24 @@ mod tests {
         assert!(contract.contains("source=readonly_bind_data"));
         assert!(contract.contains("max_source_bytes=9"));
         assert!(contract.contains("max_as_bytes=10"));
-        assert!(contract.contains("max_open_files=14"));
+        assert!(contract.contains("max_lean_threads=13"));
+        assert!(contract.contains("max_open_files=15"));
+    }
+
+    #[test]
+    fn isolated_lean_worker_count_is_bounded() {
+        let mut command = Command::new("/usr/bin/false");
+        configure_limits_and_lean(
+            &mut command,
+            Path::new("/usr/bin/prlimit"),
+            Path::new("/usr/bin/lake"),
+            LeanIsolationLimits::default(),
+        );
+        let args = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        assert!(args.windows(3).any(|window| window == ["lean", "-j", "1"]));
     }
 
     #[test]
