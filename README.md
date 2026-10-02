@@ -73,10 +73,18 @@ sandbox. Generated or third-party Lean must use `verify_untrusted_file`,
 `verify_untrusted_job` or `verify_untrusted_obligation`. Those entrypoints fail
 closed unless the caller configures `BubblewrapIsolation` with absolute,
 verified `prlimit` executable, an administrator-owned setuid-root Bubblewrap
-helper and the exact read-only Lean runtime roots. The Linux backend creates
-fresh mount, PID, IPC, UTS, cgroup and network namespaces,
+helper, the exact read-only Lean runtime roots and a dedicated cgroup v2
+subtree delegated exclusively to ProofLab. The delegated root must expose and
+enable the `cpu`, `memory` and `pids` controllers; the cgroup filesystem root is
+refused. The service process must already run inside that delegation (or be
+placed there by its service manager), so it can move children without gaining
+privilege. A fresh leaf is configured and read back for every invocation, the
+launcher enters it before `exec`, and cleanup kills residual descendants and
+waits a bounded interval for `populated 0` before removing the leaf. The Linux
+backend creates fresh mount, PID, IPC, UTS, cgroup and network namespaces,
 drops capabilities, exposes only read-only system/runtime/project trees plus a
-private writable `/tmp`, and applies CPU, address-space, PID, file-size and
+private writable `/tmp`, applies aggregate memory, PID and CPU bandwidth budgets
+with cgroup v2, and retains per-process CPU, address-space, PID, file-size and
 descriptor limits with `prlimit`. Untrusted source files are read through a
 separate `max_source_bytes` admission limit before allocation and then sealed
 into the namespace as immutable bytes. Lean runs with an explicit worker-count

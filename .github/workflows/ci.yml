@@ -37,10 +37,34 @@ jobs:
           test "$(stat -c '%U %a' /usr/bin/bwrap)" = "root 4755"
           bwrap --version
           prlimit --version
+      - name: Delegate aggregate cgroup v2 subtree
+        run: |
+          CGROUP_ROOT="/sys/fs/cgroup/prooflab-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}"
+          sudo mkdir "$CGROUP_ROOT"
+          sudo chown "$(id -u):$(id -g)" \
+            "$CGROUP_ROOT" \
+            "$CGROUP_ROOT/cgroup.procs" \
+            "$CGROUP_ROOT/cgroup.subtree_control"
+          chmod 0700 "$CGROUP_ROOT"
+          printf '+cpu +memory +pids\n' > "$CGROUP_ROOT/cgroup.subtree_control"
+          for controller in cpu memory pids; do
+            grep -qw "$controller" "$CGROUP_ROOT/cgroup.subtree_control"
+          done
+          mkdir "$CGROUP_ROOT/manager"
+          echo "PROOFLAB_CGROUP_ROOT=$CGROUP_ROOT" >> "$GITHUB_ENV"
       - name: Qualify untrusted Lean OS isolation
         env:
           PROOFLAB_RUN_ISOLATION_E2E: "1"
-        run: cargo +1.98.1 test -p prooflab-lean --test isolation_e2e -- --ignored --nocapture
+        run: |
+          printf '%s\n' "$$" | sudo tee "$PROOFLAB_CGROUP_ROOT/manager/cgroup.procs" >/dev/null
+          exec cargo +1.98.1 test -p prooflab-lean --test isolation_e2e -- --ignored --nocapture
+      - name: Remove aggregate cgroup v2 subtree
+        if: always()
+        run: |
+          if [ -n "${PROOFLAB_CGROUP_ROOT:-}" ] && [ -d "$PROOFLAB_CGROUP_ROOT" ]; then
+            sudo rmdir "$PROOFLAB_CGROUP_ROOT/manager"
+            sudo rmdir "$PROOFLAB_CGROUP_ROOT"
+          fi
 
   lean:
     name: Lean
@@ -71,6 +95,21 @@ jobs:
           test "$(stat -c '%U %a' /usr/bin/bwrap)" = "root 4755"
           bwrap --version
           prlimit --version
+      - name: Delegate aggregate cgroup v2 subtree
+        run: |
+          CGROUP_ROOT="/sys/fs/cgroup/prooflab-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}"
+          sudo mkdir "$CGROUP_ROOT"
+          sudo chown "$(id -u):$(id -g)" \
+            "$CGROUP_ROOT" \
+            "$CGROUP_ROOT/cgroup.procs" \
+            "$CGROUP_ROOT/cgroup.subtree_control"
+          chmod 0700 "$CGROUP_ROOT"
+          printf '+cpu +memory +pids\n' > "$CGROUP_ROOT/cgroup.subtree_control"
+          for controller in cpu memory pids; do
+            grep -qw "$controller" "$CGROUP_ROOT/cgroup.subtree_control"
+          done
+          mkdir "$CGROUP_ROOT/manager"
+          echo "PROOFLAB_CGROUP_ROOT=$CGROUP_ROOT" >> "$GITHUB_ENV"
       - name: Resolve pinned Lake dependencies
         run: lake update
       - name: Build Lean project
@@ -85,6 +124,14 @@ jobs:
         env:
           PROOFLAB_RUN_ISOLATED_LEAN_E2E: "1"
         run: |
+          printf '%s\n' "$$" | sudo tee "$PROOFLAB_CGROUP_ROOT/manager/cgroup.procs" >/dev/null
           export PROOFLAB_LAKE_BINARY="$(elan which lake)"
           export PROOFLAB_LEAN_RUNTIME_ROOT="$(dirname "$(dirname "$PROOFLAB_LAKE_BINARY")")"
-          cargo +1.98.1 test -p prooflab-lean --test isolation_lean_e2e -- --ignored --nocapture
+          exec cargo +1.98.1 test -p prooflab-lean --test isolation_lean_e2e -- --ignored --nocapture
+      - name: Remove aggregate cgroup v2 subtree
+        if: always()
+        run: |
+          if [ -n "${PROOFLAB_CGROUP_ROOT:-}" ] && [ -d "$PROOFLAB_CGROUP_ROOT" ]; then
+            sudo rmdir "$PROOFLAB_CGROUP_ROOT/manager"
+            sudo rmdir "$PROOFLAB_CGROUP_ROOT"
+          fi
