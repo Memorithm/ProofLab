@@ -12,11 +12,12 @@ use nix::fcntl::{FcntlArg, SealFlag, fcntl};
 #[cfg(target_os = "linux")]
 use nix::sys::memfd::{MFdFlags, memfd_create};
 
-const BACKEND_VERSION: &str = "linux-setuid-bubblewrap-v2";
+const BACKEND_VERSION: &str = "linux-setuid-bubblewrap-v3";
 
-/// Kernel-enforced resource budgets applied inside the isolated Lean boundary.
+/// Input-admission and kernel-enforced budgets for the isolated Lean boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LeanIsolationLimits {
+    pub max_source_bytes: u64,
     pub max_address_space_bytes: u64,
     pub max_cpu_seconds: u64,
     pub max_processes: u64,
@@ -27,6 +28,7 @@ pub struct LeanIsolationLimits {
 impl Default for LeanIsolationLimits {
     fn default() -> Self {
         Self {
+            max_source_bytes: 8 * 1024 * 1024,
             max_address_space_bytes: 2 * 1024 * 1024 * 1024,
             max_cpu_seconds: 120,
             max_processes: 128,
@@ -38,7 +40,8 @@ impl Default for LeanIsolationLimits {
 
 impl LeanIsolationLimits {
     fn validate(self) -> io::Result<()> {
-        if self.max_address_space_bytes == 0
+        if self.max_source_bytes == 0
+            || self.max_address_space_bytes == 0
             || self.max_cpu_seconds == 0
             || self.max_processes == 0
             || self.max_file_size_bytes == 0
@@ -54,7 +57,8 @@ impl LeanIsolationLimits {
 
     fn contract(self) -> String {
         format!(
-            "max_as_bytes={};max_cpu_seconds={};max_processes={};max_file_bytes={};max_open_files={}",
+            "max_source_bytes={};max_as_bytes={};max_cpu_seconds={};max_processes={};max_file_bytes={};max_open_files={}",
+            self.max_source_bytes,
             self.max_address_space_bytes,
             self.max_cpu_seconds,
             self.max_processes,
@@ -110,6 +114,10 @@ impl BubblewrapIsolation {
         self.limits
     }
 
+    pub(crate) const fn max_source_bytes(&self) -> u64 {
+        self.limits.max_source_bytes
+    }
+
     // Contract construction is not a prerequisite for the direct file API.
     // Both paths must independently apply the same canonical mount admission.
     fn validated_runtime_roots(&self) -> io::Result<BTreeSet<PathBuf>> {
@@ -157,6 +165,16 @@ impl BubblewrapIsolation {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
                 "isolated Lean source must be a regular file inside its Lake project",
+            ));
+        }
+        let source_len = u64::try_from(source_bytes.len()).unwrap_or(u64::MAX);
+        if source_len > self.limits.max_source_bytes {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "isolated Lean source exceeds max_source_bytes={} (observed {source_len})",
+                    self.limits.max_source_bytes
+                ),
             ));
         }
 
@@ -365,6 +383,7 @@ mod tests {
     fn isolation_limits_are_bound_into_the_contract() {
         let isolation = BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false").with_limits(
             LeanIsolationLimits {
+                max_source_bytes: 9,
                 max_address_space_bytes: 10,
                 max_cpu_seconds: 11,
                 max_processes: 12,
@@ -375,9 +394,10 @@ mod tests {
         let contract = isolation
             .invocation_contract(Path::new("/usr/bin/false"))
             .unwrap();
-        assert!(contract.contains("isolation=linux-setuid-bubblewrap-v2"));
+        assert!(contract.contains("isolation=linux-setuid-bubblewrap-v3"));
         assert!(contract.contains("network=deny_all"));
         assert!(contract.contains("source=readonly_bind_data"));
+        assert!(contract.contains("max_source_bytes=9"));
         assert!(contract.contains("max_as_bytes=10"));
         assert!(contract.contains("max_open_files=14"));
     }
