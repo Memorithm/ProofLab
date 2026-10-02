@@ -43,7 +43,7 @@ pub use false_conjectures::{
     CONTROLLED_FALSE_CONJECTURES, FalseConjectureEntry, FalseConjectureError,
     FalseConjectureReport, run_controlled_false_conjecture_battery,
 };
-pub use isolation::{BubblewrapIsolation, LeanIsolationLimits};
+pub use isolation::{BubblewrapIsolation, CgroupV2Policy, LeanIsolationLimits};
 pub use minimize::{
     ASSUMPTION_MINIMIZATION_CORPUS, ExpectedRemovalOutcome, MinimizationEntry, MinimizationError,
     MinimizationPrepared, MinimizationRunReport, PreparedRemovalTrial, RemovalCandidate,
@@ -507,9 +507,19 @@ impl LeanKernel {
     ) -> std::io::Result<LeanProcessResult> {
         let project_root = lake_project_root(source)?;
         let isolation = self.isolation()?;
-        let mut command =
+        let mut prepared =
             isolation.command(&self.lake_binary, &project_root, source, source_bytes)?;
-        self.run_command(&mut command)
+        let result = self.run_command(prepared.command_mut());
+        let cleanup = prepared.cleanup();
+        match (result, cleanup) {
+            (Ok(result), Ok(())) => Ok(result),
+            (Err(error), Ok(())) => Err(error),
+            (Ok(_), Err(cleanup_error)) => Err(cleanup_error),
+            (Err(error), Err(cleanup_error)) => Err(io::Error::new(
+                error.kind(),
+                format!("{error}; cgroup cleanup also failed: {cleanup_error}"),
+            )),
+        }
     }
 
     fn run_command(&self, command: &mut Command) -> std::io::Result<LeanProcessResult> {
@@ -994,6 +1004,16 @@ mod tests {
         repro
     }
 
+    fn contract_isolation() -> BubblewrapIsolation {
+        let root = std::env::temp_dir().join(format!(
+            "prooflab-contract-cgroup-{}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false")
+            .with_cgroup_v2(CgroupV2Policy::new(root))
+    }
+
     #[test]
     fn default_boundary_uses_lake() {
         assert_eq!(LeanKernel::default().lake_binary, PathBuf::from("lake"));
@@ -1076,20 +1096,19 @@ mod tests {
 
     #[test]
     fn isolated_jobs_have_a_distinct_content_addressed_contract() {
-        let kernel = LeanKernel::new("/usr/bin/false")
-            .with_isolation(BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false"));
+        let kernel = LeanKernel::new("/usr/bin/false").with_isolation(contract_isolation());
         let isolated = kernel.isolated_invocation_contract().unwrap();
         assert_ne!(isolated, kernel.invocation_contract());
-        assert!(isolated.contains("isolation=linux-setuid-bubblewrap-v3"));
+        assert!(isolated.contains("isolation=linux-setuid-bubblewrap-cgroup-v4"));
         assert!(isolated.contains("network=deny_all"));
         assert!(isolated.contains("source=readonly_bind_data"));
         assert!(isolated.contains("max_source_bytes=8388608"));
+        assert!(isolated.contains("cgroup=v2_delegated"));
     }
 
     #[test]
     fn reproduction_preserves_the_original_isolation_mode() {
-        let kernel = LeanKernel::new("/usr/bin/false")
-            .with_isolation(BubblewrapIsolation::new("/usr/bin/false", "/usr/bin/false"));
+        let kernel = LeanKernel::new("/usr/bin/false").with_isolation(contract_isolation());
         let isolated = kernel.isolated_invocation_contract().unwrap();
         assert!(kernel.reproduction_is_untrusted(&isolated).unwrap());
         assert!(
@@ -1102,7 +1121,10 @@ mod tests {
             Err(VerificationError::InvocationMismatch)
         ));
         let legacy = isolated
-            .replace("linux-setuid-bubblewrap-v3", "linux-setuid-bubblewrap-v2")
+            .replace(
+                "linux-setuid-bubblewrap-cgroup-v4",
+                "linux-setuid-bubblewrap-v3",
+            )
             .replace(";max_source_bytes=8388608", "");
         assert!(matches!(
             kernel.reproduction_is_untrusted(&legacy),
