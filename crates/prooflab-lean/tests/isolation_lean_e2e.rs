@@ -35,9 +35,7 @@ fn isolated_api_accepts_and_rejects_with_pinned_lean() {
         "theorem input : True := by\n  exact True.intro\n",
     )
     .unwrap();
-    let accepted = kernel
-        .verify_untrusted_file(&accepted_source)
-        .unwrap();
+    let accepted = kernel.verify_untrusted_file(&accepted_source).unwrap();
     assert!(
         accepted.accepted,
         "pinned Lean rejected the valid source: {}",
