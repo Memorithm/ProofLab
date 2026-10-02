@@ -77,6 +77,7 @@ fn untrusted_boundary_enforces_filesystem_network_and_resource_policy() {
 
     let isolation = BubblewrapIsolation::new("/usr/bin/bwrap", "/usr/bin/prlimit").with_limits(
         LeanIsolationLimits {
+            max_source_bytes: 1024 * 1024,
             max_address_space_bytes: 512 * 1024 * 1024,
             max_cpu_seconds: 10,
             max_processes: 32,
