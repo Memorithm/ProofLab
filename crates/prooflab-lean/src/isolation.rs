@@ -20,6 +20,7 @@ use nix::fcntl::{FcntlArg, SealFlag, fcntl};
 use nix::sys::memfd::{MFdFlags, memfd_create};
 
 const BACKEND_VERSION: &str = "linux-setuid-bubblewrap-cgroup-v4";
+pub(crate) const CGROUP_LAUNCH_FAILURE_CODE: i32 = 125;
 
 #[cfg(target_os = "linux")]
 static CGROUP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
@@ -81,14 +82,16 @@ impl CgroupV2Policy {
         Ok(())
     }
 
-    fn contract(&self) -> String {
-        format!(
+    fn contract(&self, shell: &Path) -> String {
+        let mut contract = format!(
             "cgroup=v2_delegated;max_aggregate_memory_bytes={};max_aggregate_processes={};cpu_quota_micros={};cpu_period_micros={}",
             self.max_memory_bytes,
             self.max_processes,
             self.cpu_quota_micros,
             self.cpu_period_micros,
-        )
+        );
+        push_path_contract(&mut contract, "cgroup_shell", shell);
+        contract
     }
 }
 
@@ -224,6 +227,7 @@ impl BubblewrapIsolation {
         let roots = self.validated_runtime_roots()?;
         let cgroup = self.cgroup_policy()?;
         canonical_cgroup_root(&cgroup.root)?;
+        let shell = canonical_executable(Path::new("/bin/sh"), "cgroup entry shell")?;
         let bubblewrap = canonical_executable(&self.bubblewrap_binary, "bubblewrap")?;
         let prlimit = canonical_executable(&self.prlimit_binary, "prlimit")?;
         let lake = canonical_executable(lake_binary, "lake")?;
@@ -235,7 +239,7 @@ impl BubblewrapIsolation {
         push_path_contract(&mut contract, "prlimit", &prlimit);
         push_path_contract(&mut contract, "lake", &lake);
         contract.push(';');
-        contract.push_str(&cgroup.contract());
+        contract.push_str(&cgroup.contract(&shell));
         for root in roots {
             push_path_contract(&mut contract, "runtime_root", &root);
         }
@@ -255,6 +259,7 @@ impl BubblewrapIsolation {
         validate_setuid_root(&bubblewrap_binary)?;
         let prlimit_binary = canonical_executable(&self.prlimit_binary, "prlimit")?;
         let lake_binary = canonical_executable(lake_binary, "lake")?;
+        let shell = canonical_executable(Path::new("/bin/sh"), "cgroup entry shell")?;
         let source = source.canonicalize()?;
         if !source.is_file() || !source.starts_with(&project_root) {
             return Err(io::Error::new(
@@ -291,8 +296,15 @@ impl BubblewrapIsolation {
         }
         let cgroup_policy = self.cgroup_policy()?;
         let cgroup = CgroupGuard::create(cgroup_policy)?;
-        let mut command = Command::new(&bubblewrap_binary);
-        configure_cgroup_entry(&mut command, &cgroup)?;
+        let mut command = Command::new(shell);
+        command
+            .arg("-c")
+            .arg(format!(
+                "printf '%s\\n' \"$$\" > \"$1/cgroup.procs\" || {{ printf 'ProofLab cgroup placement failed\\n' >&2; exit {CGROUP_LAUNCH_FAILURE_CODE}; }}; shift; exec \"$@\""
+            ))
+            .arg("prooflab-cgroup-enter")
+            .arg(cgroup.path())
+            .arg(&bubblewrap_binary);
         configure_namespace(&mut command, &project_root, roots);
         attach_sealed_source(&mut command, source_bytes)?;
         configure_limits_and_lean(&mut command, &prlimit_binary, &lake_binary, self.limits);
@@ -331,7 +343,6 @@ impl PreparedIsolationCommand {
 #[derive(Debug)]
 struct CgroupGuard {
     path: PathBuf,
-    entry: File,
     cleaned: bool,
 }
 
@@ -359,19 +370,8 @@ impl CgroupGuard {
                 "failed to allocate a unique ProofLab cgroup",
             )
         })?;
-        let entry = match fs::OpenOptions::new()
-            .write(true)
-            .open(path.join("cgroup.procs"))
-        {
-            Ok(entry) => entry,
-            Err(error) => {
-                let _ = fs::remove_dir(&path);
-                return Err(error);
-            }
-        };
         let mut guard = Self {
             path,
-            entry,
             cleaned: false,
         };
         let configured = (|| {
@@ -408,6 +408,10 @@ impl CgroupGuard {
             return Err(error);
         }
         Ok(guard)
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
     }
 
     fn cleanup(&mut self) -> io::Result<()> {
@@ -460,39 +464,13 @@ impl CgroupGuard {
         ))
     }
 
+    fn path(&self) -> &Path {
+        Path::new("")
+    }
+
     fn cleanup(&mut self) -> io::Result<()> {
         Ok(())
     }
-}
-
-#[cfg(target_os = "linux")]
-fn configure_cgroup_entry(command: &mut Command, cgroup: &CgroupGuard) -> io::Result<()> {
-    use std::os::fd::AsRawFd;
-    use std::os::unix::process::CommandExt;
-
-    let entry_fd = cgroup.entry.as_raw_fd();
-    // SAFETY: after fork and before exec this hook only invokes libc::write on an
-    // already-open cgroup.procs descriptor. Writing `0` moves the calling task.
-    unsafe {
-        command.pre_exec(move || {
-            let payload = b"0\n";
-            let written = nix::libc::write(entry_fd, payload.as_ptr().cast(), payload.len());
-            if written == payload.len() as isize {
-                Ok(())
-            } else {
-                Err(io::Error::last_os_error())
-            }
-        });
-    }
-    Ok(())
-}
-
-#[cfg(not(target_os = "linux"))]
-fn configure_cgroup_entry(_command: &mut Command, _cgroup: &CgroupGuard) -> io::Result<()> {
-    Err(io::Error::new(
-        io::ErrorKind::Unsupported,
-        "aggregate cgroup v2 isolation requires Linux",
-    ))
 }
 
 fn canonical_cgroup_root(path: &Path) -> io::Result<PathBuf> {
@@ -960,26 +938,4 @@ mod tests {
         validate_cgroup_v2_mount(Path::new("/custom cgroup/prooflab"), mountinfo).unwrap();
     }
 
-    #[cfg(target_os = "linux")]
-    #[test]
-    fn cgroup_placement_failure_is_a_spawn_error() {
-        let root = std::env::temp_dir().join(format!(
-            "prooflab-cgroup-placement-error-{}",
-            std::process::id()
-        ));
-        fs::create_dir_all(&root).unwrap();
-        let entry_path = root.join("cgroup.procs");
-        fs::write(&entry_path, "").unwrap();
-        let guard = CgroupGuard {
-            path: root.clone(),
-            entry: File::open(&entry_path).unwrap(),
-            cleaned: true,
-        };
-        let mut command = Command::new("/usr/bin/true");
-        configure_cgroup_entry(&mut command, &guard).unwrap();
-        let error = command.spawn().unwrap_err();
-        assert_eq!(error.raw_os_error(), Some(nix::libc::EBADF));
-        drop(guard);
-        fs::remove_dir_all(root).unwrap();
-    }
 }
