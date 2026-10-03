@@ -47,7 +47,6 @@ pub use false_conjectures::{
 };
 use isolation::CGROUP_LAUNCH_FAILURE_CODE;
 pub use isolation::{BubblewrapIsolation, CgroupV2Policy, LeanIsolationLimits};
-pub use theorem_audit::{TheoremAuditError, TheoremAuditPolicy, TheoremAuditReport};
 pub use minimize::{
     ASSUMPTION_MINIMIZATION_CORPUS, ExpectedRemovalOutcome, MinimizationEntry, MinimizationError,
     MinimizationPrepared, MinimizationRunReport, PreparedRemovalTrial, RemovalCandidate,
@@ -60,6 +59,7 @@ use prooflab_core::{
     ProofObligation, ReproduceError as CoreReproduceError, ReproduceOk,
     reproduce as core_reproduce, sha256_bytes,
 };
+pub use theorem_audit::{TheoremAuditError, TheoremAuditPolicy, TheoremAuditReport};
 
 const LEAN_COMMAND: &str = "lake env lean";
 pub(crate) const DEFAULT_LEAN_INVOCATION: &str = "lake env lean;supervisor=unix-v1;timeout_ns=120000000000;drain_timeout_ns=1000000000;termination_grace_ns=1000000000;max_stdout_bytes=1048576;max_stderr_bytes=1048576";
@@ -514,7 +514,10 @@ impl LeanKernel {
         let source = source.canonicalize()?;
         let project_root = lake_project_root(&source)?;
         let parent = source.parent().ok_or_else(|| {
-            io::Error::new(io::ErrorKind::InvalidInput, "Lean source has no parent directory")
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Lean source has no parent directory",
+            )
         })?;
         let mut staged = None;
         for _ in 0..32 {
@@ -523,7 +526,11 @@ impl LeanKernel {
                 ".prooflab-theorem-audit-{}-{sequence}.lean",
                 std::process::id()
             ));
-            match OpenOptions::new().write(true).create_new(true).open(&candidate) {
+            match OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&candidate)
+            {
                 Ok(mut file) => {
                     file.write_all(audited_source)?;
                     file.sync_all()?;
@@ -535,7 +542,10 @@ impl LeanKernel {
             }
         }
         let staged = staged.ok_or_else(|| {
-            io::Error::new(io::ErrorKind::AlreadyExists, "failed to stage unique theorem audit source")
+            io::Error::new(
+                io::ErrorKind::AlreadyExists,
+                "failed to stage unique theorem audit source",
+            )
         })?;
         let mut command = Command::new(&self.lake_binary);
         command
@@ -1000,10 +1010,8 @@ impl LeanKernel {
         } else {
             self.invocation_contract()
         };
-        let theorem_policy = TheoremAuditPolicy::from_invocation(
-            &job.invocation,
-            &base_invocation,
-        )?;
+        let theorem_policy =
+            TheoremAuditPolicy::from_invocation(&job.invocation, &base_invocation)?;
 
         if let Some(observed) = observed {
             if !observed.check_id() {

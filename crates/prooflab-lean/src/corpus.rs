@@ -15,8 +15,7 @@ use prooflab_core::{
 };
 
 use crate::{
-    DEFAULT_LEAN_INVOCATION, LeanKernel, TheoremAuditPolicy, VerificationError,
-    VerificationOutcome,
+    DEFAULT_LEAN_INVOCATION, LeanKernel, TheoremAuditPolicy, VerificationError, VerificationOutcome,
 };
 
 /// Expected trusted-kernel outcome for a corpus entry.

@@ -34,14 +34,29 @@ impl fmt::Display for TheoremAuditError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidDeclarationName(name) => {
-                write!(formatter, "invalid Lean declaration name in theorem audit: {name}")
+                write!(
+                    formatter,
+                    "invalid Lean declaration name in theorem audit: {name}"
+                )
             }
-            Self::MissingPolicy => write!(formatter, "verification job is missing theorem audit policy"),
-            Self::InvocationMismatch => write!(formatter, "theorem audit policy does not match the pinned invocation contract"),
-            Self::MissingReport(name) => write!(formatter, "Lean accepted but emitted no parseable axiom report for {name}"),
+            Self::MissingPolicy => {
+                write!(formatter, "verification job is missing theorem audit policy")
+            }
+            Self::InvocationMismatch => write!(
+                formatter,
+                "theorem audit policy does not match the pinned invocation contract"
+            ),
+            Self::MissingReport(name) => write!(
+                formatter,
+                "Lean accepted but emitted no parseable axiom report for {name}"
+            ),
             Self::SorryAxiom => write!(formatter, "target theorem depends on forbidden sorryAx"),
             Self::ForbiddenAxioms(axioms) => {
-                write!(formatter, "target theorem depends on non-allowlisted axioms: {}", axioms.join(", "))
+                write!(
+                    formatter,
+                    "target theorem depends on non-allowlisted axioms: {}",
+                    axioms.join(", ")
+                )
             }
         }
     }
@@ -82,8 +97,16 @@ impl TheoremAuditPolicy {
     }
 
     pub(crate) fn invocation_contract(&self, base: &str) -> String {
-        let allowlist = self.allowed_axioms.iter().cloned().collect::<Vec<_>>().join(",");
-        format!("{base}{CONTRACT_MARKER}{}{ALLOWLIST_MARKER}{allowlist}", self.theorem_name)
+        let allowlist = self
+            .allowed_axioms
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{base}{CONTRACT_MARKER}{}{ALLOWLIST_MARKER}{allowlist}",
+            self.theorem_name
+        )
     }
 
     pub(crate) fn from_invocation(
@@ -132,7 +155,10 @@ impl TheoremAuditPolicy {
         let output = format!("{}\n{}", process.stdout, process.stderr);
         let axioms = parse_axioms(&output, &self.theorem_name)
             .ok_or_else(|| TheoremAuditError::MissingReport(self.theorem_name.clone()))?;
-        if axioms.iter().any(|axiom| axiom == "sorryAx" || axiom.ends_with(".sorryAx")) {
+        if axioms
+            .iter()
+            .any(|axiom| axiom == "sorryAx" || axiom.ends_with(".sorryAx"))
+        {
             return Err(TheoremAuditError::SorryAxiom);
         }
         let forbidden = axioms
@@ -176,7 +202,11 @@ fn parse_axioms(output: &str, theorem_name: &str) -> Option<Vec<String>> {
     if body.trim().is_empty() {
         return Some(Vec::new());
     }
-    Some(body.split(',').map(|axiom| axiom.trim().to_owned()).collect())
+    Some(
+        body.split(',')
+            .map(|axiom| axiom.trim().to_owned())
+            .collect(),
+    )
 }
 
 #[cfg(test)]
@@ -202,14 +232,23 @@ mod tests {
     fn policy_round_trips_through_invocation() {
         let policy = TheoremAuditPolicy::new("ProofLab.good", ["Quot.sound", "propext"]).unwrap();
         let invocation = policy.invocation_contract("base");
-        assert_eq!(TheoremAuditPolicy::from_invocation(&invocation, "base").unwrap(), policy);
+        assert_eq!(
+            TheoremAuditPolicy::from_invocation(&invocation, "base").unwrap(),
+            policy
+        );
     }
 
     #[test]
     fn sorry_and_unlisted_axioms_fail_closed() {
         let policy = TheoremAuditPolicy::new("good", ["propext"]).unwrap();
-        assert_eq!(policy.assess(&accepted("'good' depends on axioms: [sorryAx]")), Err(TheoremAuditError::SorryAxiom));
-        assert_eq!(policy.assess(&accepted("'good' depends on axioms: [bad]")), Err(TheoremAuditError::ForbiddenAxioms(vec!["bad".into()])));
+        assert_eq!(
+            policy.assess(&accepted("'good' depends on axioms: [sorryAx]")),
+            Err(TheoremAuditError::SorryAxiom)
+        );
+        assert_eq!(
+            policy.assess(&accepted("'good' depends on axioms: [bad]")),
+            Err(TheoremAuditError::ForbiddenAxioms(vec!["bad".into()]))
+        );
     }
 
     #[test]
