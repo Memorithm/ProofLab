@@ -1010,13 +1010,11 @@ impl LeanKernel {
         } else {
             self.invocation_contract()
         };
-        let theorem_policy =
-            TheoremAuditPolicy::from_invocation(&job.invocation, &base_invocation).map_err(
-                |error| match error {
-                    TheoremAuditError::InvocationMismatch => VerificationError::InvocationMismatch,
-                    error => VerificationError::TheoremAudit(error),
-                },
-            )?;
+        let theorem_policy = TheoremAuditPolicy::from_invocation(&job.invocation, &base_invocation)
+            .map_err(|error| match error {
+                TheoremAuditError::InvocationMismatch => VerificationError::InvocationMismatch,
+                error => VerificationError::TheoremAudit(error),
+            })?;
 
         if let Some(observed) = observed {
             if !observed.check_id() {
