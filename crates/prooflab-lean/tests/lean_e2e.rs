@@ -180,8 +180,7 @@ fn theorem_audit_rejects_sorry_extra_axiom_and_incomplete_import() {
     let path = directory.join(format!("audit-incomplete-{}.lean", std::process::id()));
     fs::write(&path, source).unwrap();
     let formal = FormalStatement::lean4(claim("incomplete").id, source, vec![]);
-    let policy =
-        TheoremAuditPolicy::new("prooflabIncomplete", std::iter::empty::<&str>()).unwrap();
+    let policy = TheoremAuditPolicy::new("prooflabIncomplete", std::iter::empty::<&str>()).unwrap();
     let job = VerificationJob::new(
         &formal,
         source,

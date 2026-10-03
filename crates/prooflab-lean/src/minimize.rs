@@ -353,11 +353,8 @@ impl MinimizationEntry {
             .collect::<Vec<_>>();
         let full_formal_statement =
             FormalStatement::lean4(full_claim.id, &full_source_bytes, imports.clone());
-        let full_policy = TheoremAuditPolicy::new(
-            self.theorem_name,
-            std::iter::empty::<&str>(),
-        )
-        .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
+        let full_policy = TheoremAuditPolicy::new(self.theorem_name, std::iter::empty::<&str>())
+            .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
         let full_job = VerificationJob::new(
             &full_formal_statement,
             &full_source_bytes,
@@ -398,11 +395,8 @@ impl MinimizationEntry {
                 parents: vec![full_claim.id],
             });
             let formal_statement = FormalStatement::lean4(claim.id, &source_bytes, imports.clone());
-            let policy = TheoremAuditPolicy::new(
-                trial.theorem_name,
-                std::iter::empty::<&str>(),
-            )
-            .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
+            let policy = TheoremAuditPolicy::new(trial.theorem_name, std::iter::empty::<&str>())
+                .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
             let job = VerificationJob::new(
                 &formal_statement,
                 &source_bytes,
