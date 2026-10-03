@@ -194,11 +194,15 @@ fn validate_name(name: &str) -> Result<(), TheoremAuditError> {
 
 fn parse_axioms(output: &str, theorem_name: &str) -> Option<Vec<String>> {
     let no_axioms = format!("'{theorem_name}' does not depend on any axioms");
-    if output.contains(&no_axioms) {
-        return Some(Vec::new());
-    }
+    let no_axiom_reports = output.match_indices(&no_axioms).count();
     let marker = format!("'{theorem_name}' depends on axioms:");
     let mut reports = output.match_indices(&marker);
+    if no_axiom_reports == 1 {
+        return reports.next().is_none().then(Vec::new);
+    }
+    if no_axiom_reports != 0 {
+        return None;
+    }
     let (report_start, _) = reports.next()?;
     if reports.next().is_some() {
         return None;
@@ -272,11 +276,12 @@ mod tests {
     #[test]
     fn ambiguous_reports_fail_closed() {
         let policy = TheoremAuditPolicy::new("good", std::iter::empty::<&str>()).unwrap();
-        let error = policy
-            .assess(&accepted(
-                "'good' depends on axioms: []\n'good' depends on axioms: [bad]",
-            ))
-            .unwrap_err();
-        assert_eq!(error, TheoremAuditError::MissingReport("good".into()));
+        for output in [
+            "'good' depends on axioms: []\n'good' depends on axioms: [bad]",
+            "'good' does not depend on any axioms\n'good' depends on axioms: [bad]",
+        ] {
+            let error = policy.assess(&accepted(output)).unwrap_err();
+            assert_eq!(error, TheoremAuditError::MissingReport("good".into()));
+        }
     }
 }
