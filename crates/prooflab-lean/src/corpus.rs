@@ -14,7 +14,10 @@ use prooflab_core::{
     Claim, ClaimBody, EnvironmentLock, FormalStatement, ReproMeta, VerificationJob,
 };
 
-use crate::{DEFAULT_LEAN_INVOCATION, LeanKernel, VerificationError, VerificationOutcome};
+use crate::{
+    DEFAULT_LEAN_INVOCATION, LeanKernel, TheoremAuditPolicy, VerificationError,
+    VerificationOutcome,
+};
 
 /// Expected trusted-kernel outcome for a corpus entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,6 +38,7 @@ pub struct CorpusEntry {
     pub relative_path: &'static str,
     pub imports: &'static [&'static str],
     pub proof_shape: &'static str,
+    pub theorem_name: &'static str,
     pub expected: ExpectedOutcome,
 }
 
@@ -118,6 +122,7 @@ pub const KNOWN_THEOREM_CORPUS: &[CorpusEntry] = &[
         relative_path: "ProofLab/Corpus/NatIdentity.lean",
         imports: &["Mathlib.Data.Nat.Basic"],
         proof_shape: "rfl",
+        theorem_name: "ProofLab.Corpus.nat_identity",
         expected: ExpectedOutcome::Accept,
     },
     CorpusEntry {
@@ -127,6 +132,7 @@ pub const KNOWN_THEOREM_CORPUS: &[CorpusEntry] = &[
         relative_path: "ProofLab/Corpus/NatDecide.lean",
         imports: &["Mathlib.Data.Nat.Basic"],
         proof_shape: "decide",
+        theorem_name: "ProofLab.Corpus.two_plus_two",
         expected: ExpectedOutcome::Accept,
     },
     CorpusEntry {
@@ -136,6 +142,7 @@ pub const KNOWN_THEOREM_CORPUS: &[CorpusEntry] = &[
         relative_path: "ProofLab/Corpus/NatAddZero.lean",
         imports: &["Mathlib.Data.Nat.Basic"],
         proof_shape: "induction",
+        theorem_name: "ProofLab.Corpus.zero_add",
         expected: ExpectedOutcome::Accept,
     },
     CorpusEntry {
@@ -145,6 +152,7 @@ pub const KNOWN_THEOREM_CORPUS: &[CorpusEntry] = &[
         relative_path: "ProofLab/Corpus/NatCases.lean",
         imports: &["Mathlib.Data.Nat.Basic"],
         proof_shape: "cases",
+        theorem_name: "ProofLab.Corpus.zero_or_succ",
         expected: ExpectedOutcome::Accept,
     },
     CorpusEntry {
@@ -154,6 +162,7 @@ pub const KNOWN_THEOREM_CORPUS: &[CorpusEntry] = &[
         relative_path: "ProofLab/Corpus/Fixtures/RejectedFalse.lean",
         imports: &["Mathlib.Data.Nat.Basic"],
         proof_shape: "decide-false",
+        theorem_name: "ProofLab.Corpus.Fixtures.two_plus_two_equals_five",
         expected: ExpectedOutcome::Reject,
     },
 ];
@@ -191,7 +200,13 @@ impl CorpusEntry {
         repo_root: impl AsRef<Path>,
         repro: ReproMeta,
     ) -> Result<CorpusPrepared, CorpusError> {
-        self.prepare_with_invocation(repo_root, repro, DEFAULT_LEAN_INVOCATION)
+        let policy = TheoremAuditPolicy::new(self.theorem_name, std::iter::empty::<&str>())
+            .map_err(|error| CorpusError::JobConstruction(error.to_string()))?;
+        self.prepare_with_invocation(
+            repo_root,
+            repro,
+            policy.invocation_contract(DEFAULT_LEAN_INVOCATION),
+        )
     }
 
     /// Prepare this entry for the exact supervisor contract owned by `kernel`.
@@ -205,7 +220,13 @@ impl CorpusEntry {
         repo_root: impl AsRef<Path>,
         repro: ReproMeta,
     ) -> Result<CorpusPrepared, CorpusError> {
-        self.prepare_with_invocation(repo_root, repro, kernel.invocation_contract())
+        let policy = TheoremAuditPolicy::new(self.theorem_name, std::iter::empty::<&str>())
+            .map_err(|error| CorpusError::JobConstruction(error.to_string()))?;
+        self.prepare_with_invocation(
+            repo_root,
+            repro,
+            kernel.invocation_contract_for_theorem(&policy),
+        )
     }
 
     fn prepare_with_invocation(

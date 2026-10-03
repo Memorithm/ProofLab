@@ -97,6 +97,16 @@ namespace. Every isolation policy and budget is embedded in the
 content-addressed invocation contract, so a supervised-only job or an older
 isolation contract cannot be replayed under the stronger policy.
 
+Proof promotion also requires an explicit Lean declaration name and an
+explicit axiom allowlist in the content-addressed invocation contract. The
+boundary re-elaborates the complete source in a fresh Lean process with
+`#print axioms <declaration>` appended, refuses `sorryAx` unconditionally, and
+refuses every reported axiom absent from the allowlist. Missing declarations,
+incomplete imports, missing/ambiguous audit output, and legacy jobs without a
+theorem policy fail closed before a `ProofArtifact` can be emitted. The CI
+suite includes negative controls for `sorry`, an added `axiom False`, and an
+incomplete import.
+
 ## SciRust / SOS reuse
 
 ProofLab selectively reuses ideas and, where appropriate, code from the SciRust/SOS research substrate instead of rebuilding generic scientific infrastructure.

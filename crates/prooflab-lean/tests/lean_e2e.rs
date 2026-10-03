@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use prooflab_core::{Claim, ClaimBody, FormalStatement, ReproMeta, VerificationJob};
-use prooflab_lean::LeanKernel;
+use prooflab_lean::{LeanKernel, TheoremAuditError, TheoremAuditPolicy, VerificationError};
 use prooflab_store::{MemoryProofStore, ProofStore};
 
 fn repo_root() -> PathBuf {
@@ -35,7 +35,10 @@ fn claim(statement: &str) -> Claim {
 fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
     let root = repo_root();
     let kernel = LeanKernel::default();
-    let invocation = kernel.invocation_contract();
+    let accepted_policy =
+        TheoremAuditPolicy::new("ProofLab.smoke_identity", std::iter::empty::<&str>()).unwrap();
+    let rejected_policy =
+        TheoremAuditPolicy::new("prooflabE2ERejected", std::iter::empty::<&str>()).unwrap();
     let accepted_path = root.join("ProofLab/Core/Smoke.lean");
     let accepted_source = fs::read(&accepted_path).unwrap();
 
@@ -58,12 +61,17 @@ fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
     let accepted_job = VerificationJob::new(
         &accepted_formal,
         &accepted_source,
-        &invocation,
+        kernel.invocation_contract_for_theorem(&accepted_policy),
         repro_meta(),
     )
     .unwrap();
-    let rejected_job =
-        VerificationJob::new(&rejected_formal, rejected_source, &invocation, repro_meta()).unwrap();
+    let rejected_job = VerificationJob::new(
+        &rejected_formal,
+        rejected_source,
+        kernel.invocation_contract_for_theorem(&rejected_policy),
+        repro_meta(),
+    )
+    .unwrap();
 
     let accepted = kernel
         .verify_job(&accepted_job, &accepted_formal, &accepted_path)
@@ -80,6 +88,14 @@ fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
         accepted.result.stdout, accepted.result.stderr
     );
     assert_eq!(accepted.result.exit_code, Some(0));
+    assert_eq!(
+        accepted
+            .theorem_audit
+            .as_ref()
+            .expect("accepted theorem must have an axiom audit")
+            .theorem_name,
+        "ProofLab.smoke_identity"
+    );
     let proof = accepted
         .proof
         .expect("an accepted Lean theorem must produce a proof artifact");
@@ -110,4 +126,72 @@ fn accepted_and_rejected_lean_paths_preserve_the_trust_boundary() {
         rejected.proof.is_none(),
         "a rejected Lean theorem must never produce a proof artifact"
     );
+}
+
+#[test]
+#[ignore = "requires the pinned Lean/mathlib environment"]
+fn theorem_audit_rejects_sorry_extra_axiom_and_incomplete_import() {
+    let root = repo_root();
+    let directory = root.join(".prooflab/e2e");
+    fs::create_dir_all(&directory).unwrap();
+    let kernel = LeanKernel::default();
+
+    let cases = [
+        (
+            "sorry",
+            b"import Mathlib\n\ntheorem prooflabSorry : True := by sorry\n".as_slice(),
+            "prooflabSorry",
+        ),
+        (
+            "axiom",
+            b"import Mathlib\n\naxiom prooflabFalse : False\ntheorem prooflabFalseTarget : False := prooflabFalse\n".as_slice(),
+            "prooflabFalseTarget",
+        ),
+    ];
+
+    for (label, source, theorem) in cases {
+        let path = directory.join(format!("audit-{label}-{}.lean", std::process::id()));
+        fs::write(&path, source).unwrap();
+        let formal = FormalStatement::lean4(claim(theorem).id, source, vec!["Mathlib".into()]);
+        let policy = TheoremAuditPolicy::new(theorem, std::iter::empty::<&str>()).unwrap();
+        let job = VerificationJob::new(
+            &formal,
+            source,
+            kernel.invocation_contract_for_theorem(&policy),
+            repro_meta(),
+        )
+        .unwrap();
+        let error = kernel.verify_job(&job, &formal, &path).unwrap_err();
+        match label {
+            "sorry" => assert!(matches!(
+                error,
+                VerificationError::TheoremAudit(TheoremAuditError::SorryAxiom)
+            )),
+            "axiom" => assert!(matches!(
+                error,
+                VerificationError::TheoremAudit(TheoremAuditError::ForbiddenAxioms(_))
+            )),
+            _ => unreachable!(),
+        }
+        fs::remove_file(path).unwrap();
+    }
+
+    let source = b"import ProofLab.DoesNotExist\n\ntheorem prooflabIncomplete : True := trivial\n";
+    let path = directory.join(format!("audit-incomplete-{}.lean", std::process::id()));
+    fs::write(&path, source).unwrap();
+    let formal = FormalStatement::lean4(claim("incomplete").id, source, vec![]);
+    let policy =
+        TheoremAuditPolicy::new("prooflabIncomplete", std::iter::empty::<&str>()).unwrap();
+    let job = VerificationJob::new(
+        &formal,
+        source,
+        kernel.invocation_contract_for_theorem(&policy),
+        repro_meta(),
+    )
+    .unwrap();
+    let outcome = kernel.verify_job(&job, &formal, &path).unwrap();
+    assert!(!outcome.result.accepted);
+    assert!(outcome.theorem_audit.is_none());
+    assert!(outcome.proof.is_none());
+    fs::remove_file(path).unwrap();
 }
