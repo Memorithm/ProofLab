@@ -1068,7 +1068,7 @@ fn read_source_bounded(source: &Path, max_source_bytes: u64) -> io::Result<Vec<u
     }
 
     let mut source_bytes = Vec::new();
-    file.by_ref()
+    Read::by_ref(&mut file)
         .take(max_source_bytes.saturating_add(1))
         .read_to_end(&mut source_bytes)?;
     let observed = u64::try_from(source_bytes.len()).unwrap_or(u64::MAX);
