@@ -450,7 +450,15 @@ mod tests {
         let prepared = KNOWN_THEOREM_CORPUS[0]
             .prepare_for_kernel(&kernel, repo_root(), repro())
             .expect("prepare");
-        assert_eq!(prepared.job.invocation, kernel.invocation_contract());
+        let policy = TheoremAuditPolicy::new(
+            KNOWN_THEOREM_CORPUS[0].theorem_name,
+            std::iter::empty::<&str>(),
+        )
+        .unwrap();
+        assert_eq!(
+            prepared.job.invocation,
+            kernel.invocation_contract_for_theorem(&policy)
+        );
         assert!(prepared.job.check_id());
     }
 }

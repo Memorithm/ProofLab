@@ -702,13 +702,26 @@ mod tests {
         let prepared = ASSUMPTION_MINIMIZATION_CORPUS[0]
             .prepare_for_kernel(&kernel, repo_root(), &repro())
             .expect("prepare");
-        let invocation = kernel.invocation_contract();
-        assert_eq!(prepared.full_job.invocation, invocation);
+        let entry = &ASSUMPTION_MINIMIZATION_CORPUS[0];
+        let full_policy =
+            TheoremAuditPolicy::new(entry.theorem_name, std::iter::empty::<&str>()).unwrap();
+        assert_eq!(
+            prepared.full_job.invocation,
+            kernel.invocation_contract_for_theorem(&full_policy)
+        );
         assert!(
             prepared
                 .trials
                 .iter()
-                .all(|trial| trial.job.invocation == invocation)
+                .zip(entry.removal_trials)
+                .all(|(prepared, catalogued)| {
+                    let policy = TheoremAuditPolicy::new(
+                        catalogued.theorem_name,
+                        std::iter::empty::<&str>(),
+                    )
+                    .unwrap();
+                    prepared.job.invocation == kernel.invocation_contract_for_theorem(&policy)
+                })
         );
     }
 }
