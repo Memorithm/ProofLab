@@ -68,6 +68,12 @@ impl fmt::Display for TheoremAuditError {
 impl std::error::Error for TheoremAuditError {}
 
 impl TheoremAuditPolicy {
+    /// Build a policy for one fully-qualified declaration and its permitted axioms.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a declaration name is malformed or when the allowlist
+    /// attempts to permit `sorryAx`.
     pub fn new(
         theorem_name: impl Into<String>,
         allowed_axioms: impl IntoIterator<Item = impl Into<String>>,
@@ -182,7 +188,7 @@ impl TheoremAuditPolicy {
 fn validate_name(name: &str) -> Result<(), TheoremAuditError> {
     if name.is_empty()
         || name.len() > 256
-        || name.split('.').any(|segment| segment.is_empty())
+        || name.split('.').any(str::is_empty)
         || !name
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'.' | b'\''))
