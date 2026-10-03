@@ -40,7 +40,10 @@ impl fmt::Display for TheoremAuditError {
                 )
             }
             Self::MissingPolicy => {
-                write!(formatter, "verification job is missing theorem audit policy")
+                write!(
+                    formatter,
+                    "verification job is missing theorem audit policy"
+                )
             }
             Self::InvocationMismatch => write!(
                 formatter,
@@ -195,7 +198,12 @@ fn parse_axioms(output: &str, theorem_name: &str) -> Option<Vec<String>> {
         return Some(Vec::new());
     }
     let marker = format!("'{theorem_name}' depends on axioms:");
-    let tail = output.split(&marker).nth(1)?;
+    let mut reports = output.match_indices(&marker);
+    let (report_start, _) = reports.next()?;
+    if reports.next().is_some() {
+        return None;
+    }
+    let tail = &output[report_start + marker.len()..];
     let start = tail.find('[')? + 1;
     let end = tail[start..].find(']')? + start;
     let body = &tail[start..end];
@@ -259,5 +267,16 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(report.axioms, vec!["propext"]);
+    }
+
+    #[test]
+    fn ambiguous_reports_fail_closed() {
+        let policy = TheoremAuditPolicy::new("good", std::iter::empty::<&str>()).unwrap();
+        let error = policy
+            .assess(&accepted(
+                "'good' depends on axioms: []\n'good' depends on axioms: [bad]",
+            ))
+            .unwrap_err();
+        assert_eq!(error, TheoremAuditError::MissingReport("good".into()));
     }
 }
