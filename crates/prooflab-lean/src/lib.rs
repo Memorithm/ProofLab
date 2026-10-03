@@ -24,13 +24,15 @@ mod false_conjectures;
 mod isolation;
 mod minimize;
 mod process_guard;
+mod theorem_audit;
 
 use std::collections::BTreeSet;
 use std::fmt;
-use std::fs;
-use std::io::{self, Read};
+use std::fs::{self, OpenOptions};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 pub use prooflab_core::VerificationJob;
@@ -45,6 +47,7 @@ pub use false_conjectures::{
 };
 use isolation::CGROUP_LAUNCH_FAILURE_CODE;
 pub use isolation::{BubblewrapIsolation, CgroupV2Policy, LeanIsolationLimits};
+pub use theorem_audit::{TheoremAuditError, TheoremAuditPolicy, TheoremAuditReport};
 pub use minimize::{
     ASSUMPTION_MINIMIZATION_CORPUS, ExpectedRemovalOutcome, MinimizationEntry, MinimizationError,
     MinimizationPrepared, MinimizationRunReport, PreparedRemovalTrial, RemovalCandidate,
@@ -60,6 +63,7 @@ use prooflab_core::{
 
 const LEAN_COMMAND: &str = "lake env lean";
 pub(crate) const DEFAULT_LEAN_INVOCATION: &str = "lake env lean;supervisor=unix-v1;timeout_ns=120000000000;drain_timeout_ns=1000000000;termination_grace_ns=1000000000;max_stdout_bytes=1048576;max_stderr_bytes=1048576";
+static AUDIT_SOURCE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 /// Resource limits for one Lean kernel process.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -136,6 +140,7 @@ pub struct LeanProcessResult {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerificationOutcome {
     pub result: LeanProcessResult,
+    pub theorem_audit: Option<TheoremAuditReport>,
     pub proof: Option<ProofArtifact>,
 }
 
@@ -147,6 +152,7 @@ pub struct VerificationOutcome {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EvidenceVerificationOutcome {
     pub process: LeanProcessResult,
+    pub theorem_audit: Option<TheoremAuditReport>,
     pub kernel_result: KernelResult,
     pub proof: Option<ProofArtifact>,
 }
@@ -161,6 +167,7 @@ pub struct EvidenceVerificationOutcome {
 pub struct ReproduceOutcome {
     pub environment: ReproduceOk,
     pub result: LeanProcessResult,
+    pub theorem_audit: Option<TheoremAuditReport>,
     pub reverified: Option<ProofArtifact>,
 }
 
@@ -179,6 +186,7 @@ pub enum VerificationError {
     LockIntegrity,
     Drift(DriftReport),
     JobConstruction(String),
+    TheoremAudit(TheoremAuditError),
     Evidence(EvidenceError),
     ProofArtifact(ProofArtifactError),
 }
@@ -216,6 +224,7 @@ impl fmt::Display for VerificationError {
             Self::JobConstruction(detail) => {
                 write!(formatter, "verification job construction failed: {detail}")
             }
+            Self::TheoremAudit(error) => write!(formatter, "theorem audit failed: {error}"),
             Self::Evidence(error) => {
                 write!(formatter, "typed evidence kernel result failed: {error}")
             }
@@ -232,6 +241,7 @@ impl std::error::Error for VerificationError {
             Self::Io(error) => Some(error),
             Self::ProofArtifact(error) => Some(error),
             Self::Evidence(error) => Some(error),
+            Self::TheoremAudit(error) => Some(error),
             Self::VerificationJobIntegrity
             | Self::FormalStatementIntegrity
             | Self::FormalStatementMismatch
@@ -256,6 +266,12 @@ impl From<std::io::Error> for VerificationError {
 impl From<ProofArtifactError> for VerificationError {
     fn from(error: ProofArtifactError) -> Self {
         Self::ProofArtifact(error)
+    }
+}
+
+impl From<TheoremAuditError> for VerificationError {
+    fn from(error: TheoremAuditError) -> Self {
+        Self::TheoremAudit(error)
     }
 }
 
@@ -429,6 +445,24 @@ impl LeanKernel {
         self.limits.invocation_contract()
     }
 
+    /// Bind an explicit target theorem and axiom allowlist into a trusted job.
+    #[must_use]
+    pub fn invocation_contract_for_theorem(&self, policy: &TheoremAuditPolicy) -> String {
+        policy.invocation_contract(&self.invocation_contract())
+    }
+
+    /// Bind an explicit target theorem and axiom allowlist into an isolated job.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the configured isolation contract cannot be materialized.
+    pub fn isolated_invocation_contract_for_theorem(
+        &self,
+        policy: &TheoremAuditPolicy,
+    ) -> io::Result<String> {
+        Ok(policy.invocation_contract(&self.isolated_invocation_contract()?))
+    }
+
     /// Stable invocation contract for untrusted-source verification.
     ///
     /// # Errors
@@ -470,6 +504,56 @@ impl LeanKernel {
             .arg("lean")
             .arg(&source);
         self.run_command(&mut command)
+    }
+
+    fn verify_audited_bytes(
+        &self,
+        source: &Path,
+        audited_source: &[u8],
+    ) -> io::Result<LeanProcessResult> {
+        let source = source.canonicalize()?;
+        let project_root = lake_project_root(&source)?;
+        let parent = source.parent().ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidInput, "Lean source has no parent directory")
+        })?;
+        let mut staged = None;
+        for _ in 0..32 {
+            let sequence = AUDIT_SOURCE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+            let candidate = parent.join(format!(
+                ".prooflab-theorem-audit-{}-{sequence}.lean",
+                std::process::id()
+            ));
+            match OpenOptions::new().write(true).create_new(true).open(&candidate) {
+                Ok(mut file) => {
+                    file.write_all(audited_source)?;
+                    file.sync_all()?;
+                    staged = Some(candidate);
+                    break;
+                }
+                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
+                Err(error) => return Err(error),
+            }
+        }
+        let staged = staged.ok_or_else(|| {
+            io::Error::new(io::ErrorKind::AlreadyExists, "failed to stage unique theorem audit source")
+        })?;
+        let mut command = Command::new(&self.lake_binary);
+        command
+            .current_dir(project_root)
+            .arg("env")
+            .arg("lean")
+            .arg(&staged);
+        let result = self.run_command(&mut command);
+        let cleanup = fs::remove_file(&staged);
+        match (result, cleanup) {
+            (Ok(result), Ok(())) => Ok(result),
+            (Err(error), Ok(())) => Err(error),
+            (Ok(_), Err(cleanup_error)) => Err(cleanup_error),
+            (Err(error), Err(cleanup_error)) => Err(io::Error::new(
+                error.kind(),
+                format!("{error}; theorem audit source cleanup also failed: {cleanup_error}"),
+            )),
+        }
     }
 
     /// Verify generated or third-party Lean only through the configured OS boundary.
@@ -790,6 +874,7 @@ impl LeanKernel {
         Ok(ReproduceOutcome {
             environment,
             result: outcome.result,
+            theorem_audit: outcome.theorem_audit,
             reverified: Some(reverified),
         })
     }
@@ -798,10 +883,17 @@ impl LeanKernel {
         &self,
         artifact_invocation: &str,
     ) -> Result<bool, VerificationError> {
-        if artifact_invocation == self.invocation_contract() {
+        if TheoremAuditPolicy::from_invocation(artifact_invocation, &self.invocation_contract())
+            .is_ok()
+        {
             return Ok(false);
         }
-        if artifact_invocation == self.isolated_invocation_contract()? {
+        if TheoremAuditPolicy::from_invocation(
+            artifact_invocation,
+            &self.isolated_invocation_contract()?,
+        )
+        .is_ok()
+        {
             return Ok(true);
         }
         Err(VerificationError::InvocationMismatch)
@@ -815,7 +907,7 @@ impl LeanKernel {
         observed: Option<&EnvironmentLock>,
         untrusted: bool,
     ) -> Result<VerificationOutcome, VerificationError> {
-        let (result, source_bytes) =
+        let (result, source_bytes, theorem_audit) =
             self.run_verified_process(job, formal_statement, source, observed, untrusted)?;
         let proof = if result.accepted {
             let receipt = KernelReceipt::new(
@@ -836,7 +928,11 @@ impl LeanKernel {
         } else {
             None
         };
-        Ok(VerificationOutcome { result, proof })
+        Ok(VerificationOutcome {
+            result,
+            theorem_audit,
+            proof,
+        })
     }
 
     fn verify_obligation_inner(
@@ -855,7 +951,7 @@ impl LeanKernel {
             return Err(VerificationError::ObligationFormalMismatch);
         }
 
-        let (process, source_bytes) =
+        let (process, source_bytes, theorem_audit) =
             self.run_verified_process(job, formal_statement, source, observed, untrusted)?;
         let kernel_outcome =
             kernel_outcome_from_process(&process, job.backend, job.invocation.clone());
@@ -872,6 +968,7 @@ impl LeanKernel {
 
         Ok(EvidenceVerificationOutcome {
             process,
+            theorem_audit,
             kernel_result,
             proof,
         })
@@ -885,7 +982,7 @@ impl LeanKernel {
         source: &Path,
         observed: Option<&EnvironmentLock>,
         untrusted: bool,
-    ) -> Result<(LeanProcessResult, Vec<u8>), VerificationError> {
+    ) -> Result<(LeanProcessResult, Vec<u8>, Option<TheoremAuditReport>), VerificationError> {
         if !job.check_id() {
             return Err(VerificationError::VerificationJobIntegrity);
         }
@@ -898,14 +995,15 @@ impl LeanKernel {
         if job.backend != FormalBackend::Lean4 || formal_statement.backend != FormalBackend::Lean4 {
             return Err(VerificationError::BackendMismatch);
         }
-        let invocation = if untrusted {
+        let base_invocation = if untrusted {
             self.isolated_invocation_contract()?
         } else {
             self.invocation_contract()
         };
-        if job.invocation != invocation {
-            return Err(VerificationError::InvocationMismatch);
-        }
+        let theorem_policy = TheoremAuditPolicy::from_invocation(
+            &job.invocation,
+            &base_invocation,
+        )?;
 
         if let Some(observed) = observed {
             if !observed.check_id() {
@@ -930,12 +1028,14 @@ impl LeanKernel {
             return Err(VerificationError::SourceDigestMismatch);
         }
 
+        let audited_source = theorem_policy.audited_source(&source_bytes);
         let result = if untrusted {
-            self.verify_untrusted_bytes(source, &source_bytes)?
+            self.verify_untrusted_bytes(source, &audited_source)?
         } else {
-            self.verify_file(source)?
+            self.verify_audited_bytes(source, &audited_source)?
         };
-        Ok((result, source_bytes))
+        let theorem_audit = theorem_policy.assess(&result)?;
+        Ok((result, source_bytes, theorem_audit))
     }
 }
 
@@ -1010,6 +1110,14 @@ mod tests {
         repro
     }
 
+    fn audit_policy() -> TheoremAuditPolicy {
+        TheoremAuditPolicy::new("ProofLab.Core.smoke", std::iter::empty::<&str>()).unwrap()
+    }
+
+    fn audited_contract(base: &str) -> String {
+        audit_policy().invocation_contract(base)
+    }
+
     fn contract_isolation() -> BubblewrapIsolation {
         let root =
             std::env::temp_dir().join(format!("prooflab-contract-cgroup-{}", std::process::id()));
@@ -1041,7 +1149,7 @@ mod tests {
         let job = VerificationJob::new(
             &formal,
             &source_bytes,
-            LeanKernel::default().invocation_contract(),
+            LeanKernel::default().invocation_contract_for_theorem(&audit_policy()),
             repro(),
         )
         .unwrap();
@@ -1113,11 +1221,13 @@ mod tests {
     #[test]
     fn reproduction_preserves_the_original_isolation_mode() {
         let kernel = LeanKernel::new("/usr/bin/false").with_isolation(contract_isolation());
-        let isolated = kernel.isolated_invocation_contract().unwrap();
+        let isolated = kernel
+            .isolated_invocation_contract_for_theorem(&audit_policy())
+            .unwrap();
         assert!(kernel.reproduction_is_untrusted(&isolated).unwrap());
         assert!(
             !kernel
-                .reproduction_is_untrusted(&kernel.invocation_contract())
+                .reproduction_is_untrusted(&kernel.invocation_contract_for_theorem(&audit_policy()))
                 .unwrap()
         );
         assert!(matches!(
@@ -1158,7 +1268,7 @@ mod tests {
         let job = VerificationJob::new(
             &formal,
             b"different source",
-            DEFAULT_LEAN_INVOCATION,
+            audited_contract(DEFAULT_LEAN_INVOCATION),
             repro(),
         )
         .unwrap();
@@ -1201,8 +1311,13 @@ mod tests {
             parents: vec![],
         });
         let formal = FormalStatement::lean4(claim.id, &source_bytes, vec!["Mathlib".into()]);
-        let job =
-            VerificationJob::new(&formal, &source_bytes, DEFAULT_LEAN_INVOCATION, repro()).unwrap();
+        let job = VerificationJob::new(
+            &formal,
+            &source_bytes,
+            audited_contract(DEFAULT_LEAN_INVOCATION),
+            repro(),
+        )
+        .unwrap();
         let observed = EnvironmentLock::new(
             "v4.33.1",
             "0df444a360eaa60ab8c11dca51a86af692955474",
@@ -1406,7 +1521,7 @@ mod tests {
         let job = VerificationJob::new(
             &formal,
             b"different source",
-            DEFAULT_LEAN_INVOCATION,
+            audited_contract(DEFAULT_LEAN_INVOCATION),
             repro(),
         )
         .unwrap();

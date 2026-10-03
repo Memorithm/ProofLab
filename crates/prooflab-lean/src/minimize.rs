@@ -21,7 +21,7 @@ use prooflab_core::{
     Claim, ClaimBody, EnvironmentLock, FormalStatement, ReproMeta, VerificationJob,
 };
 
-use crate::{LeanKernel, VerificationError, VerificationOutcome};
+use crate::{LeanKernel, TheoremAuditPolicy, VerificationError, VerificationOutcome};
 
 use crate::DEFAULT_LEAN_INVOCATION;
 
@@ -74,6 +74,7 @@ pub struct RemovalTrial {
     pub weakened_statement: &'static str,
     /// Path relative to the repository root for the weakened Lean source.
     pub relative_path: &'static str,
+    pub theorem_name: &'static str,
     pub expected: ExpectedRemovalOutcome,
 }
 
@@ -85,6 +86,7 @@ pub struct MinimizationEntry {
     pub assumptions: &'static [&'static str],
     /// Path relative to the repository root for the full (pre-minimization) source.
     pub relative_path_full: &'static str,
+    pub theorem_name: &'static str,
     pub imports: &'static [&'static str],
     pub removal_trials: &'static [RemovalTrial],
 }
@@ -216,12 +218,14 @@ pub const ASSUMPTION_MINIMIZATION_CORPUS: &[MinimizationEntry] = &[
         statement: "forall (n : Nat) (_unused : True), n = n",
         assumptions: &["n : Nat", "_unused : True"],
         relative_path_full: "ProofLab/Corpus/Minimize/NatRflRedundant.lean",
+        theorem_name: "ProofLab.Corpus.Minimize.nat_rfl_redundant",
         imports: &["Mathlib.Data.Nat.Basic"],
         removal_trials: &[RemovalTrial {
             remove_index: 1,
             removed_assumption: "_unused : True",
             weakened_statement: "forall (n : Nat), n = n",
             relative_path: "ProofLab/Corpus/Minimize/NatRflDropTrue.lean",
+            theorem_name: "ProofLab.Corpus.Minimize.nat_rfl_drop_true",
             expected: ExpectedRemovalOutcome::KernelAccepts,
         }],
     },
@@ -230,12 +234,14 @@ pub const ASSUMPTION_MINIMIZATION_CORPUS: &[MinimizationEntry] = &[
         statement: "forall (n : Nat) (h : n = 1), n = 1",
         assumptions: &["n : Nat", "h : n = 1"],
         relative_path_full: "ProofLab/Corpus/Minimize/NatEqByHyp.lean",
+        theorem_name: "ProofLab.Corpus.Minimize.nat_eq_by_hyp",
         imports: &["Mathlib.Data.Nat.Basic"],
         removal_trials: &[RemovalTrial {
             remove_index: 1,
             removed_assumption: "h : n = 1",
             weakened_statement: "forall (n : Nat), n = 1",
             relative_path: "ProofLab/Corpus/Fixtures/MinimizeDropHypReject.lean",
+            theorem_name: "ProofLab.Corpus.Fixtures.nat_eq_drop_hyp_reject",
             expected: ExpectedRemovalOutcome::KernelRejects,
         }],
     },
@@ -347,10 +353,15 @@ impl MinimizationEntry {
             .collect::<Vec<_>>();
         let full_formal_statement =
             FormalStatement::lean4(full_claim.id, &full_source_bytes, imports.clone());
+        let full_policy = TheoremAuditPolicy::new(
+            self.theorem_name,
+            std::iter::empty::<&str>(),
+        )
+        .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
         let full_job = VerificationJob::new(
             &full_formal_statement,
             &full_source_bytes,
-            &invocation,
+            full_policy.invocation_contract(&invocation),
             repro.clone(),
         )
         .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
@@ -387,9 +398,18 @@ impl MinimizationEntry {
                 parents: vec![full_claim.id],
             });
             let formal_statement = FormalStatement::lean4(claim.id, &source_bytes, imports.clone());
-            let job =
-                VerificationJob::new(&formal_statement, &source_bytes, &invocation, repro.clone())
-                    .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
+            let policy = TheoremAuditPolicy::new(
+                trial.theorem_name,
+                std::iter::empty::<&str>(),
+            )
+            .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
+            let job = VerificationJob::new(
+                &formal_statement,
+                &source_bytes,
+                policy.invocation_contract(&invocation),
+                repro.clone(),
+            )
+            .map_err(|error| MinimizationError::JobConstruction(error.to_string()))?;
             trials.push(PreparedRemovalTrial {
                 remove_index: trial.remove_index,
                 removed_assumption: trial.removed_assumption,
