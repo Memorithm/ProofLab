@@ -26,8 +26,8 @@ ax_task_program:
 
 bench_execution_ingest_audit_20261013:
   finding: B-PL-03
-  status: candidate_local_qualified_waiting_CI
-  candidate_sha: 87f14cd211b3ec978f76914704c3be7de27cf366
+  status: merged_waiting_integrated_CI
+  candidate_sha: a427c6fdf317e44517dec4271638a62ef98214a3
   source_repository: Memorithm/riemann_ndim_bench
   source_sha: d7f0b70feb515a3f3a80cd681d820510bc2ed938
   source_run: 37193369605
@@ -36,3 +36,8 @@ bench_execution_ingest_audit_20261013:
   qualified_locally: [281_workspace_tests, strict_workspace_clippy, real_archived_execution_authenticated_ingest]
   scope: development_only_Observation_and_EvidenceClaim
   limitations: [not_a_new_producer_run, not_production_publisher_policy, not_proof, not_live_TDI_transport]
+
+  integrated_sha: b49e2e51397a33370c3c35fa16897eebf2929559
+  candidate_checks: 3_success
+  review: nested_export_unknown_fields_refused_1_thread_resolved
+  next_action: verify_integrated_Rust_Lean_and_authenticated_import_before_closure
