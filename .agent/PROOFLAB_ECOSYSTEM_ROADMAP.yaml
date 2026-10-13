@@ -23,3 +23,16 @@ ax_task_program:
     - task_success_is_never_PROVED
     - only_the_trusted_kernel_may_establish_proof_status
     - failed_counterexamples_and_attempts_remain_retained_evidence
+
+bench_execution_ingest_audit_20261013:
+  finding: B-PL-03
+  status: candidate_local_qualified_waiting_CI
+  candidate_sha: 87f14cd211b3ec978f76914704c3be7de27cf366
+  source_repository: Memorithm/riemann_ndim_bench
+  source_sha: d7f0b70feb515a3f3a80cd681d820510bc2ed938
+  source_run: 37193369605
+  source_job: 111410052824
+  owner_authentication_sha: 662a30dc774dd19c68a79bed3889036a91930123
+  qualified_locally: [281_workspace_tests, strict_workspace_clippy, real_archived_execution_authenticated_ingest]
+  scope: development_only_Observation_and_EvidenceClaim
+  limitations: [not_a_new_producer_run, not_production_publisher_policy, not_proof, not_live_TDI_transport]
