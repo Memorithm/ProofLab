@@ -26,7 +26,7 @@ ax_task_program:
 
 bench_execution_ingest_audit_20261013:
   finding: B-PL-03
-  status: merged_waiting_integrated_CI
+  status: resolved_first_archived_real_producer_import
   candidate_sha: a427c6fdf317e44517dec4271638a62ef98214a3
   source_repository: Memorithm/riemann_ndim_bench
   source_sha: d7f0b70feb515a3f3a80cd681d820510bc2ed938
@@ -40,4 +40,10 @@ bench_execution_ingest_audit_20261013:
   integrated_sha: b49e2e51397a33370c3c35fa16897eebf2929559
   candidate_checks: 3_success
   review: nested_export_unknown_fields_refused_1_thread_resolved
-  next_action: verify_integrated_Rust_Lean_and_authenticated_import_before_closure
+  next_action: preserve_scoped_producer_bytes_and_owner_trust_then_qualify_each_future_producer_version
+
+  integrated_checks: 3_success
+  integrated_artifact_id: 11836972420
+  integrated_archive_sha256: af8e76cbf77364b91aa1f94daa424bc57fe84dd03964ee5625063c456def1e8d
+  integrated_archive_identity_verified: true
+  mathematical_status: Observed_only
