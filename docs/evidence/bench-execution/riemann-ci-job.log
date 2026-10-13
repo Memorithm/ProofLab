@@ -1,0 +1,1346 @@
+﻿2026-10-04T09:49:21.2345392Z Current runner version: '2.337.0'
+2026-10-04T09:49:21.2371415Z ##[group]Runner Image Provisioner
+2026-10-04T09:49:21.2372347Z Hosted Compute Agent
+2026-10-04T09:49:21.2372973Z Version: 20260901.588
+2026-10-04T09:49:21.2373692Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-04T09:49:21.2374469Z Build Date: 2026-09-01T19:56:44Z
+2026-10-04T09:49:21.2375188Z Worker ID: {403a94ea-0833-4dd9-90f0-fd0576689574}
+2026-10-04T09:49:21.2375919Z Azure Region: westus
+2026-10-04T09:49:21.2376528Z ##[endgroup]
+2026-10-04T09:49:21.2378231Z ##[group]Operating System
+2026-10-04T09:49:21.2378896Z Ubuntu
+2026-10-04T09:49:21.2379863Z 24.04.5
+2026-10-04T09:49:21.2380664Z LTS
+2026-10-04T09:49:21.2381200Z ##[endgroup]
+2026-10-04T09:49:21.2381815Z ##[group]Runner Image
+2026-10-04T09:49:21.2382435Z Image: ubuntu-24.04
+2026-10-04T09:49:21.2382988Z Version: 20260927.320.1
+2026-10-04T09:49:21.2384328Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-04T09:49:21.2385960Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+2026-10-04T09:49:21.2386940Z ##[endgroup]
+2026-10-04T09:49:21.2388092Z ##[group]GITHUB_TOKEN Permissions
+2026-10-04T09:49:21.2390663Z Contents: read
+2026-10-04T09:49:21.2391310Z Metadata: read
+2026-10-04T09:49:21.2391980Z ##[endgroup]
+2026-10-04T09:49:21.2394077Z Secret source: Actions
+2026-10-04T09:49:21.2395185Z Cache mode: write
+2026-10-04T09:49:21.2396129Z Prepare workflow directory
+2026-10-04T09:49:21.2734245Z Prepare all required actions
+2026-10-04T09:49:21.2783574Z Getting action download info
+2026-10-04T09:49:21.6405043Z Download action repository 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-04T09:49:21.7568268Z Download action repository 'dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d' (SHA:89b12181fb390509a0842a86cc55eeb8eb928c1d)
+2026-10-04T09:49:21.9591166Z Download action repository 'actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-10-04T09:49:22.1773582Z Complete job name: test
+2026-10-04T09:49:22.2573128Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+2026-10-04T09:49:22.2574190Z with:
+2026-10-04T09:49:22.2574651Z   repository: Memorithm/riemann_ndim_bench
+2026-10-04T09:49:22.2578688Z   token: ***
+2026-10-04T09:49:22.2579114Z   ssh-strict: true
+2026-10-04T09:49:22.2579548Z   ssh-user: git
+2026-10-04T09:49:22.2579984Z   persist-credentials: true
+2026-10-04T09:49:22.2580689Z   clean: true
+2026-10-04T09:49:22.2581136Z   sparse-checkout-cone-mode: true
+2026-10-04T09:49:22.2581651Z   fetch-depth: 1
+2026-10-04T09:49:22.2582069Z   fetch-tags: false
+2026-10-04T09:49:22.2582505Z   show-progress: true
+2026-10-04T09:49:22.2582940Z   lfs: false
+2026-10-04T09:49:22.2583343Z   submodules: false
+2026-10-04T09:49:22.2583779Z   set-safe-directory: true
+2026-10-04T09:49:22.2584278Z   allow-unsafe-pr-checkout: false
+2026-10-04T09:49:22.2585072Z ##[endgroup]
+2026-10-04T09:49:22.3612759Z Syncing repository: Memorithm/riemann_ndim_bench
+2026-10-04T09:49:22.3614841Z ##[group]Getting Git version info
+2026-10-04T09:49:22.3616257Z Working directory is '/home/runner/work/riemann_ndim_bench/riemann_ndim_bench'
+2026-10-04T09:49:22.3617411Z [command]/usr/bin/git version
+2026-10-04T09:49:22.3677355Z git version 2.55.0
+2026-10-04T09:49:22.3700609Z ##[endgroup]
+2026-10-04T09:49:22.3718297Z Temporarily overriding HOME='/home/runner/work/_temp/b1cfdbc3-d5ad-44d6-916d-5451f84dc551' before making global git config changes
+2026-10-04T09:49:22.3720962Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-04T09:49:22.3727306Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/riemann_ndim_bench/riemann_ndim_bench
+2026-10-04T09:49:22.3776875Z Deleting the contents of '/home/runner/work/riemann_ndim_bench/riemann_ndim_bench'
+2026-10-04T09:49:22.3783570Z ##[group]Initializing the repository
+2026-10-04T09:49:22.3787609Z [command]/usr/bin/git init /home/runner/work/riemann_ndim_bench/riemann_ndim_bench
+2026-10-04T09:49:22.3901251Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-04T09:49:22.3902995Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-04T09:49:22.3904016Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-04T09:49:22.3904798Z hint: call:
+2026-10-04T09:49:22.3905220Z hint:
+2026-10-04T09:49:22.3905752Z hint: 	git config --global init.defaultBranch <name>
+2026-10-04T09:49:22.3906383Z hint:
+2026-10-04T09:49:22.3906977Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-04T09:49:22.3907938Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-04T09:49:22.3908700Z hint:
+2026-10-04T09:49:22.3909202Z hint: 	git branch -m <name>
+2026-10-04T09:49:22.3909692Z hint:
+2026-10-04T09:49:22.3910695Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-04T09:49:22.3916598Z Initialized empty Git repository in /home/runner/work/riemann_ndim_bench/riemann_ndim_bench/.git/
+2026-10-04T09:49:22.3928025Z [command]/usr/bin/git remote add origin https://github.com/Memorithm/riemann_ndim_bench
+2026-10-04T09:49:22.3977199Z ##[endgroup]
+2026-10-04T09:49:22.3978569Z ##[group]Disabling automatic garbage collection
+2026-10-04T09:49:22.3987794Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-04T09:49:22.4013291Z ##[endgroup]
+2026-10-04T09:49:22.4014609Z ##[group]Setting up auth
+2026-10-04T09:49:22.4021057Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-04T09:49:22.4063724Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-04T09:49:22.4423647Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-04T09:49:22.4464480Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-04T09:49:22.4697254Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-04T09:49:22.4734446Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-04T09:49:22.4960812Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-04T09:49:22.5003533Z ##[endgroup]
+2026-10-04T09:49:22.5005009Z ##[group]Fetching the repository
+2026-10-04T09:49:22.5015191Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +d7f0b70feb515a3f3a80cd681d820510bc2ed938:refs/remotes/origin/main
+2026-10-04T09:49:23.0038597Z From https://github.com/Memorithm/riemann_ndim_bench
+2026-10-04T09:49:23.0040793Z  * [new ref]         d7f0b70feb515a3f3a80cd681d820510bc2ed938 -> origin/main
+2026-10-04T09:49:23.0043819Z ##[endgroup]
+2026-10-04T09:49:23.0045253Z ##[group]Determining the checkout info
+2026-10-04T09:49:23.0047042Z ##[endgroup]
+2026-10-04T09:49:23.0051061Z [command]/usr/bin/git sparse-checkout disable
+2026-10-04T09:49:23.0105202Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-04T09:49:23.0141485Z ##[group]Checking out the ref
+2026-10-04T09:49:23.0143660Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-10-04T09:49:23.0314928Z Switched to a new branch 'main'
+2026-10-04T09:49:23.0320552Z branch 'main' set up to track 'origin/main'.
+2026-10-04T09:49:23.0326988Z ##[endgroup]
+2026-10-04T09:49:23.0368841Z [command]/usr/bin/git log -1 --format=%H
+2026-10-04T09:49:23.0395920Z d7f0b70feb515a3f3a80cd681d820510bc2ed938
+2026-10-04T09:49:23.1136759Z ##[group]Run dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d
+2026-10-04T09:49:23.1138541Z with:
+2026-10-04T09:49:23.1139349Z   toolchain: 1.98.1
+2026-10-04T09:49:23.1140465Z   components: rustfmt, clippy
+2026-10-04T09:49:23.1141477Z ##[endgroup]
+2026-10-04T09:49:23.1234441Z ##[start-action display=Parse toolchain version;id=__dtolnay_rust-toolchain.parse]
+2026-10-04T09:49:23.1312386Z ##[group]Run if [[ -z $toolchain ]]; then
+2026-10-04T09:49:23.1313619Z [36;1mif [[ -z $toolchain ]]; then[0m
+2026-10-04T09:49:23.1315553Z [36;1m  # GitHub does not enforce `required: true` inputs itself. https://github.com/actions/runner/issues/1070[0m
+2026-10-04T09:49:23.1317612Z [36;1m  echo "'toolchain' is a required input" >&2[0m
+2026-10-04T09:49:23.1318786Z [36;1m  exit 1[0m
+2026-10-04T09:49:23.1320271Z [36;1melif [[ $toolchain =~ ^stable' '[0-9]+' '(year|month|week|day)s?' 'ago$ ]]; then[0m
+2026-10-04T09:49:23.1321866Z [36;1m  if [[ Linux == macOS ]]; then[0m
+2026-10-04T09:49:23.1323895Z [36;1m    echo "toolchain=1.$((($(date -v-$(sed 's/stable \([0-9]*\) \(.\).*/\1\2/' <<< $toolchain) +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT[0m
+2026-10-04T09:49:23.1325854Z [36;1m  else[0m
+2026-10-04T09:49:23.1327411Z [36;1m    echo "toolchain=1.$((($(date --date "${toolchain#stable }" +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT[0m
+2026-10-04T09:49:23.1329198Z [36;1m  fi[0m
+2026-10-04T09:49:23.1330496Z [36;1melif [[ $toolchain =~ ^stable' 'minus' '[0-9]+' 'releases?$ ]]; then[0m
+2026-10-04T09:49:23.1332520Z [36;1m  echo "toolchain=1.$((($(date +%s)/60/60/24-16569)/7/6-${toolchain//[^0-9]/}))" >> $GITHUB_OUTPUT[0m
+2026-10-04T09:49:23.1334274Z [36;1melif [[ $toolchain =~ ^1\.[0-9]+$ ]]; then[0m
+2026-10-04T09:49:23.1336265Z [36;1m  echo "toolchain=1.$((i=${toolchain#1.}, c=($(date +%s)/60/60/24-16569)/7/6, i+9*i*(10*i<=c)+90*i*(100*i<=c)))" >> $GITHUB_OUTPUT[0m
+2026-10-04T09:49:23.1338157Z [36;1melse[0m
+2026-10-04T09:49:23.1339126Z [36;1m  echo "toolchain=$toolchain" >> $GITHUB_OUTPUT[0m
+2026-10-04T09:49:23.1340434Z [36;1mfi[0m
+2026-10-04T09:49:23.1605490Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-04T09:49:23.1606802Z env:
+2026-10-04T09:49:23.1607556Z   toolchain: 1.98.1
+2026-10-04T09:49:23.1608385Z ##[endgroup]
+2026-10-04T09:49:23.1761732Z ##[end-action id=__dtolnay_rust-toolchain.parse;outcome=success;conclusion=success;duration_ms=52]
+2026-10-04T09:49:23.1778913Z ##[start-action display=Construct rustup command line;id=__dtolnay_rust-toolchain.flags]
+2026-10-04T09:49:23.1830648Z ##[group]Run echo "targets=$(for t in ${targets//,/ }; do echo -n ' --target' $t; done)" >> $GITHUB_OUTPUT
+2026-10-04T09:49:23.1832946Z [36;1mecho "targets=$(for t in ${targets//,/ }; do echo -n ' --target' $t; done)" >> $GITHUB_OUTPUT[0m
+2026-10-04T09:49:23.1835237Z [36;1mecho "components=$(for c in ${components//,/ }; do echo -n ' --component' $c; done)" >> $GITHUB_OUTPUT[0m
+2026-10-04T09:49:23.1837030Z [36;1mecho "downgrade=" >> $GITHUB_OUTPUT[0m
+2026-10-04T09:49:23.1898532Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-04T09:49:23.1899777Z env:
+2026-10-04T09:49:23.1900807Z   targets: 
+2026-10-04T09:49:23.1901585Z   components: rustfmt, clippy
+2026-10-04T09:49:23.1902502Z ##[endgroup]
+2026-10-04T09:49:23.2015970Z ##[end-action id=__dtolnay_rust-toolchain.flags;outcome=success;conclusion=success;duration_ms=23]
+2026-10-04T09:49:23.2022792Z ##[start-action display=Set $CARGO_HOME;id=__dtolnay_rust-toolchain.__run]
+2026-10-04T09:49:23.2069573Z ##[group]Run echo CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV
+2026-10-04T09:49:23.2072042Z [36;1mecho CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV[0m
+2026-10-04T09:49:23.2135385Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-04T09:49:23.2136646Z ##[endgroup]
+2026-10-04T09:49:23.2239202Z ##[end-action id=__dtolnay_rust-toolchain.__run;outcome=success;conclusion=success;duration_ms=21]
+2026-10-04T09:49:23.2246030Z ##[start-action display=Install rustup if needed;id=__dtolnay_rust-toolchain.__run_2]
+2026-10-04T09:49:23.2295951Z ##[group]Run if ! command -v rustup &>/dev/null; then
+2026-10-04T09:49:23.2297392Z [36;1mif ! command -v rustup &>/dev/null; then[0m
+2026-10-04T09:49:23.2300000Z [36;1m  curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused --location --silent --show-error --fail https://sh.rustup.rs | sh -s -- --default-toolchain none -y[0m
+2026-10-04T09:49:23.2302749Z [36;1m  echo "$CARGO_HOME/bin" >> $GITHUB_PATH[0m
+2026-10-04T09:49:23.2303815Z [36;1mfi[0m
+2026-10-04T09:49:23.2362548Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-04T09:49:23.2363764Z env:
+2026-10-04T09:49:23.2364491Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:49:23.2365417Z ##[endgroup]
+2026-10-04T09:49:23.2465152Z ##[end-action id=__dtolnay_rust-toolchain.__run_2;outcome=success;conclusion=success;duration_ms=21]
+2026-10-04T09:49:23.2471630Z ##[start-action display=Install rustup if needed on windows;id=__dtolnay_rust-toolchain.__run_3]
+2026-10-04T09:49:23.2485374Z ##[end-action id=__dtolnay_rust-toolchain.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-04T09:49:23.2501692Z ##[start-action display=rustup toolchain install 1.98.1;id=__dtolnay_rust-toolchain.__run_4]
+2026-10-04T09:49:23.2541132Z ##[group]Run log=$(mktemp)
+2026-10-04T09:49:23.2542030Z [36;1mlog=$(mktemp)[0m
+2026-10-04T09:49:23.2542880Z [36;1mtrap 'rm -f "$log"' EXIT[0m
+2026-10-04T09:49:23.2543847Z [36;1mfor attempt in 1 2 3 4 5; do[0m
+2026-10-04T09:49:23.2546176Z [36;1m  if rustup toolchain install 1.98.1 --component rustfmt --component clippy --profile minimal --no-self-update --force-non-host 2>&1 | tee "$log"; then[0m
+2026-10-04T09:49:23.2548587Z [36;1m    break[0m
+2026-10-04T09:49:23.2549343Z [36;1m  else[0m
+2026-10-04T09:49:23.2550294Z [36;1m    status=$?[0m
+2026-10-04T09:49:23.2551133Z [36;1m  fi[0m
+2026-10-04T09:49:23.2552213Z [36;1m  if [[ $attempt == 5 ]] || ! grep -Fq 'checksum failed for ' "$log" \[0m
+2026-10-04T09:49:23.2554241Z [36;1m      || ! grep -Fq 'this is likely due to an ongoing update of the official release server' "$log"; then[0m
+2026-10-04T09:49:23.2555945Z [36;1m    exit "$status"[0m
+2026-10-04T09:49:23.2556801Z [36;1m  fi[0m
+2026-10-04T09:49:23.2558082Z [36;1m  echo "Retrying rustup toolchain install in 30 seconds (retry $attempt of 4)" >&2[0m
+2026-10-04T09:49:23.2559626Z [36;1m  sleep 30[0m
+2026-10-04T09:49:23.2560666Z [36;1mdone[0m
+2026-10-04T09:49:23.2618972Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-04T09:49:23.2620315Z env:
+2026-10-04T09:49:23.2621042Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:49:23.2622005Z   RUSTUP_PERMIT_COPY_RENAME: 1
+2026-10-04T09:49:23.2622890Z ##[endgroup]
+2026-10-04T09:49:23.3648725Z info: syncing channel updates for 1.98.1-x86_64-unknown-linux-gnu
+2026-10-04T09:49:23.6384116Z info: latest update on 2026-09-03 for version 1.98.1 (48a229cea 2026-09-01)
+2026-10-04T09:49:23.6386091Z info: downloading 5 components
+2026-10-04T09:49:31.4578201Z 
+2026-10-04T09:49:31.4647890Z   1.98.1-x86_64-unknown-linux-gnu installed - rustc 1.98.1 (48a229cea 2026-09-01)
+2026-10-04T09:49:31.4649052Z 
+2026-10-04T09:49:31.4726320Z ##[end-action id=__dtolnay_rust-toolchain.__run_4;outcome=success;conclusion=success;duration_ms=8222]
+2026-10-04T09:49:31.4734542Z ##[start-action display=rustup default 1.98.1;id=__dtolnay_rust-toolchain.__run_5]
+2026-10-04T09:49:31.4758589Z ##[group]Run rustup default 1.98.1 --force-non-host
+2026-10-04T09:49:31.4759022Z [36;1mrustup default 1.98.1 --force-non-host[0m
+2026-10-04T09:49:31.4825223Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-04T09:49:31.4825626Z env:
+2026-10-04T09:49:31.4825891Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:49:31.4826199Z ##[endgroup]
+2026-10-04T09:49:31.4950499Z info: using existing install for 1.98.1-x86_64-unknown-linux-gnu
+2026-10-04T09:49:31.4957062Z info: default toolchain set to 1.98.1-x86_64-unknown-linux-gnu
+2026-10-04T09:49:31.4957596Z 
+2026-10-04T09:49:31.5021898Z   1.98.1-x86_64-unknown-linux-gnu unchanged - rustc 1.98.1 (48a229cea 2026-09-01)
+2026-10-04T09:49:31.5022551Z 
+2026-10-04T09:49:31.5024928Z info: note that the toolchain '1.98.1-x86_64-unknown-linux-gnu' is currently in use (overridden by '/home/runner/work/riemann_ndim_bench/riemann_ndim_bench/rust-toolchain.toml')
+2026-10-04T09:49:31.5039186Z ##[end-action id=__dtolnay_rust-toolchain.__run_5;outcome=success;conclusion=success;duration_ms=30]
+2026-10-04T09:49:31.5042339Z ##[start-action display=Create cachekey;id=__dtolnay_rust-toolchain.rustc-version]
+2026-10-04T09:49:31.5064790Z ##[group]Run DATE=$(rustc +1.98.1 --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')
+2026-10-04T09:49:31.5065646Z [36;1mDATE=$(rustc +1.98.1 --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')[0m
+2026-10-04T09:49:31.5066348Z [36;1mHASH=$(rustc +1.98.1 --version --verbose | sed -ne 's/^commit-hash: //p')[0m
+2026-10-04T09:49:31.5066901Z [36;1mecho "cachekey=$(echo $DATE$HASH | head -c12)" >> $GITHUB_OUTPUT[0m
+2026-10-04T09:49:31.5131553Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-04T09:49:31.5131952Z env:
+2026-10-04T09:49:31.5132228Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:49:31.5132541Z ##[endgroup]
+2026-10-04T09:49:31.5571520Z ##[end-action id=__dtolnay_rust-toolchain.rustc-version;outcome=success;conclusion=success;duration_ms=52]
+2026-10-04T09:49:31.5574615Z ##[start-action display=Disable incremental compilation;id=__dtolnay_rust-toolchain.__run_6]
+2026-10-04T09:49:31.5596808Z ##[group]Run if [ -z "${CARGO_INCREMENTAL+set}" ]; then
+2026-10-04T09:49:31.5597286Z [36;1mif [ -z "${CARGO_INCREMENTAL+set}" ]; then[0m
+2026-10-04T09:49:31.5597683Z [36;1m  echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV[0m
+2026-10-04T09:49:31.5598030Z [36;1mfi[0m
+2026-10-04T09:49:31.5669399Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-04T09:49:31.5669849Z env:
+2026-10-04T09:49:31.5670404Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:49:31.5670730Z ##[endgroup]
+2026-10-04T09:49:31.5764373Z ##[end-action id=__dtolnay_rust-toolchain.__run_6;outcome=success;conclusion=success;duration_ms=18]
+2026-10-04T09:49:31.5766786Z ##[start-action display=Enable colors in Cargo output;id=__dtolnay_rust-toolchain.__run_7]
+2026-10-04T09:49:31.5787529Z ##[group]Run if [ -z "${CARGO_TERM_COLOR+set}" ]; then
+2026-10-04T09:49:31.5787957Z [36;1mif [ -z "${CARGO_TERM_COLOR+set}" ]; then[0m
+2026-10-04T09:49:31.5788349Z [36;1m  echo CARGO_TERM_COLOR=always >> $GITHUB_ENV[0m
+2026-10-04T09:49:31.5788692Z [36;1mfi[0m
+2026-10-04T09:49:31.5853206Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-04T09:49:31.5853607Z env:
+2026-10-04T09:49:31.5853867Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:49:31.5854183Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:49:31.5854452Z ##[endgroup]
+2026-10-04T09:49:31.5945159Z ##[end-action id=__dtolnay_rust-toolchain.__run_7;outcome=success;conclusion=success;duration_ms=17]
+2026-10-04T09:49:31.5947613Z ##[start-action display=Enable Cargo sparse registry;id=__dtolnay_rust-toolchain.__run_8]
+2026-10-04T09:49:31.5969969Z ##[group]Run # implemented in 1.66, stabilized in 1.68, made default in 1.70
+2026-10-04T09:49:31.5970841Z [36;1m# implemented in 1.66, stabilized in 1.68, made default in 1.70[0m
+2026-10-04T09:49:31.5971630Z [36;1mif [ -z "${CARGO_REGISTRIES_CRATES_IO_PROTOCOL+set}" -o -f "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol ]; then[0m
+2026-10-04T09:49:31.5972423Z [36;1m  if rustc +1.98.1 --version --verbose | grep -q '^release: 1\.6[89]\.'; then[0m
+2026-10-04T09:49:31.5973052Z [36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true[0m
+2026-10-04T09:49:31.5973652Z [36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse >> $GITHUB_ENV[0m
+2026-10-04T09:49:31.5974198Z [36;1m  elif rustc +1.98.1 --version --verbose | grep -q '^release: 1\.6[67]\.'; then[0m
+2026-10-04T09:49:31.5975018Z [36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true[0m
+2026-10-04T09:49:31.5975756Z [36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git >> $GITHUB_ENV[0m
+2026-10-04T09:49:31.5976164Z [36;1m  fi[0m
+2026-10-04T09:49:31.5976414Z [36;1mfi[0m
+2026-10-04T09:49:31.6040542Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-04T09:49:31.6040941Z env:
+2026-10-04T09:49:31.6041201Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:49:31.6041523Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:49:31.6041808Z   CARGO_TERM_COLOR: always
+2026-10-04T09:49:31.6042086Z ##[endgroup]
+2026-10-04T09:49:31.6359300Z ##[end-action id=__dtolnay_rust-toolchain.__run_8;outcome=success;conclusion=success;duration_ms=41]
+2026-10-04T09:49:31.6362979Z ##[start-action display=Work around spurious network errors in curl 8.0;id=__dtolnay_rust-toolchain.__run_9]
+2026-10-04T09:49:31.6386692Z ##[group]Run # https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation
+2026-10-04T09:49:31.6387557Z [36;1m# https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation[0m
+2026-10-04T09:49:31.6388247Z [36;1mif rustc +1.98.1 --version --verbose | grep -q '^release: 1\.7[01]\.'; then[0m
+2026-10-04T09:49:31.6388765Z [36;1m  echo CARGO_HTTP_MULTIPLEXING=false >> $GITHUB_ENV[0m
+2026-10-04T09:49:31.6389132Z [36;1mfi[0m
+2026-10-04T09:49:31.6460367Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-04T09:49:31.6460793Z env:
+2026-10-04T09:49:31.6461061Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:49:31.6461383Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:49:31.6461663Z   CARGO_TERM_COLOR: always
+2026-10-04T09:49:31.6461952Z ##[endgroup]
+2026-10-04T09:49:31.6668433Z ##[end-action id=__dtolnay_rust-toolchain.__run_9;outcome=success;conclusion=success;duration_ms=30]
+2026-10-04T09:49:31.6673033Z ##[start-action display=rustc +1.98.1 --version --verbose;id=__dtolnay_rust-toolchain.__run_10]
+2026-10-04T09:49:31.6694757Z ##[group]Run rustc +1.98.1 --version --verbose
+2026-10-04T09:49:31.6695162Z [36;1mrustc +1.98.1 --version --verbose[0m
+2026-10-04T09:49:31.6763167Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-04T09:49:31.6763569Z env:
+2026-10-04T09:49:31.6763835Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:49:31.6764157Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:49:31.6764448Z   CARGO_TERM_COLOR: always
+2026-10-04T09:49:31.6764741Z ##[endgroup]
+2026-10-04T09:49:31.6949165Z rustc 1.98.1 (48a229cea 2026-09-01)
+2026-10-04T09:49:31.6949956Z binary: rustc
+2026-10-04T09:49:31.6951248Z commit-hash: 48a229ceaefd4985c50990b14116b6d856af0985
+2026-10-04T09:49:31.6952093Z commit-date: 2026-09-01
+2026-10-04T09:49:31.6952737Z host: x86_64-unknown-linux-gnu
+2026-10-04T09:49:31.6953397Z release: 1.98.1
+2026-10-04T09:49:31.6953999Z LLVM version: 22.1.8
+2026-10-04T09:49:31.6966840Z ##[end-action id=__dtolnay_rust-toolchain.__run_10;outcome=success;conclusion=success;duration_ms=29]
+2026-10-04T09:49:31.7027812Z ##[group]Run rustc --version --verbose
+2026-10-04T09:49:31.7028238Z [36;1mrustc --version --verbose[0m
+2026-10-04T09:49:31.7028590Z [36;1mcargo --version[0m
+2026-10-04T09:49:31.7095559Z shell: /usr/bin/bash -e {0}
+2026-10-04T09:49:31.7095875Z env:
+2026-10-04T09:49:31.7096139Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:49:31.7096460Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:49:31.7096746Z   CARGO_TERM_COLOR: always
+2026-10-04T09:49:31.7097029Z ##[endgroup]
+2026-10-04T09:49:31.7456056Z rustc 1.98.1 (48a229cea 2026-09-01)
+2026-10-04T09:49:31.7456802Z binary: rustc
+2026-10-04T09:49:31.7457411Z commit-hash: 48a229ceaefd4985c50990b14116b6d856af0985
+2026-10-04T09:49:31.7458079Z commit-date: 2026-09-01
+2026-10-04T09:49:31.7458408Z host: x86_64-unknown-linux-gnu
+2026-10-04T09:49:31.7458723Z release: 1.98.1
+2026-10-04T09:49:31.7458995Z LLVM version: 22.1.8
+2026-10-04T09:49:31.7722328Z cargo 1.98.1 (797e8a9bc 2026-08-05)
+2026-10-04T09:49:31.7763104Z ##[group]Run cargo fmt --all -- --check
+2026-10-04T09:49:31.7763529Z [36;1mcargo fmt --all -- --check[0m
+2026-10-04T09:49:31.7833217Z shell: /usr/bin/bash -e {0}
+2026-10-04T09:49:31.7833715Z env:
+2026-10-04T09:49:31.7833987Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:49:31.7834310Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:49:31.7834597Z   CARGO_TERM_COLOR: always
+2026-10-04T09:49:31.7834891Z ##[endgroup]
+2026-10-04T09:49:32.0160361Z ##[group]Run cargo clippy --locked --all-targets --all-features -- -D warnings
+2026-10-04T09:49:32.0160993Z [36;1mcargo clippy --locked --all-targets --all-features -- -D warnings[0m
+2026-10-04T09:49:32.0223822Z shell: /usr/bin/bash -e {0}
+2026-10-04T09:49:32.0224087Z env:
+2026-10-04T09:49:32.0224290Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:49:32.0224548Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:49:32.0224768Z   CARGO_TERM_COLOR: always
+2026-10-04T09:49:32.0224995Z ##[endgroup]
+2026-10-04T09:49:32.1087591Z [1m[92m    Updating[0m crates.io index
+2026-10-04T09:49:32.2580603Z [1m[92m Downloading[0m crates ...
+2026-10-04T09:49:32.3071119Z [1m[92m  Downloaded[0m bytemuck v1.25.2
+2026-10-04T09:49:32.3106199Z [1m[92m  Downloaded[0m bitflags v2.13.1
+2026-10-04T09:49:32.3160513Z [1m[92m  Downloaded[0m autocfg v1.5.1
+2026-10-04T09:49:32.3188644Z [1m[92m  Downloaded[0m cfg-if v1.0.4
+2026-10-04T09:49:32.3208055Z [1m[92m  Downloaded[0m crossbeam v0.8.4
+2026-10-04T09:49:32.3225583Z [1m[92m  Downloaded[0m bytemuck_derive v1.12.0
+2026-10-04T09:49:32.3246582Z [1m[92m  Downloaded[0m atomic-wait v1.1.0
+2026-10-04T09:49:32.3264969Z [1m[92m  Downloaded[0m crossbeam-deque v0.8.7
+2026-10-04T09:49:32.3288751Z [1m[92m  Downloaded[0m dyn-stack-macros v0.1.3
+2026-10-04T09:49:32.3311388Z [1m[92m  Downloaded[0m gemm v0.19.0
+2026-10-04T09:49:32.3330486Z [1m[92m  Downloaded[0m equator-macro v0.2.1
+2026-10-04T09:49:32.3332210Z [1m[92m  Downloaded[0m crossbeam-epoch v0.9.20
+2026-10-04T09:49:32.3373265Z [1m[92m  Downloaded[0m nano-gemm-codegen v0.2.1
+2026-10-04T09:49:32.3389442Z [1m[92m  Downloaded[0m gemm-f16 v0.19.0
+2026-10-04T09:49:32.3411232Z [1m[92m  Downloaded[0m num-complex v0.4.6
+2026-10-04T09:49:32.3441435Z [1m[92m  Downloaded[0m num-traits v0.2.19
+2026-10-04T09:49:32.3466126Z [1m[92m  Downloaded[0m faer-traits v0.24.0
+2026-10-04T09:49:32.3481332Z [1m[92m  Downloaded[0m equator-macro v0.4.2
+2026-10-04T09:49:32.3490721Z [1m[92m  Downloaded[0m nano-gemm-c64 v0.2.1
+2026-10-04T09:49:32.3521577Z [1m[92m  Downloaded[0m equator v0.4.2
+2026-10-04T09:49:32.3522059Z [1m[92m  Downloaded[0m version_check v0.9.5
+2026-10-04T09:49:32.3538490Z [1m[92m  Downloaded[0m crossbeam-queue v0.3.13
+2026-10-04T09:49:32.3556405Z [1m[92m  Downloaded[0m equator v0.2.2
+2026-10-04T09:49:32.3567539Z [1m[92m  Downloaded[0m equator-macro v0.6.0
+2026-10-04T09:49:32.3576696Z [1m[92m  Downloaded[0m gemm-f32 v0.19.0
+2026-10-04T09:49:32.3589781Z [1m[92m  Downloaded[0m interpol v0.2.1
+2026-10-04T09:49:32.3603256Z [1m[92m  Downloaded[0m nano-gemm-f32 v0.2.1
+2026-10-04T09:49:32.3614158Z [1m[92m  Downloaded[0m reborrow v0.5.5
+2026-10-04T09:49:32.3624678Z [1m[92m  Downloaded[0m gemm-c32 v0.19.0
+2026-10-04T09:49:32.3638108Z [1m[92m  Downloaded[0m gemm-c64 v0.19.0
+2026-10-04T09:49:32.3652046Z [1m[92m  Downloaded[0m nano-gemm-core v0.2.1
+2026-10-04T09:49:32.3661684Z [1m[92m  Downloaded[0m pulp-wasm-simd-flag v0.1.1
+2026-10-04T09:49:32.3670835Z [1m[92m  Downloaded[0m seq-macro v0.3.6
+2026-10-04T09:49:32.3700574Z [1m[92m  Downloaded[0m equator v0.6.0
+2026-10-04T09:49:32.3714152Z [1m[92m  Downloaded[0m nano-gemm-f64 v0.2.1
+2026-10-04T09:49:32.3724390Z [1m[92m  Downloaded[0m num_cpus v1.17.0
+2026-10-04T09:49:32.3774637Z [1m[92m  Downloaded[0m defer v0.2.1
+2026-10-04T09:49:32.3787366Z [1m[92m  Downloaded[0m gemm-f64 v0.19.0
+2026-10-04T09:49:32.3801176Z [1m[92m  Downloaded[0m crossbeam-utils v0.8.22
+2026-10-04T09:49:32.3845591Z [1m[92m  Downloaded[0m generativity v1.2.1
+2026-10-04T09:49:32.3872261Z [1m[92m  Downloaded[0m paste v1.0.15
+2026-10-04T09:49:32.3901135Z [1m[92m  Downloaded[0m nano-gemm-c32 v0.2.1
+2026-10-04T09:49:32.3908983Z [1m[92m  Downloaded[0m spindle v0.2.6
+2026-10-04T09:49:32.3922555Z [1m[92m  Downloaded[0m dyn-stack v0.13.2
+2026-10-04T09:49:32.3948965Z [1m[92m  Downloaded[0m qd v0.8.0
+2026-10-04T09:49:32.3951924Z [1m[92m  Downloaded[0m either v1.17.0
+2026-10-04T09:49:32.3967805Z [1m[92m  Downloaded[0m gemm-common v0.19.0
+2026-10-04T09:49:32.3984845Z [1m[92m  Downloaded[0m once_cell v1.21.4
+2026-10-04T09:49:32.4011544Z [1m[92m  Downloaded[0m quote v1.0.47
+2026-10-04T09:49:32.4039969Z [1m[92m  Downloaded[0m nano-gemm v0.2.2
+2026-10-04T09:49:32.4051738Z [1m[92m  Downloaded[0m private-gemm-x86 v0.1.20
+2026-10-04T09:49:32.4069005Z [1m[92m  Downloaded[0m unicode-ident v1.0.24
+2026-10-04T09:49:32.4097913Z [1m[92m  Downloaded[0m proc-macro2 v1.0.107
+2026-10-04T09:49:32.4135203Z [1m[92m  Downloaded[0m rayon-core v1.13.0
+2026-10-04T09:49:32.4172862Z [1m[92m  Downloaded[0m crossbeam-channel v0.5.16
+2026-10-04T09:49:32.4213381Z [1m[92m  Downloaded[0m half v2.7.1
+2026-10-04T09:49:32.4240091Z [1m[92m  Downloaded[0m libm v0.2.16
+2026-10-04T09:49:32.4354012Z [1m[92m  Downloaded[0m zerocopy-derive v0.8.56
+2026-10-04T09:49:32.4449116Z [1m[92m  Downloaded[0m raw-cpuid v11.6.0
+2026-10-04T09:49:32.4484309Z [1m[92m  Downloaded[0m pulp v0.22.3
+2026-10-04T09:49:32.4535757Z [1m[92m  Downloaded[0m rayon v1.12.0
+2026-10-04T09:49:32.4633198Z [1m[92m  Downloaded[0m syn v1.0.109
+2026-10-04T09:49:32.4727220Z [1m[92m  Downloaded[0m zerocopy v0.8.56
+2026-10-04T09:49:32.4948012Z [1m[92m  Downloaded[0m syn v2.0.119
+2026-10-04T09:49:32.5055956Z [1m[92m  Downloaded[0m syn v3.0.3
+2026-10-04T09:49:32.5165690Z [1m[92m  Downloaded[0m libc v0.2.189
+2026-10-04T09:49:32.5612548Z [1m[92m  Downloaded[0m faer v0.24.4
+2026-10-04T09:49:32.6361314Z [1m[92m   Compiling[0m crossbeam-utils v0.8.22
+2026-10-04T09:49:32.6361824Z [1m[92m   Compiling[0m autocfg v1.5.1
+2026-10-04T09:49:32.6362193Z [1m[92m   Compiling[0m proc-macro2 v1.0.107
+2026-10-04T09:49:32.6371321Z [1m[92m    Checking[0m bytemuck v1.25.2
+2026-10-04T09:49:32.7821690Z [1m[92m   Compiling[0m quote v1.0.47
+2026-10-04T09:49:32.9191573Z [1m[92m   Compiling[0m crossbeam-epoch v0.9.20
+2026-10-04T09:49:32.9731587Z [1m[92m   Compiling[0m num-traits v0.2.19
+2026-10-04T09:49:33.0204297Z [1m[92m   Compiling[0m unicode-ident v1.0.24
+2026-10-04T09:49:33.0781706Z [1m[92m   Compiling[0m nano-gemm-codegen v0.2.1
+2026-10-04T09:49:33.2513162Z [1m[92m   Compiling[0m crossbeam-deque v0.8.7
+2026-10-04T09:49:33.7011941Z [1m[92m   Compiling[0m paste v1.0.15
+2026-10-04T09:49:33.7361383Z [1m[92m    Checking[0m bitflags v2.13.1
+2026-10-04T09:49:33.7542786Z [1m[92m   Compiling[0m rayon-core v1.13.0
+2026-10-04T09:49:33.8315757Z [1m[92m   Compiling[0m libm v0.2.16
+2026-10-04T09:49:33.8391059Z [1m[92m    Checking[0m num-complex v0.4.6
+2026-10-04T09:49:33.8423159Z [1m[92m   Compiling[0m version_check v0.9.5
+2026-10-04T09:49:33.8654160Z [1m[92m    Checking[0m raw-cpuid v11.6.0
+2026-10-04T09:49:34.0572896Z [1m[92m   Compiling[0m pulp v0.22.3
+2026-10-04T09:49:34.4701866Z [1m[92m    Checking[0m either v1.17.0
+2026-10-04T09:49:34.5861655Z [1m[92m    Checking[0m pulp-wasm-simd-flag v0.1.1
+2026-10-04T09:49:34.6031820Z [1m[92m    Checking[0m reborrow v0.5.5
+2026-10-04T09:49:34.6081123Z [1m[92m    Checking[0m cfg-if v1.0.4
+2026-10-04T09:49:34.6220688Z [1m[92m    Checking[0m rayon v1.12.0
+2026-10-04T09:49:34.6301362Z [1m[92m   Compiling[0m dyn-stack-macros v0.1.3
+2026-10-04T09:49:34.7832138Z [1m[92m    Checking[0m dyn-stack v0.13.2
+2026-10-04T09:49:34.7972300Z [1m[92m   Compiling[0m syn v2.0.119
+2026-10-04T09:49:34.9059885Z [1m[92m    Checking[0m once_cell v1.21.4
+2026-10-04T09:49:35.0228574Z [1m[92m   Compiling[0m syn v1.0.109
+2026-10-04T09:49:35.1908540Z [1m[92m   Compiling[0m seq-macro v0.3.6
+2026-10-04T09:49:35.5021372Z [1m[92m   Compiling[0m libc v0.2.189
+2026-10-04T09:49:35.7462253Z [1m[92m    Checking[0m nano-gemm-core v0.2.1
+2026-10-04T09:49:37.2062978Z [1m[92m   Compiling[0m nano-gemm-f64 v0.2.1
+2026-10-04T09:49:37.3191755Z [1m[92m   Compiling[0m nano-gemm-f32 v0.2.1
+2026-10-04T09:49:37.4401999Z [1m[92m   Compiling[0m nano-gemm-c64 v0.2.1
+2026-10-04T09:49:37.5571609Z [1m[92m   Compiling[0m nano-gemm-c32 v0.2.1
+2026-10-04T09:49:37.6700984Z [1m[92m    Checking[0m crossbeam-channel v0.5.16
+2026-10-04T09:49:37.9481474Z [1m[92m    Checking[0m crossbeam-queue v0.3.13
+2026-10-04T09:49:38.0351490Z [1m[92m   Compiling[0m defer v0.2.1
+2026-10-04T09:49:38.0621540Z [1m[92m    Checking[0m crossbeam v0.8.4
+2026-10-04T09:49:38.3231955Z [1m[92m    Checking[0m gemm-common v0.19.0
+2026-10-04T09:49:38.3486284Z [1m[92m    Checking[0m atomic-wait v1.1.0
+2026-10-04T09:49:38.5363808Z [1m[92m   Compiling[0m equator-macro v0.4.2
+2026-10-04T09:49:38.5781566Z [1m[92m   Compiling[0m equator-macro v0.2.1
+2026-10-04T09:49:38.9782317Z [1m[92m    Checking[0m equator v0.2.2
+2026-10-04T09:49:39.0558637Z [1m[92m    Checking[0m equator v0.4.2
+2026-10-04T09:49:39.0601294Z [1m[92m    Checking[0m gemm-c32 v0.19.0
+2026-10-04T09:49:39.1831344Z [1m[92m    Checking[0m spindle v0.2.6
+2026-10-04T09:49:39.3668854Z [1m[92m    Checking[0m gemm-c64 v0.19.0
+2026-10-04T09:49:39.4221604Z [1m[92m   Compiling[0m interpol v0.2.1
+2026-10-04T09:49:39.7401749Z [1m[92m   Compiling[0m private-gemm-x86 v0.1.20
+2026-10-04T09:49:39.8263569Z [1m[92m    Checking[0m gemm-f32 v0.19.0
+2026-10-04T09:49:40.1461506Z [1m[92m    Checking[0m gemm-f64 v0.19.0
+2026-10-04T09:49:40.2181480Z [1m[92m    Checking[0m qd v0.8.0
+2026-10-04T09:49:43.7541481Z [1m[92m    Checking[0m num_cpus v1.17.0
+2026-10-04T09:49:43.8321498Z [1m[92m   Compiling[0m equator-macro v0.6.0
+2026-10-04T09:49:44.1176560Z [1m[92m    Checking[0m generativity v1.2.1
+2026-10-04T09:49:44.1521505Z [1m[92m    Checking[0m faer-traits v0.24.0
+2026-10-04T09:49:45.2734944Z [1m[92m    Checking[0m equator v0.6.0
+2026-10-04T09:49:45.6072718Z [1m[92m    Checking[0m gemm v0.19.0
+2026-10-04T09:49:47.7498645Z [1m[92m    Checking[0m nano-gemm v0.2.2
+2026-10-04T09:49:47.8348517Z [1m[92m    Checking[0m faer v0.24.4
+2026-10-04T09:49:59.5686119Z [1m[92m    Checking[0m riemann_ndim_bench v0.1.0 (/home/runner/work/riemann_ndim_bench/riemann_ndim_bench)
+2026-10-04T09:50:01.1266263Z [1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 29.04s
+2026-10-04T09:50:01.1543580Z ##[group]Run cargo test --locked --all-targets
+2026-10-04T09:50:01.1543970Z [36;1mcargo test --locked --all-targets[0m
+2026-10-04T09:50:01.1605135Z shell: /usr/bin/bash -e {0}
+2026-10-04T09:50:01.1605387Z env:
+2026-10-04T09:50:01.1605590Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:50:01.1605856Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:50:01.1606078Z   CARGO_TERM_COLOR: always
+2026-10-04T09:50:01.1606305Z ##[endgroup]
+2026-10-04T09:50:01.2782823Z [1m[92m   Compiling[0m crossbeam-utils v0.8.22
+2026-10-04T09:50:01.2783928Z [1m[92m   Compiling[0m bytemuck v1.25.2
+2026-10-04T09:50:01.2831046Z [1m[92m   Compiling[0m num-traits v0.2.19
+2026-10-04T09:50:01.2839788Z [1m[92m   Compiling[0m bitflags v2.13.1
+2026-10-04T09:50:01.4108789Z [1m[92m   Compiling[0m raw-cpuid v11.6.0
+2026-10-04T09:50:01.4514396Z [1m[92m   Compiling[0m libm v0.2.16
+2026-10-04T09:50:01.7482408Z [1m[92m   Compiling[0m crossbeam-epoch v0.9.20
+2026-10-04T09:50:02.0441842Z [1m[92m   Compiling[0m num-complex v0.4.6
+2026-10-04T09:50:02.0572303Z [1m[92m   Compiling[0m crossbeam-deque v0.8.7
+2026-10-04T09:50:02.1922807Z [1m[92m   Compiling[0m rayon-core v1.13.0
+2026-10-04T09:50:02.4861583Z [1m[92m   Compiling[0m reborrow v0.5.5
+2026-10-04T09:50:02.5210460Z [1m[92m   Compiling[0m either v1.17.0
+2026-10-04T09:50:02.6701487Z [1m[92m   Compiling[0m pulp-wasm-simd-flag v0.1.1
+2026-10-04T09:50:02.6981347Z [1m[92m   Compiling[0m cfg-if v1.0.4
+2026-10-04T09:50:02.7221382Z [1m[92m   Compiling[0m rayon v1.12.0
+2026-10-04T09:50:02.8833276Z [1m[92m   Compiling[0m dyn-stack v0.13.2
+2026-10-04T09:50:02.9252077Z [1m[92m   Compiling[0m once_cell v1.21.4
+2026-10-04T09:50:03.0665085Z [1m[92m   Compiling[0m nano-gemm-core v0.2.1
+2026-10-04T09:50:03.0742580Z [1m[92m   Compiling[0m libc v0.2.189
+2026-10-04T09:50:03.0971411Z [1m[92m   Compiling[0m crossbeam-channel v0.5.16
+2026-10-04T09:50:03.5248809Z [1m[92m   Compiling[0m pulp v0.22.3
+2026-10-04T09:50:03.6667961Z [1m[92m   Compiling[0m crossbeam-queue v0.3.13
+2026-10-04T09:50:03.7741947Z [1m[92m   Compiling[0m crossbeam v0.8.4
+2026-10-04T09:50:03.8001444Z [1m[92m   Compiling[0m equator v0.4.2
+2026-10-04T09:50:03.9649735Z [1m[92m   Compiling[0m equator v0.2.2
+2026-10-04T09:50:04.0641349Z [1m[92m   Compiling[0m atomic-wait v1.1.0
+2026-10-04T09:50:04.0721250Z [1m[92m   Compiling[0m num_cpus v1.17.0
+2026-10-04T09:50:04.0991555Z [1m[92m   Compiling[0m nano-gemm-f32 v0.2.1
+2026-10-04T09:50:04.3862448Z [1m[92m   Compiling[0m nano-gemm-c32 v0.2.1
+2026-10-04T09:50:04.7911423Z [1m[92m   Compiling[0m spindle v0.2.6
+2026-10-04T09:50:05.3531574Z [1m[92m   Compiling[0m nano-gemm-f64 v0.2.1
+2026-10-04T09:50:06.7361633Z [1m[92m   Compiling[0m gemm-common v0.19.0
+2026-10-04T09:50:07.2451313Z [1m[92m   Compiling[0m gemm-c64 v0.19.0
+2026-10-04T09:50:10.7531615Z [1m[92m   Compiling[0m gemm-f32 v0.19.0
+2026-10-04T09:50:12.3834021Z [1m[92m   Compiling[0m gemm-c32 v0.19.0
+2026-10-04T09:50:14.0931329Z [1m[92m   Compiling[0m gemm-f64 v0.19.0
+2026-10-04T09:50:14.7961459Z [1m[92m   Compiling[0m qd v0.8.0
+2026-10-04T09:50:14.9741759Z [1m[92m   Compiling[0m nano-gemm-c64 v0.2.1
+2026-10-04T09:50:15.5471412Z [1m[92m   Compiling[0m generativity v1.2.1
+2026-10-04T09:50:15.5881231Z [1m[92m   Compiling[0m faer-traits v0.24.0
+2026-10-04T09:50:15.7711421Z [1m[92m   Compiling[0m equator v0.6.0
+2026-10-04T09:50:15.8781583Z [1m[92m   Compiling[0m private-gemm-x86 v0.1.20
+2026-10-04T09:50:15.9961410Z [1m[92m   Compiling[0m gemm v0.19.0
+2026-10-04T09:50:18.9397836Z [1m[92m   Compiling[0m nano-gemm v0.2.2
+2026-10-04T09:50:19.0443100Z [1m[92m   Compiling[0m faer v0.24.4
+2026-10-04T09:50:31.9261974Z [1m[92m   Compiling[0m riemann_ndim_bench v0.1.0 (/home/runner/work/riemann_ndim_bench/riemann_ndim_bench)
+2026-10-04T09:50:42.4484929Z [1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 41.25s
+2026-10-04T09:50:42.4577805Z [1m[92m     Running[0m unittests src/lib.rs (target/debug/deps/riemann_ndim_bench-93c9b3766e3c0d69)
+2026-10-04T09:50:42.4596192Z 
+2026-10-04T09:50:42.4596832Z running 120 tests
+2026-10-04T09:50:42.4606371Z test archimedean_poisson::tests::fixture_satisfies_both_source_boundary_conditions ... ok
+2026-10-04T09:50:42.4607639Z test archimedean_poisson::tests::invalid_scale_and_empty_prefix_are_rejected ... ok
+2026-10-04T09:50:42.4608765Z test foundation::tests::critical_line_is_fixed_by_geometric_reflection ... ok
+2026-10-04T09:50:42.4609808Z test foundation::tests::critical_line_reflection_is_an_involution ... ok
+2026-10-04T09:50:42.4611200Z test foundation::tests::functional_reflection_equals_conjugation_after_line_reflection ... ok
+2026-10-04T09:50:42.4612396Z test foundation::tests::functional_reflection_is_an_involution ... ok
+2026-10-04T09:50:42.4613010Z test foundation::tests::normalized_radius_is_one_on_critical_line ... ok
+2026-10-04T09:50:42.4614066Z test foundation::tests::logarithmic_radius_changes_sign_under_reflection ... ok
+2026-10-04T09:50:42.4615101Z test foundation::tests::raw_critical_radius_matches_pi_to_minus_one_quarter ... ok
+2026-10-04T09:50:42.4615685Z test foundation::tests::normalized_radii_are_reciprocal_under_critical_reflection ... ok
+2026-10-04T09:50:42.4616222Z test semilocal_bruhat::tests::diagonal_valuations_are_exact ... ok
+2026-10-04T09:50:42.4641651Z test quadrature::tests::integrates_polynomials ... ok
+2026-10-04T09:50:42.4654215Z test semilocal_bruhat::tests::multiplication_by_monoid_elements_preserves_local_valuations ... ok
+2026-10-04T09:50:42.4655540Z test semilocal_bruhat::tests::product_indicator_detects_negative_finite_valuation ... ok
+2026-10-04T09:50:42.4656732Z test semilocal_bruhat::tests::zero_belongs_to_every_local_unit_ball ... ok
+2026-10-04T09:50:42.4657739Z test semilocal_bruhat_e::tests::finite_e_bound_must_cover_every_represented_m ... ok
+2026-10-04T09:50:42.4659206Z test semilocal_bruhat_e::tests::local_unit_descent_changes_coordinates_without_changing_membership ... ok
+2026-10-04T09:50:42.4661018Z test semilocal_bruhat_e::tests::multi_prime_fixture_preserves_local_membership_after_transport ... ok
+2026-10-04T09:50:42.4662092Z test semilocal_bruhat_e::tests::non_finite_archimedean_profile_is_rejected ... ok
+2026-10-04T09:50:42.4663254Z test semilocal_compact_archimedean::tests::exact_rational_support_derives_integer_m_bounds_without_float_thresholds ... ok
+2026-10-04T09:50:42.4664654Z test semilocal_compact_archimedean::tests::compact_support_filters_boundary_samples_and_drives_finite_e_bound ... ok
+2026-10-04T09:50:42.4665933Z test semilocal_compact_archimedean::tests::non_integer_upper_ratio_uses_exact_floor_for_last_active_m ... ok
+2026-10-04T09:50:42.4667110Z test semilocal_compact_archimedean::tests::rational_inputs_are_reduced_canonically ... ok
+2026-10-04T09:50:42.4674106Z test semilocal_compact_weil::tests::arbitrary_rho_generator_matches_discrete_compact_profile ... ok
+2026-10-04T09:50:42.4675289Z test semilocal_compact_weil::tests::invalid_rho_is_rejected_by_the_source_boundary_contract ... ok
+2026-10-04T09:50:42.4676271Z test prolate_qepsilon::tests::rejects_invalid_mode_counts_and_rho ... ok
+2026-10-04T09:50:42.4677135Z test semilocal_compact_weil::tests::q_profile_preserves_compact_support ... ok
+2026-10-04T09:50:42.4678132Z test semilocal_factorizable_poisson::tests::duplicate_and_composite_places_are_rejected ... ok
+2026-10-04T09:50:42.4679214Z test semilocal_factorizable_poisson::tests::dyadic_scales_remain_exactly_representable ... ok
+2026-10-04T09:50:42.4680748Z test semilocal_factorizable_poisson::tests::multiple_finite_places_compose_multiplicatively ... ok
+2026-10-04T09:50:42.4681928Z test semilocal_factorizable_poisson::tests::nontrivial_local_ball_and_dual_scale_are_both_exercised ... ok
+2026-10-04T09:50:42.4683239Z test semilocal_factorizable_poisson::tests::self_dual_unit_ball_recovers_a_certified_product_poisson_fixture ... ok
+2026-10-04T09:50:42.4699452Z test semilocal_fourier_multiplier::tests::direct_series_refuses_the_critical_line ... ok
+2026-10-04T09:50:42.4701302Z test semilocal_fourier_multiplier::tests::finite_euler_factor_is_exact_at_real_sigma_two ... ok
+2026-10-04T09:50:42.4702730Z test semilocal_fourier_multiplier::tests::source_critical_exponent_has_expected_sign ... ok
+2026-10-04T09:50:42.4703985Z test semilocal_compact_weil::tests::boundary_moment_residual_converges_under_quadrature_refinement ... ok
+2026-10-04T09:50:42.4705297Z test semilocal_compact_weil::tests::q_image_annihilates_the_two_critical_mellin_moments_numerically ... ok
+2026-10-04T09:50:42.4706472Z test semilocal_grouped_covariance::tests::non_finite_group_weight_is_rejected ... ok
+2026-10-04T09:50:42.4707590Z test semilocal_orbit_grouping::tests::multiple_units_group_under_the_same_m_representative ... ok
+2026-10-04T09:50:42.4708834Z test semilocal_orbit_grouping::tests::transported_local_coordinates_are_retained_per_orbit_term ... ok
+2026-10-04T09:50:42.4710343Z test semilocal_orbit_grouping::tests::zero_is_rejected_instead_of_being_silently_assigned_an_orbit ... ok
+2026-10-04T09:50:42.4711620Z test semilocal_grouped_covariance::tests::multi_prime_grouped_total_survives_float_audit ... ok
+2026-10-04T09:50:42.4712737Z test semilocal_poisson::tests::archimedean_monoid_contains_all_positive_integers ... ok
+2026-10-04T09:50:42.4713771Z test semilocal_poisson::tests::finite_e_sum_applies_source_half_density_factor ... ok
+2026-10-04T09:50:42.4714728Z test semilocal_poisson::tests::monoid_excludes_finite_place_factors ... ok
+2026-10-04T09:50:42.4715728Z test semilocal_qs::tests::constructor_reduces_before_checking_localized_denominator ... ok
+2026-10-04T09:50:42.4716676Z test semilocal_qs::tests::denominator_outside_s_is_rejected ... ok
+2026-10-04T09:50:42.4717524Z test semilocal_qs::tests::unit_monoid_decomposition_recomposes_exactly ... ok
+2026-10-04T09:50:42.4718592Z test semilocal_grouped_covariance::tests::dyadic_grouped_total_matches_input_order_direct_total ... ok
+2026-10-04T09:50:42.4719846Z test semilocal_qs::tests::zero_has_no_source_unit_monoid_split ... ok
+2026-10-04T09:50:42.4720943Z test semilocal_trace_contract::tests::composite_place_is_rejected ... ok
+2026-10-04T09:50:42.4722029Z test semilocal_trace_contract::tests::cutoff_matches_source_band_and_leading_trace_normalization ... ok
+2026-10-04T09:50:42.4723282Z test semilocal_trace_contract::tests::only_qs_self_dual_character_convention_is_constructed ... ok
+2026-10-04T09:50:42.4724527Z test semilocal_trace_contract::tests::place_set_is_sorted_deduplicated_and_archimedean_by_contract ... ok
+2026-10-04T09:50:42.4725744Z test semilocal_trace_contract::tests::symmetric_test_normalization_matches_equation_2_30 ... ok
+2026-10-04T09:50:42.4726891Z test semilocal_unit_covariance::tests::dyadic_unit_covariance_is_exactly_representable ... ok
+2026-10-04T09:50:42.4728021Z test semilocal_unit_orbit::tests::archimedean_unit_scale_matches_the_exact_rational_unit ... ok
+2026-10-04T09:50:42.4729137Z test semilocal_unit_orbit::tests::source_decomposition_transports_local_balls_exactly ... ok
+2026-10-04T09:50:42.4760535Z test semilocal_unit_covariance::tests::multi_prime_unit_covariance_survives_float_audit ... ok
+2026-10-04T09:50:42.4761604Z test weil_bernstein_evidence_grid::tests::grid_rejects_empty_axes ... ok
+2026-10-04T09:50:42.4762530Z test weil_bernstein_probe::tests::degree_two_coefficients_match_closed_forms ... ok
+2026-10-04T09:50:42.4763608Z test weil_bernstein_probe::tests::localized_coefficients_reconstruct_bernstein_polynomials ... ok
+2026-10-04T09:50:42.4820957Z test prolate_qepsilon::tests::q_epsilon_vanishes_at_the_source_boundary ... ok
+2026-10-04T09:50:42.4842025Z test weil_bernstein_subspace::tests::index_subspace_rejects_invalid_selections ... ok
+2026-10-04T09:50:42.4848887Z test weil_bernstein_evidence_grid::tests::grid_crosses_one_localized_subspace_with_refinement_without_sign_assumption ... ok
+2026-10-04T09:50:42.4851192Z test weil_boundary::tests::boundary_characters_are_exactly_annihilated ... ok
+2026-10-04T09:50:42.4852075Z test weil_boundary::tests::rho_and_log_coordinate_forms_agree ... ok
+2026-10-04T09:50:42.4861471Z test weil_bernstein_probe::tests::finite_bernstein_probes_are_audited_without_sign_assumption ... ok
+2026-10-04T09:50:42.4875587Z test weil_coefficient_subspace::tests::coefficient_dimension_mismatch_is_rejected ... ok
+2026-10-04T09:50:42.4932171Z test weil_compact_pairing::tests::generic_pairing_regresses_existing_legendre_matrix ... ok
+2026-10-04T09:50:42.4950796Z test weil_evidence_grid::tests::evidence_grid_rejects_empty_axes ... ok
+2026-10-04T09:50:42.4994511Z test weil_coefficient_subspace::tests::identity_coefficients_reproduce_parent_generalized_spectrum ... ok
+2026-10-04T09:50:42.5004486Z test weil_evidence_grid::tests::evidence_grid_reuses_max_dimension_across_levels ... ok
+2026-10-04T09:50:42.5034025Z test weil_bernstein_subspace::tests::complete_degree_two_bernstein_basis_preserves_generalized_spectrum ... ok
+2026-10-04T09:50:42.5110745Z test weil_finite_functional::tests::compact_ratio_drives_exact_prime_power_window ... ok
+2026-10-04T09:50:42.5150887Z test weil_finite_functional::tests::prime_power_classifier_rejects_mixed_composites ... ok
+2026-10-04T09:50:42.5162716Z test weil_finite_functional::tests::manufactured_weil_decomposition_is_stable_and_finite ... ok
+2026-10-04T09:50:42.5184669Z test weil_bernstein_subspace::tests::selected_localized_subspace_is_audited_without_sign_assumption ... ok
+2026-10-04T09:50:42.5199814Z test weil_generalized_spectrum::tests::generalized_spectrum_is_invariant_under_diagonal_basis_rescaling ... ok
+2026-10-04T09:50:42.5211410Z test weil_finite_functional::tests::real_autocorrelation_is_numerically_symmetric_at_prime_powers ... ok
+2026-10-04T09:50:42.5241241Z test weil_finite_functional::tests::functional_value_converges_under_quadrature_refinement ... ok
+2026-10-04T09:50:42.5242470Z test weil_h1_continuity::tests::exact_zero_input_errors_force_zero_pairing_envelope ... ok
+2026-10-04T09:50:42.5243894Z test weil_h1_continuity::tests::mixed_envelope_is_symmetric_under_left_right_exchange ... ok
+2026-10-04T09:50:42.5245076Z test weil_h1_continuity::tests::non_finite_or_negative_declared_bounds_fail_closed ... ok
+2026-10-04T09:50:42.5246182Z test weil_h1_continuity::tests::positive_declared_errors_produce_finite_component_bounds ... ok
+2026-10-04T09:50:42.5247166Z test weil_h1_continuity::tests::ratio_seven_constants_match_the_closed_envelope ... ok
+2026-10-04T09:50:42.5248186Z test weil_quadratic_matrix::tests::degree_zero_basis_matches_existing_compact_q_profile ... ok
+2026-10-04T09:50:42.5264485Z test weil_generalized_spectrum::tests::one_dimensional_generalized_value_is_pairing_over_gram_norm ... ok
+2026-10-04T09:50:42.5800801Z test weil_generalized_spectrum::tests::principal_sweep_reuses_full_matrix_consistently ... ok
+2026-10-04T09:50:42.5980681Z test weil_quadratic_matrix::tests::one_dimensional_matrix_reproduces_scalar_weil_audit ... ok
+2026-10-04T09:50:42.6040800Z test weil_quadratic_matrix::tests::minimum_eigenvalue_stabilizes_under_quadrature_refinement ... ok
+2026-10-04T09:50:42.6070550Z test weil_refinement::tests::empty_refinement_level_set_is_rejected ... ok
+2026-10-04T09:50:42.6100668Z test weil_refinement::tests::refinement_reports_observed_spreads_without_sign_assumptions ... ok
+2026-10-04T09:50:42.6250972Z test weil_quadratic_matrix::tests::finite_pairing_matrix_is_numerically_symmetric_and_boundary_admissible ... ok
+2026-10-04T09:50:42.6300630Z test weil_sine_continuity::tests::continuity_probe_rejects_invalid_parent_axis ... ok
+2026-10-04T09:50:42.6301718Z test weil_sine_direct_q::tests::direct_projection_audit_records_q_residuals_without_sign_claim ... ok
+2026-10-04T09:50:42.6341744Z test weil_sine_direct_q::tests::direct_sine_q_boundary_moments_are_finite ... ok
+2026-10-04T09:50:42.6346697Z test weil_sine_direct_q::tests::direct_sine_q_preserves_compact_support ... ok
+2026-10-04T09:50:42.6348003Z test weil_sine_continuity::tests::continuity_probe_records_l2_and_pairing_residuals_without_theorem_claim ... ok
+2026-10-04T09:50:42.6788570Z test weil_generalized_spectrum::tests::compact_four_dimensional_generalized_spectrum_matches_independent_regression ... ok
+2026-10-04T09:50:42.6841072Z test weil_sine_pairing_refinement::tests::refinement_grid_rejects_empty_level_axis ... ok
+2026-10-04T09:50:42.6871081Z test weil_sine_taylor_h1::tests::bump_derivative_majorants_match_closed_form_construction ... ok
+2026-10-04T09:50:42.6931341Z test weil_sine_taylor_h1::tests::centered_taylor_remainders_contract_with_degree_for_first_mode ... ok
+2026-10-04T09:50:42.6960758Z test weil_sine_taylor_h1::tests::concrete_pairing_envelope_tightens_with_taylor_degree ... ok
+2026-10-04T09:50:42.6990520Z test weil_sine_taylor_h1::tests::invalid_mode_and_degree_fail_closed ... ok
+2026-10-04T09:50:42.6991388Z test weil_sine_taylor_h1::tests::target_bounds_do_not_depend_on_taylor_degree ... ok
+2026-10-04T09:50:42.6992413Z test weil_sine_truncation::tests::first_sine_mode_has_numerically_even_shifted_legendre_parity ... ok
+2026-10-04T09:50:42.6993489Z test weil_sine_truncation::tests::mode_set_rejects_zero_and_non_increasing_modes ... ok
+2026-10-04T09:50:42.6994607Z test weil_sine_pairing::tests::direct_sine_pairing_audit_records_finite_cross_route_diagnostics ... ok
+2026-10-04T09:50:42.7020766Z test weil_subspace::tests::degree_sets_must_be_non_empty_and_strictly_increasing ... ok
+2026-10-04T09:50:42.7068717Z test weil_sine_truncation::tests::truncation_sweep_records_finite_diagnostics_without_sign_assumption ... ok
+2026-10-04T09:50:42.7229322Z test weil_sine_pairing_refinement::tests::refinement_grid_crosses_parent_dimension_and_quadrature_without_sign_assumption ... ok
+2026-10-04T09:50:42.7233273Z test weil_support::tests::integer_source_place_set_uses_strict_prime_bound ... ok
+2026-10-04T09:50:42.7241614Z test weil_support::tests::source_window_scales_exactly_under_convolution_envelope ... ok
+2026-10-04T09:50:42.7247471Z test weil_support_sweep::tests::empty_window_set_is_rejected ... ok
+2026-10-04T09:50:42.7251685Z test weil_support_sweep::tests::invalid_window_order_is_rejected ... ok
+2026-10-04T09:50:42.7291040Z test weil_subspace::tests::leading_subspace_matches_existing_principal_generalized_spectrum ... ok
+2026-10-04T09:50:42.7488512Z test weil_support_sweep::tests::support_sweep_returns_all_principal_rows_without_sign_assumptions ... ok
+2026-10-04T09:50:42.7509622Z test weil_subspace::tests::non_leading_even_degree_subspace_is_audited_without_sign_assumption ... ok
+2026-10-04T09:50:42.7518103Z test weil_quadratic_matrix::tests::rayleigh_ritz_minimum_is_nonincreasing_with_basis_size ... ok
+2026-10-04T09:50:42.7518801Z 
+2026-10-04T09:50:42.7519237Z test result: ok. 120 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+2026-10-04T09:50:42.7519873Z 
+2026-10-04T09:50:42.7526550Z [1m[92m     Running[0m unittests src/main.rs (target/debug/deps/riemann_ndim_bench-30cf05bdf9af3664)
+2026-10-04T09:50:42.7538235Z 
+2026-10-04T09:50:42.7538448Z running 7 tests
+2026-10-04T09:50:42.7541891Z test numerics::tests::gamma_half_is_sqrt_pi ... ok
+2026-10-04T09:50:42.7542669Z test numerics::tests::checked_zeta_converges_across_resolution ... ok
+2026-10-04T09:50:42.7543403Z test numerics::tests::gamma_one_is_one ... ok
+2026-10-04T09:50:42.7546324Z test numerics::tests::xi_respects_functional_symmetry ... ok
+2026-10-04T09:50:42.7546816Z test numerics::tests::zeta_respects_complex_conjugation ... ok
+2026-10-04T09:50:42.7547250Z test numerics::tests::zeta_two_matches_pi_squared_over_six ... ok
+2026-10-04T09:50:42.7547710Z test numerics::tests::zeta_zero_matches_minus_one_half ... ok
+2026-10-04T09:50:42.7548120Z 
+2026-10-04T09:50:42.7548544Z test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:50:42.7549167Z 
+2026-10-04T09:50:42.7549898Z [1m[92m     Running[0m tests/archimedean_poisson_oracle.rs (target/debug/deps/archimedean_poisson_oracle-fc412e34a8e3a62b)
+2026-10-04T09:50:42.7559061Z 
+2026-10-04T09:50:42.7559221Z running 3 tests
+2026-10-04T09:50:42.7562779Z test manufactured_fixture_meets_the_two_source_zero_conditions ... ok
+2026-10-04T09:50:42.7563652Z test certified_gaussian_tails_are_negligible_on_the_test_window ... ok
+2026-10-04T09:50:42.7564469Z test source_poisson_identity_is_certified_across_reciprocal_scales ... ok
+2026-10-04T09:50:42.7564805Z 
+2026-10-04T09:50:42.7565271Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:50:42.7565638Z 
+2026-10-04T09:50:42.7566340Z [1m[92m     Running[0m tests/prolate_boundary_probe.rs (target/debug/deps/prolate_boundary_probe-1e06fa9447969332)
+2026-10-04T09:50:42.7581780Z 
+2026-10-04T09:50:42.7581936Z running 2 tests
+2026-10-04T09:50:42.7597914Z test quadrature::tests::integrates_polynomials ... ok
+2026-10-04T09:50:43.0310536Z test reproduces_published_boundary_contributions ... ok
+2026-10-04T09:50:43.0311082Z 
+2026-10-04T09:50:43.0311345Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+2026-10-04T09:50:43.0311730Z 
+2026-10-04T09:50:43.0316809Z [1m[92m     Running[0m tests/prolate_probe.rs (target/debug/deps/prolate_probe-6bf738190978a336)
+2026-10-04T09:50:43.0333993Z 
+2026-10-04T09:50:43.0334585Z running 2 tests
+2026-10-04T09:50:43.0336967Z test quadrature::tests::integrates_polynomials ... ok
+2026-10-04T09:50:43.3079279Z test reproduces_published_even_prolate_eigenvalues ... ok
+2026-10-04T09:50:43.3079763Z 
+2026-10-04T09:50:43.3080397Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+2026-10-04T09:50:43.3081017Z 
+2026-10-04T09:50:43.3085403Z [1m[92m     Running[0m tests/prolate_qepsilon_public.rs (target/debug/deps/prolate_qepsilon_public-aa43fb11fcafa902)
+2026-10-04T09:50:43.3107502Z 
+2026-10-04T09:50:43.3107700Z running 2 tests
+2026-10-04T09:50:43.5985041Z test public_prolate_basis_reproduces_source_modes_and_boundary_series ... ok
+2026-10-04T09:50:50.3374763Z test public_qepsilon_kernel_reproduces_archimedean_toeplitz_benchmark ... ok
+2026-10-04T09:50:50.3378125Z 
+2026-10-04T09:50:50.3378595Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.03s
+2026-10-04T09:50:50.3379194Z 
+2026-10-04T09:50:50.3382863Z [1m[92m     Running[0m tests/qepsilon_spectrum.rs (target/debug/deps/qepsilon_spectrum-2362cbd10bf3137b)
+2026-10-04T09:50:50.3399874Z 
+2026-10-04T09:50:50.3400584Z running 2 tests
+2026-10-04T09:50:50.3402579Z test quadrature::tests::integrates_polynomials ... ok
+2026-10-04T09:50:57.0103939Z test reproduces_published_qepsilon_toeplitz_spectrum ... ok
+2026-10-04T09:50:57.0104246Z 
+2026-10-04T09:50:57.0104490Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.67s
+2026-10-04T09:50:57.0104833Z 
+2026-10-04T09:50:57.0112220Z [1m[92m     Running[0m tests/semilocal_bruhat.rs (target/debug/deps/semilocal_bruhat-c4a6c079adc48278)
+2026-10-04T09:50:57.0123231Z 
+2026-10-04T09:50:57.0123417Z running 3 tests
+2026-10-04T09:50:57.0126220Z test factorizable_diagonal_value_keeps_archimedean_and_finite_roles_separate ... ok
+2026-10-04T09:50:57.0127201Z test finite_factor_is_nontrivial_on_qs_diagonal_samples ... ok
+2026-10-04T09:50:57.0127926Z test monoid_scaling_is_invisible_to_declared_finite_unit_ball_factors ... ok
+2026-10-04T09:50:57.0128266Z 
+2026-10-04T09:50:57.0128713Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:50:57.0129308Z 
+2026-10-04T09:50:57.0129841Z [1m[92m     Running[0m tests/semilocal_cavity_asymptotic.rs (target/debug/deps/semilocal_cavity_asymptotic-6e31cc269932c286)
+2026-10-04T09:50:57.0137513Z 
+2026-10-04T09:50:57.0137678Z running 3 tests
+2026-10-04T09:50:57.0140428Z test asymptotic_approximants_require_positive_degree ... ok
+2026-10-04T09:50:57.0144015Z test source_derived_local_series_track_exact_k0_coefficients ... ok
+2026-10-04T09:50:57.0146802Z test frozen_contraction_has_the_predicted_cumulative_soft_edge_scaling ... ok
+2026-10-04T09:50:57.0147413Z 
+2026-10-04T09:50:57.0147857Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:50:57.0148273Z 
+2026-10-04T09:50:57.0149460Z [1m[92m     Running[0m tests/semilocal_cavity_drift.rs (target/debug/deps/semilocal_cavity_drift-b95028d761908510)
+2026-10-04T09:50:57.0156357Z 
+2026-10-04T09:50:57.0156519Z running 3 tests
+2026-10-04T09:50:57.0184933Z test exact_factorization_does_not_assume_uniform_total_contraction ... ok
+2026-10-04T09:50:57.0318094Z test drift_splits_exactly_into_edge_and_fixed_point_variation ... ok
+2026-10-04T09:50:57.0332447Z test transport_multiplier_factors_into_local_contraction_and_corrections ... ok
+2026-10-04T09:50:57.0333072Z 
+2026-10-04T09:50:57.0333472Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+2026-10-04T09:50:57.0334103Z 
+2026-10-04T09:50:57.0335044Z [1m[92m     Running[0m tests/semilocal_cavity_green.rs (target/debug/deps/semilocal_cavity_green-c9afcdbead84440e)
+2026-10-04T09:50:57.0349856Z 
+2026-10-04T09:50:57.0350056Z running 3 tests
+2026-10-04T09:50:57.0353668Z test empty_cavity_green_has_empty_bands ... ok
+2026-10-04T09:50:57.0365497Z test cavity_green_reconstructs_weighted_resolvent_trace ... ok
+2026-10-04T09:50:57.1859651Z test cavity_green_bands_match_dense_spectral_oracle ... ok
+2026-10-04T09:50:57.1860502Z 
+2026-10-04T09:50:57.1861025Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+2026-10-04T09:50:57.1861836Z 
+2026-10-04T09:50:57.1867341Z [1m[92m     Running[0m tests/semilocal_cavity_transport.rs (target/debug/deps/semilocal_cavity_transport-356e4981b28a6baf)
+2026-10-04T09:50:57.1876833Z 
+2026-10-04T09:50:57.1876984Z running 5 tests
+2026-10-04T09:50:57.1880838Z test cavity_transport_preserves_shift_validation ... ok
+2026-10-04T09:50:57.1881618Z test cavity_transport_reports_exceptional_nonpositive_frozen_rows ... ok
+2026-10-04T09:50:57.1882296Z test cavity_transport_requires_two_interior_neighbors ... ok
+2026-10-04T09:50:57.1895096Z test transport_identity_resolves_left_and_right_boundary_influence_separately ... ok
+2026-10-04T09:50:57.1967435Z test finite_cavity_errors_split_exactly_into_transport_and_drift ... ok
+2026-10-04T09:50:57.1967979Z 
+2026-10-04T09:50:57.1968446Z test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+2026-10-04T09:50:57.1969037Z 
+2026-10-04T09:50:57.1970269Z [1m[92m     Running[0m tests/semilocal_exact_derivative.rs (target/debug/deps/semilocal_exact_derivative-bc44f53b94f971c7)
+2026-10-04T09:50:57.1984846Z 
+2026-10-04T09:50:57.1985012Z running 8 tests
+2026-10-04T09:50:57.1987608Z test alpha_recurrence_matches_first_exact_terms ... ok
+2026-10-04T09:50:57.1989066Z test reproduces_high_block_total_response_and_signs_through_1024 ... ignored, expensive dense faer EVD; run before promoting high-m asymptotics
+2026-10-04T09:50:57.2001377Z test closed_kprime_matches_source_derived_formula ... ok
+2026-10-04T09:50:57.2050984Z test sign_corrected_kprime_is_strictly_diagonally_dominant_through_1024 ... ok
+2026-10-04T09:50:57.2052177Z test source_a2_derivative_matches_unsimplified_first_order_coefficient ... ok
+2026-10-04T09:50:57.2761074Z test reproduces_independent_large_prime_regression_targets ... ok
+2026-10-04T09:50:57.3255108Z test every_tested_crossing_has_the_proved_parity_sign ... ok
+2026-10-04T09:50:57.8542593Z test reproduces_documented_m128_shape_statistics ... ok
+2026-10-04T09:50:57.8543047Z 
+2026-10-04T09:50:57.8543630Z test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.66s
+2026-10-04T09:50:57.8544282Z 
+2026-10-04T09:50:57.8550544Z [1m[92m     Running[0m tests/semilocal_factorizable_poisson.rs (target/debug/deps/semilocal_factorizable_poisson-e6061c875e6717a0)
+2026-10-04T09:50:57.8561780Z 
+2026-10-04T09:50:57.8561968Z running 2 tests
+2026-10-04T09:50:57.8565447Z test certified_semilocal_product_poisson_composes_across_places ... ok
+2026-10-04T09:50:57.8566883Z test certified_semilocal_product_poisson_holds_for_nontrivial_local_balls ... ok
+2026-10-04T09:50:57.8567256Z 
+2026-10-04T09:50:57.8567512Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:50:57.8567856Z 
+2026-10-04T09:50:57.8570485Z [1m[92m     Running[0m tests/semilocal_fourier_multiplier.rs (target/debug/deps/semilocal_fourier_multiplier-439c8f99bd0d1941)
+2026-10-04T09:50:57.8579888Z 
+2026-10-04T09:50:57.8580266Z running 3 tests
+2026-10-04T09:50:57.8584046Z test critical_line_path_exposes_only_the_finite_source_factor ... ok
+2026-10-04T09:50:57.8584961Z test finite_euler_factor_multiplies_zeta_two_to_the_same_targets ... ok
+2026-10-04T09:50:57.8645435Z test convergent_semilocal_dirichlet_series_matches_known_euler_deletions ... ok
+2026-10-04T09:50:57.8646040Z 
+2026-10-04T09:50:57.8646515Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+2026-10-04T09:50:57.8647035Z 
+2026-10-04T09:50:57.8647952Z [1m[92m     Running[0m tests/semilocal_frozen_cavity.rs (target/debug/deps/semilocal_frozen_cavity-60309b60ca8ae0db)
+2026-10-04T09:50:57.8657584Z 
+2026-10-04T09:50:57.8657731Z running 4 tests
+2026-10-04T09:50:57.8668191Z test frozen_cavity_validates_shift_and_interior_row_contracts ... ok
+2026-10-04T09:50:57.8668989Z test frozen_cavity_point_solves_the_schur_fixed_point_and_contracts ... ok
+2026-10-04T09:50:57.8669510Z test frozen_cavity_density_matches_the_existing_closed_resolvent_model ... ok
+2026-10-04T09:50:57.8852483Z test frozen_cavity_green_bands_match_independent_symbol_quadrature ... ok
+2026-10-04T09:50:57.8853203Z 
+2026-10-04T09:50:57.8853812Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+2026-10-04T09:50:57.8854503Z 
+2026-10-04T09:50:57.8855954Z [1m[92m     Running[0m tests/semilocal_frozen_resolvent.rs (target/debug/deps/semilocal_frozen_resolvent-47bb6b0f87c4754e)
+2026-10-04T09:50:57.8864776Z 
+2026-10-04T09:50:57.8864956Z running 3 tests
+2026-10-04T09:50:57.8868833Z test frozen_model_requires_an_interior_row ... ok
+2026-10-04T09:50:57.8869996Z test frozen_model_is_positive_in_the_asymptotic_rows_tested ... ok
+2026-10-04T09:50:57.9134597Z test closed_frozen_row_density_matches_direct_symbol_quadrature ... ok
+2026-10-04T09:50:57.9135062Z 
+2026-10-04T09:50:57.9135419Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+2026-10-04T09:50:57.9135912Z 
+2026-10-04T09:50:57.9137278Z [1m[92m     Running[0m tests/semilocal_high_m_diagnostics.rs (target/debug/deps/semilocal_high_m_diagnostics-92347ad5648be1a6)
+2026-10-04T09:51:12.4045784Z semilocal_exact_q0_diagnostics
+2026-10-04T09:51:12.4046293Z block_size=1024
+2026-10-04T09:51:12.4046580Z solver=faer_tridiagonal_self_adjoint_evd
+2026-10-04T09:51:12.4047015Z reference_solver=faer::linalg::solvers::SelfAdjointEigen
+2026-10-04T09:51:12.4047431Z independent_of_stieltjes_quadrature=true
+2026-10-04T09:51:12.4047776Z wplus_elapsed_seconds=7.261414
+2026-10-04T09:51:12.4048077Z wminus_elapsed_seconds=7.227507
+2026-10-04T09:51:12.4048380Z total_elapsed_seconds=14.489164
+2026-10-04T09:51:12.4048685Z rss_before_kib=4356
+2026-10-04T09:51:12.4048942Z rss_after_wplus_peak_kib=33776
+2026-10-04T09:51:12.4049233Z process_peak_rss_kib=35188
+2026-10-04T09:51:12.4049512Z wplus_min_mu=1.917241265476625e-4
+2026-10-04T09:51:12.4049822Z wplus_max_mu=3.212770180442295e2
+2026-10-04T09:51:12.4050449Z wplus_relative_min_mu=5.967564306802309e-7
+2026-10-04T09:51:12.4050804Z wplus_min_lambda=1.384644815639240e-2
+2026-10-04T09:51:12.4051111Z wplus_max_lambda=1.792420201973381e1
+2026-10-04T09:51:12.4051453Z wplus_min_rayleigh_denominator=2.769289631278480e-2
+2026-10-04T09:51:12.4051942Z wplus_min_lambda_prime=-2.469881901563398e-1
+2026-10-04T09:51:12.4052423Z wplus_max_lambda_prime=-1.569217214465107e-4
+2026-10-04T09:51:12.4052890Z wplus_negative_derivatives=1024
+2026-10-04T09:51:12.4053310Z wplus_zero_derivatives=0
+2026-10-04T09:51:12.4053784Z wplus_positive_derivatives=0
+2026-10-04T09:51:12.4054230Z wplus_non_finite_values=0
+2026-10-04T09:51:12.4054605Z wminus_min_mu=1.916305735494191e-4
+2026-10-04T09:51:12.4054988Z wminus_max_mu=3.214354017767818e2
+2026-10-04T09:51:12.4055297Z wminus_relative_min_mu=5.961713379738283e-7
+2026-10-04T09:51:12.4055630Z wminus_min_lambda=1.384306951327700e-2
+2026-10-04T09:51:12.4056302Z wminus_max_lambda=1.792861962831444e1
+2026-10-04T09:51:12.4056816Z wminus_min_rayleigh_denominator=2.768613902655400e-2
+2026-10-04T09:51:12.4057243Z wminus_min_lambda_prime=1.568446486865127e-4
+2026-10-04T09:51:12.4057527Z wminus_max_lambda_prime=2.469871624562106e-1
+2026-10-04T09:51:12.4057798Z wminus_negative_derivatives=0
+2026-10-04T09:51:12.4058035Z wminus_zero_derivatives=0
+2026-10-04T09:51:12.4058277Z wminus_positive_derivatives=1024
+2026-10-04T09:51:12.4058522Z wminus_non_finite_values=0
+2026-10-04T09:51:12.4058772Z merged_total_abs_derivative=6.126883687873787e0
+2026-10-04T09:51:12.4059065Z merged_m_mean_abs=9.573255762302792e-2
+2026-10-04T09:51:12.4059333Z merged_m_trimmed_mean_abs=2.490830105318828e-2
+2026-10-04T09:51:12.4059615Z merged_m_rms=4.106039832167578e-1
+2026-10-04T09:51:12.4059862Z merged_sqrt_m_linf=2.469881901563398e-1
+2026-10-04T09:51:12.4060406Z finite_compression_only=true
+2026-10-04T09:51:12.4060663Z zeta_zero_identification=false
+2026-10-04T09:51:12.4060902Z rh_implication=false
+2026-10-04T09:51:12.4061614Z [1m[92m     Running[0m tests/semilocal_mu2_exact.rs (target/debug/deps/semilocal_mu2_exact-45116d1b57eef540)
+2026-10-04T09:51:12.4064962Z 
+2026-10-04T09:51:12.4065100Z running 4 tests
+2026-10-04T09:51:12.4069044Z test exact_first_order_solution_forces_the_second_order_rhs ... ok
+2026-10-04T09:51:12.4069692Z test exact_homogeneous_increment_ratio_factorization_is_preserved ... ok
+2026-10-04T09:51:12.4070490Z test exact_left_boundary_selects_the_universal_negative_first_order_sign ... ok
+2026-10-04T09:51:12.4072063Z [1m[92m     Running[0m tests/semilocal_padic_fourier.rs (target/debug/deps/semilocal_padic_fourier-5fecae07a2afcc9e)
+2026-10-04T09:51:12.4072824Z test exact_raw_to_staggered_rewrite_holds_in_both_parities ... ok
+2026-10-04T09:51:12.4073100Z 
+2026-10-04T09:51:12.4073754Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:12.4074181Z 
+2026-10-04T09:51:12.4081288Z 
+2026-10-04T09:51:12.4081549Z running 5 tests
+2026-10-04T09:51:12.4084893Z test applying_local_fourier_twice_restores_ball_and_unit_scale_exactly ... ok
+2026-10-04T09:51:12.4086388Z test diagonal_membership_matches_exact_p_adic_valuation_thresholds ... ok
+2026-10-04T09:51:12.4087290Z test general_ball_fourier_image_has_exact_dual_exponent_and_scale ... ok
+2026-10-04T09:51:12.4087902Z test undeclared_finite_place_is_rejected ... ok
+2026-10-04T09:51:12.4088892Z [1m[92m     Running[0m tests/semilocal_pairwise_eigenvalues.rs (target/debug/deps/semilocal_pairwise_eigenvalues-fbc20d778800a131)
+2026-10-04T09:51:12.4089595Z test z_p_is_symbolically_self_dual_under_the_source_normalization ... ok
+2026-10-04T09:51:12.4089877Z 
+2026-10-04T09:51:12.4090364Z test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:12.4090740Z 
+2026-10-04T09:51:12.4102710Z 
+2026-10-04T09:51:12.4103069Z running 9 tests
+2026-10-04T09:51:12.4121015Z test empty_pairwise_block_has_zero_variation ... ok
+2026-10-04T09:51:12.4150640Z test invalid_pairwise_steps_are_rejected ... ok
+2026-10-04T09:51:12.5901024Z test pairwise_trace_preserves_parity_signs ... ok
+2026-10-04T09:51:12.5902130Z test quadratic_even_power_extrapolation_eliminates_h2_and_h4_terms ... ok
+2026-10-04T09:51:12.5903457Z test reproduces_documented_m16384_pairwise_checkpoint ... ignored, expensive high-dimensional pairwise checkpoint
+2026-10-04T09:51:12.5904954Z test reproduces_documented_m8192_pairwise_checkpoint ... ignored, expensive high-dimensional pairwise checkpoint
+2026-10-04T09:51:13.3851500Z test eigenvalues_only_zero_step_matches_full_tridiagonal_spectrum ... ok
+2026-10-04T09:51:13.6982071Z test pairwise_quadratic_extrapolation_matches_exact_first_order_total_variation ... ok
+2026-10-04T09:51:28.6075920Z test pairwise_m1024_reproduces_documented_exact_first_order_checkpoint ... ok
+2026-10-04T09:51:28.6076747Z 
+2026-10-04T09:51:28.6077167Z test result: ok. 7 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 16.20s
+2026-10-04T09:51:28.6077745Z 
+2026-10-04T09:51:28.6082510Z [1m[92m     Running[0m tests/semilocal_poisson_map.rs (target/debug/deps/semilocal_poisson_map-203f21eab7cc7cba)
+2026-10-04T09:51:28.6093407Z 
+2026-10-04T09:51:28.6093552Z running 3 tests
+2026-10-04T09:51:28.6097175Z test adding_a_finite_place_removes_exactly_its_multiples_from_the_prefix ... ok
+2026-10-04T09:51:28.6098041Z test compactly_truncated_e_sum_is_finite_and_auditable ... ok
+2026-10-04T09:51:28.6098505Z test source_space_contract_drives_the_poisson_monoid ... ok
+2026-10-04T09:51:28.6098748Z 
+2026-10-04T09:51:28.6098986Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:28.6099516Z 
+2026-10-04T09:51:28.6101069Z [1m[92m     Running[0m tests/semilocal_poisson_scalar_negative_control.rs (target/debug/deps/semilocal_poisson_scalar_negative_control-bbad74a37f5799bf)
+2026-10-04T09:51:28.6109463Z 
+2026-10-04T09:51:28.6109613Z running 2 tests
+2026-10-04T09:51:28.6113232Z test deleting_finite_place_multiples_on_the_real_axis_is_not_semilocal_poisson ... ok
+2026-10-04T09:51:28.6114339Z test manufactured_fixture_satisfies_the_archimedean_poisson_boundary_conditions ... ok
+2026-10-04T09:51:28.6114832Z 
+2026-10-04T09:51:28.6115226Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:28.6115575Z 
+2026-10-04T09:51:28.6116426Z [1m[92m     Running[0m tests/semilocal_qs_arithmetic.rs (target/debug/deps/semilocal_qs_arithmetic-82a38dcfe7cd91e8)
+2026-10-04T09:51:28.6124588Z 
+2026-10-04T09:51:28.6124755Z running 4 tests
+2026-10-04T09:51:28.6128105Z test archimedean_only_q_s_reduces_to_the_integers ... ok
+2026-10-04T09:51:28.6128765Z test equivalent_rational_presentations_have_the_same_canonical_split ... ok
+2026-10-04T09:51:28.6129290Z test finite_place_exponents_are_the_unique_unit_signature ... ok
+2026-10-04T09:51:28.6130509Z test source_decomposition_lands_in_the_existing_m_s_monoid ... ok
+2026-10-04T09:51:28.6130846Z 
+2026-10-04T09:51:28.6131105Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:28.6131492Z 
+2026-10-04T09:51:28.6132352Z [1m[92m     Running[0m tests/semilocal_resolvent_rows.rs (target/debug/deps/semilocal_resolvent_rows-ccbe08c7107a197a)
+2026-10-04T09:51:28.6146351Z 
+2026-10-04T09:51:28.6146627Z running 3 tests
+2026-10-04T09:51:28.6149816Z test row_resolution_preserves_finite_section_boundary_rows ... ok
+2026-10-04T09:51:28.6159480Z test row_contributions_sum_to_resolvent_trace ... ok
+2026-10-04T09:51:29.1067340Z test row_resolved_trace_matches_spectral_oracle ... ok
+2026-10-04T09:51:29.1067729Z 
+2026-10-04T09:51:29.1068082Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+2026-10-04T09:51:29.1068615Z 
+2026-10-04T09:51:29.1071448Z [1m[92m     Running[0m tests/semilocal_resolvent_trace.rs (target/debug/deps/semilocal_resolvent_trace-241a18f29d608e27)
+2026-10-04T09:51:29.1089501Z 
+2026-10-04T09:51:29.1089666Z running 5 tests
+2026-10-04T09:51:29.1093904Z test invalid_resolvent_shifts_are_rejected ... ok
+2026-10-04T09:51:29.1094674Z test empty_resolvent_block_has_zero_trace ... ok
+2026-10-04T09:51:29.1103283Z test sign_corrected_resolvent_trace_is_positive_and_decreases_with_shift ... ok
+2026-10-04T09:51:29.6193670Z test selected_inverse_resolvent_trace_matches_spectral_oracle ... ok
+2026-10-04T09:51:29.6394899Z test resolvent_integral_reproduces_exact_square_root_trace_derivative ... ok
+2026-10-04T09:51:29.6395587Z 
+2026-10-04T09:51:29.6407335Z test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.53s
+2026-10-04T09:51:29.6408003Z 
+2026-10-04T09:51:29.6409291Z [1m[92m     Running[0m tests/semilocal_soft_edge_coefficients.rs (target/debug/deps/semilocal_soft_edge_coefficients-38afef4da89e0e3c)
+2026-10-04T09:51:29.6417357Z 
+2026-10-04T09:51:29.6417727Z running 2 tests
+2026-10-04T09:51:29.6429781Z test validates_intrinsic_soft_edge_infrared_scale ... ok
+2026-10-04T09:51:29.6476934Z test validates_documented_soft_edge_row_asymptotics ... ok
+2026-10-04T09:51:29.6477604Z 
+2026-10-04T09:51:29.6477916Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+2026-10-04T09:51:29.6478278Z 
+2026-10-04T09:51:29.6479929Z [1m[92m     Running[0m tests/semilocal_trace_contract.rs (target/debug/deps/semilocal_trace_contract-c924ec054721a8a1)
+2026-10-04T09:51:29.6489382Z 
+2026-10-04T09:51:29.6489545Z running 2 tests
+2026-10-04T09:51:29.6492581Z test source_contract_keeps_place_character_and_cutoff_data_together ... ok
+2026-10-04T09:51:29.6493143Z test theorem_2_5_scalar_normalizations_are_source_locked ... ok
+2026-10-04T09:51:29.6493411Z 
+2026-10-04T09:51:29.6493656Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:29.6494159Z 
+2026-10-04T09:51:29.6495367Z [1m[92m     Running[0m tests/semilocal_tridiagonal_evd.rs (target/debug/deps/semilocal_tridiagonal_evd-182712432b5e8a2c)
+2026-10-04T09:51:29.6509922Z 
+2026-10-04T09:51:29.6510315Z running 3 tests
+2026-10-04T09:51:29.6516490Z test empty_tridiagonal_block_returns_no_crossings ... ok
+2026-10-04T09:51:30.2105456Z test tridiagonal_path_preserves_proved_parity_signs ... ok
+2026-10-04T09:51:31.0138677Z test tridiagonal_evd_matches_dense_reference_through_128 ... ok
+2026-10-04T09:51:31.0139321Z 
+2026-10-04T09:51:31.0139815Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.36s
+2026-10-04T09:51:31.0140811Z 
+2026-10-04T09:51:31.0146599Z [1m[92m     Running[0m tests/semilocal_unit_orbit.rs (target/debug/deps/semilocal_unit_orbit-e090c64a91742b48)
+2026-10-04T09:51:31.0157238Z 
+2026-10-04T09:51:31.0157582Z running 3 tests
+2026-10-04T09:51:31.0161136Z test declared_place_set_must_match_the_decomposition_origin ... ok
+2026-10-04T09:51:31.0162364Z test qs_unit_action_preserves_effective_local_exponents ... ok
+2026-10-04T09:51:31.0163167Z test unit_transport_rejects_incomplete_or_mismatched_local_products ... ok
+2026-10-04T09:51:31.0163706Z 
+2026-10-04T09:51:31.0164143Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0164761Z 
+2026-10-04T09:51:31.0165663Z [1m[92m     Running[0m tests/semilocal_zero_shift_cavity.rs (target/debug/deps/semilocal_zero_shift_cavity-d0e6576763fa8775)
+2026-10-04T09:51:31.0172330Z 
+2026-10-04T09:51:31.0172499Z running 3 tests
+2026-10-04T09:51:31.0176789Z test closed_form_closes_the_exact_schur_induction ... ok
+2026-10-04T09:51:31.0179257Z test recursive_left_cavity_prefix_is_independent_of_right_boundary ... ok
+2026-10-04T09:51:31.0180736Z test exact_closed_form_matches_recursive_zero_shift_left_cavity ... ok
+2026-10-04T09:51:31.0181255Z 
+2026-10-04T09:51:31.0181866Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0182519Z 
+2026-10-04T09:51:31.0183383Z [1m[92m     Running[0m tests/semilocal_zero_shift_response.rs (target/debug/deps/semilocal_zero_shift_response-70d45f7f55f85df2)
+2026-10-04T09:51:31.0192180Z 
+2026-10-04T09:51:31.0192342Z running 4 tests
+2026-10-04T09:51:31.0195796Z test closed_derivative_has_the_direct_degree_formula ... ok
+2026-10-04T09:51:31.0196693Z test constant_gap_closes_the_shift_response_induction ... ok
+2026-10-04T09:51:31.0197391Z test relative_first_shift_response_is_universal ... ok
+2026-10-04T09:51:31.0198193Z test exact_shift_derivative_matches_differentiated_schur_recurrence ... ok
+2026-10-04T09:51:31.0198721Z 
+2026-10-04T09:51:31.0199081Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0199576Z 
+2026-10-04T09:51:31.0201012Z [1m[92m     Running[0m tests/toeplitz.rs (target/debug/deps/toeplitz-e9bbe84be35a54d4)
+2026-10-04T09:51:31.0216598Z 
+2026-10-04T09:51:31.0216753Z running 6 tests
+2026-10-04T09:51:31.0221118Z test matrix_free_application_matches_hand_calculation ... ok
+2026-10-04T09:51:31.0222072Z test paper_scale_has_expected_dimension ... ok
+2026-10-04T09:51:31.0222886Z test sampled_kernel_uses_omega_weight ... ok
+2026-10-04T09:51:31.0223938Z test toeplitz_form_is_not_positive_by_construction ... ok
+2026-10-04T09:51:31.0227725Z test two_by_two_spectrum_matches_closed_form ... ok
+2026-10-04T09:51:31.0231149Z test constant_sampled_kernel_has_rank_one_spectrum ... ok
+2026-10-04T09:51:31.0231579Z 
+2026-10-04T09:51:31.0232007Z test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0232612Z 
+2026-10-04T09:51:31.0235979Z [1m[92m     Running[0m tests/weil_boundary_transform.rs (target/debug/deps/weil_boundary_transform-bcd64831e99c918c)
+2026-10-04T09:51:31.0245194Z 
+2026-10-04T09:51:31.0245343Z running 3 tests
+2026-10-04T09:51:31.0248632Z test q_preserves_declared_compact_support_exactly ... ok
+2026-10-04T09:51:31.0249394Z test symmetric_support_matches_the_source_factor_two_window ... ok
+2026-10-04T09:51:31.0257737Z test q_image_satisfies_the_two_weil_boundary_moments ... ok
+2026-10-04T09:51:31.0257996Z 
+2026-10-04T09:51:31.0258257Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0258600Z 
+2026-10-04T09:51:31.0260962Z [1m[92m     Running[0m tests/weil_compact_support.rs (target/debug/deps/weil_compact_support-f6e54352cd7bc14f)
+2026-10-04T09:51:31.0269499Z 
+2026-10-04T09:51:31.0269639Z running 3 tests
+2026-10-04T09:51:31.0273282Z test source_place_set_is_exactly_the_primes_strictly_below_q_for_integer_q ... ok
+2026-10-04T09:51:31.0274381Z test support_fact_and_conjectural_sufficiency_are_not_encoded_as_the_same_claim ... ok
+2026-10-04T09:51:31.0275289Z test compact_h1_support_inside_q_window_stays_inside_convolution_window ... ok
+2026-10-04T09:51:31.0275737Z 
+2026-10-04T09:51:31.0275990Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0276915Z 
+2026-10-04T09:51:31.0277685Z [1m[92m     Running[0m unittests examples/weil_bernstein_evidence_grid.rs (target/debug/examples/weil_bernstein_evidence_grid-fd983119caf84228)
+2026-10-04T09:51:31.0285242Z 
+2026-10-04T09:51:31.0285426Z running 0 tests
+2026-10-04T09:51:31.0285649Z 
+2026-10-04T09:51:31.0286075Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0286629Z 
+2026-10-04T09:51:31.0287815Z [1m[92m     Running[0m unittests examples/weil_bernstein_probe.rs (target/debug/examples/weil_bernstein_probe-ea5fbadb37c31e2f)
+2026-10-04T09:51:31.0296629Z 
+2026-10-04T09:51:31.0296796Z running 0 tests
+2026-10-04T09:51:31.0297022Z 
+2026-10-04T09:51:31.0297447Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0298007Z 
+2026-10-04T09:51:31.0299369Z [1m[92m     Running[0m unittests examples/weil_bernstein_subspace.rs (target/debug/examples/weil_bernstein_subspace-162d1f7fc94b2663)
+2026-10-04T09:51:31.0308340Z 
+2026-10-04T09:51:31.0308501Z running 0 tests
+2026-10-04T09:51:31.0308724Z 
+2026-10-04T09:51:31.0309150Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0309697Z 
+2026-10-04T09:51:31.0311090Z [1m[92m     Running[0m unittests examples/weil_evidence_grid.rs (target/debug/examples/weil_evidence_grid-cc30602f5d7712fa)
+2026-10-04T09:51:31.0319667Z 
+2026-10-04T09:51:31.0319836Z running 0 tests
+2026-10-04T09:51:31.0320285Z 
+2026-10-04T09:51:31.0320713Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0321244Z 
+2026-10-04T09:51:31.0322500Z [1m[92m     Running[0m unittests examples/weil_generalized_sweep.rs (target/debug/examples/weil_generalized_sweep-0b4b388bdeb14604)
+2026-10-04T09:51:31.0331459Z 
+2026-10-04T09:51:31.0331628Z running 0 tests
+2026-10-04T09:51:31.0331857Z 
+2026-10-04T09:51:31.0332276Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0332851Z 
+2026-10-04T09:51:31.0334263Z [1m[92m     Running[0m unittests examples/weil_refinement.rs (target/debug/examples/weil_refinement-c00a9743836c2a2b)
+2026-10-04T09:51:31.0342878Z 
+2026-10-04T09:51:31.0343054Z running 0 tests
+2026-10-04T09:51:31.0343271Z 
+2026-10-04T09:51:31.0343677Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0344249Z 
+2026-10-04T09:51:31.0345447Z [1m[92m     Running[0m unittests examples/weil_sine_continuity.rs (target/debug/examples/weil_sine_continuity-7fa3c592a5f23538)
+2026-10-04T09:51:31.0354481Z 
+2026-10-04T09:51:31.0354650Z running 0 tests
+2026-10-04T09:51:31.0354862Z 
+2026-10-04T09:51:31.0355276Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0355822Z 
+2026-10-04T09:51:31.0357087Z [1m[92m     Running[0m unittests examples/weil_sine_direct_q.rs (target/debug/examples/weil_sine_direct_q-08dcbbf70cf4e184)
+2026-10-04T09:51:31.0365811Z 
+2026-10-04T09:51:31.0365974Z running 0 tests
+2026-10-04T09:51:31.0366190Z 
+2026-10-04T09:51:31.0366611Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0367166Z 
+2026-10-04T09:51:31.0368367Z [1m[92m     Running[0m unittests examples/weil_sine_pairing.rs (target/debug/examples/weil_sine_pairing-18a87e6156b2c017)
+2026-10-04T09:51:31.0377407Z 
+2026-10-04T09:51:31.0377583Z running 0 tests
+2026-10-04T09:51:31.0377882Z 
+2026-10-04T09:51:31.0378316Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0378846Z 
+2026-10-04T09:51:31.0381215Z [1m[92m     Running[0m unittests examples/weil_sine_pairing_refinement.rs (target/debug/examples/weil_sine_pairing_refinement-ed36c8dc4a36273c)
+2026-10-04T09:51:31.0388818Z 
+2026-10-04T09:51:31.0388978Z running 0 tests
+2026-10-04T09:51:31.0389191Z 
+2026-10-04T09:51:31.0389827Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0390527Z 
+2026-10-04T09:51:31.0392804Z [1m[92m     Running[0m unittests examples/weil_sine_taylor_h1.rs (target/debug/examples/weil_sine_taylor_h1-7d4a4f6c9b85040b)
+2026-10-04T09:51:31.0400834Z 
+2026-10-04T09:51:31.0401007Z running 0 tests
+2026-10-04T09:51:31.0401224Z 
+2026-10-04T09:51:31.0401650Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0402224Z 
+2026-10-04T09:51:31.0403926Z [1m[92m     Running[0m unittests examples/weil_sine_truncation.rs (target/debug/examples/weil_sine_truncation-3bea819273dca526)
+2026-10-04T09:51:31.0411908Z 
+2026-10-04T09:51:31.0412138Z running 0 tests
+2026-10-04T09:51:31.0412375Z 
+2026-10-04T09:51:31.0412822Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0413442Z 
+2026-10-04T09:51:31.0414934Z [1m[92m     Running[0m unittests examples/weil_subspace_audit.rs (target/debug/examples/weil_subspace_audit-a675960ec313bae6)
+2026-10-04T09:51:31.0422933Z 
+2026-10-04T09:51:31.0423073Z running 0 tests
+2026-10-04T09:51:31.0423335Z 
+2026-10-04T09:51:31.0423638Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0424063Z 
+2026-10-04T09:51:31.0426194Z [1m[92m     Running[0m unittests examples/weil_support_sweep.rs (target/debug/examples/weil_support_sweep-e8e079509c1d9800)
+2026-10-04T09:51:31.0435050Z 
+2026-10-04T09:51:31.0435261Z running 0 tests
+2026-10-04T09:51:31.0435501Z 
+2026-10-04T09:51:31.0435951Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-04T09:51:31.0436581Z 
+2026-10-04T09:51:31.0484186Z ##[group]Run cargo run --locked --release
+2026-10-04T09:51:31.0484532Z [36;1mcargo run --locked --release[0m
+2026-10-04T09:51:31.0545748Z shell: /usr/bin/bash -e {0}
+2026-10-04T09:51:31.0545995Z env:
+2026-10-04T09:51:31.0546205Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:51:31.0546460Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:51:31.0546678Z   CARGO_TERM_COLOR: always
+2026-10-04T09:51:31.0546897Z ##[endgroup]
+2026-10-04T09:51:31.1382864Z [1m[92m   Compiling[0m crossbeam-utils v0.8.22
+2026-10-04T09:51:31.1383628Z [1m[92m   Compiling[0m autocfg v1.5.1
+2026-10-04T09:51:31.1410607Z [1m[92m   Compiling[0m proc-macro2 v1.0.107
+2026-10-04T09:51:31.1411417Z [1m[92m   Compiling[0m bytemuck v1.25.2
+2026-10-04T09:51:31.3071572Z [1m[92m   Compiling[0m unicode-ident v1.0.24
+2026-10-04T09:51:31.3563006Z [1m[92m   Compiling[0m crossbeam-epoch v0.9.20
+2026-10-04T09:51:31.3821507Z [1m[92m   Compiling[0m quote v1.0.47
+2026-10-04T09:51:31.4442608Z [1m[92m   Compiling[0m num-traits v0.2.19
+2026-10-04T09:51:31.5132438Z [1m[92m   Compiling[0m nano-gemm-codegen v0.2.1
+2026-10-04T09:51:31.8951132Z [1m[92m   Compiling[0m crossbeam-deque v0.8.7
+2026-10-04T09:51:32.0971600Z [1m[92m   Compiling[0m paste v1.0.15
+2026-10-04T09:51:32.1882742Z [1m[92m   Compiling[0m bitflags v2.13.1
+2026-10-04T09:51:32.3911257Z [1m[92m   Compiling[0m num-complex v0.4.6
+2026-10-04T09:51:32.4221589Z [1m[92m   Compiling[0m rayon-core v1.13.0
+2026-10-04T09:51:32.4835847Z [1m[92m   Compiling[0m libm v0.2.16
+2026-10-04T09:51:32.4909121Z [1m[92m   Compiling[0m version_check v0.9.5
+2026-10-04T09:51:32.5021447Z [1m[92m   Compiling[0m raw-cpuid v11.6.0
+2026-10-04T09:51:32.7031615Z [1m[92m   Compiling[0m pulp v0.22.3
+2026-10-04T09:51:32.9620762Z [1m[92m   Compiling[0m pulp-wasm-simd-flag v0.1.1
+2026-10-04T09:51:32.9861493Z [1m[92m   Compiling[0m cfg-if v1.0.4
+2026-10-04T09:51:33.0139157Z [1m[92m   Compiling[0m either v1.17.0
+2026-10-04T09:51:33.1712417Z [1m[92m   Compiling[0m reborrow v0.5.5
+2026-10-04T09:51:33.2111601Z [1m[92m   Compiling[0m dyn-stack-macros v0.1.3
+2026-10-04T09:51:33.3561767Z [1m[92m   Compiling[0m dyn-stack v0.13.2
+2026-10-04T09:51:33.5781074Z [1m[92m   Compiling[0m rayon v1.12.0
+2026-10-04T09:51:34.9371694Z [1m[92m   Compiling[0m syn v2.0.119
+2026-10-04T09:51:35.8511486Z [1m[92m   Compiling[0m seq-macro v0.3.6
+2026-10-04T09:51:36.1322146Z [1m[92m   Compiling[0m once_cell v1.21.4
+2026-10-04T09:51:36.1499739Z [1m[92m   Compiling[0m libc v0.2.189
+2026-10-04T09:51:36.2961433Z [1m[92m   Compiling[0m syn v1.0.109
+2026-10-04T09:51:36.3741571Z [1m[92m   Compiling[0m nano-gemm-core v0.2.1
+2026-10-04T09:51:37.3643059Z [1m[92m   Compiling[0m nano-gemm-c64 v0.2.1
+2026-10-04T09:51:37.4581893Z [1m[92m   Compiling[0m nano-gemm-c32 v0.2.1
+2026-10-04T09:51:37.5531485Z [1m[92m   Compiling[0m nano-gemm-f64 v0.2.1
+2026-10-04T09:51:37.6476830Z [1m[92m   Compiling[0m nano-gemm-f32 v0.2.1
+2026-10-04T09:51:37.7509942Z [1m[92m   Compiling[0m crossbeam-queue v0.3.13
+2026-10-04T09:51:37.8601365Z [1m[92m   Compiling[0m crossbeam-channel v0.5.16
+2026-10-04T09:51:38.4951729Z [1m[92m   Compiling[0m gemm-common v0.19.0
+2026-10-04T09:51:38.5569108Z [1m[92m   Compiling[0m defer v0.2.1
+2026-10-04T09:51:38.5889236Z [1m[92m   Compiling[0m crossbeam v0.8.4
+2026-10-04T09:51:38.6097238Z [1m[92m   Compiling[0m equator-macro v0.4.2
+2026-10-04T09:51:38.6166429Z [1m[92m   Compiling[0m equator-macro v0.2.1
+2026-10-04T09:51:39.0531432Z [1m[92m   Compiling[0m equator v0.4.2
+2026-10-04T09:51:39.1495415Z [1m[92m   Compiling[0m atomic-wait v1.1.0
+2026-10-04T09:51:39.2431525Z [1m[92m   Compiling[0m spindle v0.2.6
+2026-10-04T09:51:40.0047411Z [1m[92m   Compiling[0m interpol v0.2.1
+2026-10-04T09:51:40.3241578Z [1m[92m   Compiling[0m private-gemm-x86 v0.1.20
+2026-10-04T09:51:48.4792518Z [1m[92m   Compiling[0m equator v0.2.2
+2026-10-04T09:51:48.6093524Z [1m[92m   Compiling[0m gemm-f32 v0.19.0
+2026-10-04T09:51:49.8416615Z [1m[92m   Compiling[0m gemm-c64 v0.19.0
+2026-10-04T09:51:51.5482238Z [1m[92m   Compiling[0m gemm-c32 v0.19.0
+2026-10-04T09:51:51.7711392Z [1m[92m   Compiling[0m gemm-f64 v0.19.0
+2026-10-04T09:51:54.4569841Z [1m[92m   Compiling[0m qd v0.8.0
+2026-10-04T09:51:54.7401369Z [1m[92m   Compiling[0m num_cpus v1.17.0
+2026-10-04T09:51:54.7480920Z [1m[92m   Compiling[0m generativity v1.2.1
+2026-10-04T09:51:54.7771842Z [1m[92m   Compiling[0m equator-macro v0.6.0
+2026-10-04T09:51:54.7983993Z [1m[92m   Compiling[0m faer-traits v0.24.0
+2026-10-04T09:51:55.0291368Z [1m[92m   Compiling[0m equator v0.6.0
+2026-10-04T09:51:55.6207300Z [1m[92m   Compiling[0m gemm v0.19.0
+2026-10-04T09:51:55.6671242Z [1m[92m   Compiling[0m nano-gemm v0.2.2
+2026-10-04T09:51:56.0321545Z [1m[92m   Compiling[0m faer v0.24.4
+2026-10-04T09:52:23.1442525Z [1m[92m   Compiling[0m riemann_ndim_bench v0.1.0 (/home/runner/work/riemann_ndim_bench/riemann_ndim_bench)
+2026-10-04T09:52:28.2175928Z [1m[92m    Finished[0m `release` profile [optimized] target(s) in 57.13s
+2026-10-04T09:52:28.2214838Z [1m[92m     Running[0m `target/release/riemann_ndim_bench`
+2026-10-04T09:52:28.2232623Z Riemann N-dimensional bench - phase 2
+2026-10-04T09:52:28.2233352Z Geometry, independent zeta/xi checks, and sourced Toeplitz discretization.
+2026-10-04T09:52:28.2233859Z 
+2026-10-04T09:52:28.2234178Z sigma      mirror      raw_radius       normalized       log_normalized
+2026-10-04T09:52:28.2234886Z --------------------------------------------------------------------------
+2026-10-04T09:52:28.2235571Z 0.100      0.900      0.9443707047     1.2572741157     +0.2289459772   
+2026-10-04T09:52:28.2236225Z 0.300      0.700      0.8422238181     1.1212823532     +0.1144729886   
+2026-10-04T09:52:28.2236858Z 0.490      0.510      0.7554370508     1.0057400608     +0.0057236494   
+2026-10-04T09:52:28.2237487Z 0.500      0.500      0.7511255445     1.0000000000     +0.0000000000   
+2026-10-04T09:52:28.2238148Z 0.510      0.490      0.7468386452     0.9942926994     -0.0057236494   
+2026-10-04T09:52:28.2238774Z 0.700      0.300      0.6698808220     0.8918360278     -0.1144729886   
+2026-10-04T09:52:28.2239385Z 0.900      0.100      0.5974238514     0.7953715006     -0.2289459772   
+2026-10-04T09:52:28.2240313Z 
+2026-10-04T09:52:28.2240487Z critical raw radius = 0.751125544464943
+2026-10-04T09:52:28.2240795Z 
+2026-10-04T09:52:28.2240961Z Independent numerical checks:
+2026-10-04T09:52:28.2241569Z s=2.000+0.000i  zeta=1.644934066848+0.000000000000i  delta=4.441e-16  N=64  B=10
+2026-10-04T09:52:28.2242395Z s=0.500+14.000i  zeta=0.022241142610-0.103258123266i  delta=6.480e-15  N=74  B=10
+2026-10-04T09:52:28.2243178Z s=0.370+9.250i  zeta=1.523875820164+0.146345887934i  delta=6.190e-15  N=64  B=10
+2026-10-04T09:52:28.2243869Z xi(s)=xi(1-s) relative residual at probe: 3.732e-16
+2026-10-04T09:52:28.2244234Z 
+2026-10-04T09:52:28.2244420Z N-dimensional Toeplitz infrastructure:
+2026-10-04T09:52:28.2244804Z interval=ln(2), omega=1.000e-3, q=1.001000500167, max_index=693, dimension=694
+2026-10-04T09:52:28.2245222Z synthetic 2x2 spectrum = [1.0, 3.0]
+2026-10-04T09:52:28.2245568Z Q-epsilon kernel is intentionally not synthesized in phase 2.
+2026-10-04T09:52:28.2320723Z ##[group]Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+2026-10-04T09:52:28.2321163Z with:
+2026-10-04T09:52:28.2321367Z   python-version: 3.12.14
+2026-10-04T09:52:28.2321603Z   check-latest: false
+2026-10-04T09:52:28.2324266Z   token: ***
+2026-10-04T09:52:28.2324482Z   update-environment: true
+2026-10-04T09:52:28.2324729Z   allow-prereleases: false
+2026-10-04T09:52:28.2324952Z   freethreaded: false
+2026-10-04T09:52:28.2325152Z env:
+2026-10-04T09:52:28.2325341Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:52:28.2325584Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:52:28.2325794Z   CARGO_TERM_COLOR: always
+2026-10-04T09:52:28.2326012Z ##[endgroup]
+2026-10-04T09:52:28.3733949Z ##[group]Installed versions
+2026-10-04T09:52:28.3772577Z (node:6249) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-04T09:52:28.3773872Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-04T09:52:28.3775829Z Successfully set up CPython (3.12.14)
+2026-10-04T09:52:28.3776951Z ##[endgroup]
+2026-10-04T09:52:28.3944581Z ##[group]Run python --version
+2026-10-04T09:52:28.3944916Z [36;1mpython --version[0m
+2026-10-04T09:52:28.4113426Z shell: /usr/bin/bash -e {0}
+2026-10-04T09:52:28.4113890Z env:
+2026-10-04T09:52:28.4114255Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:52:28.4114735Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:52:28.4115137Z   CARGO_TERM_COLOR: always
+2026-10-04T09:52:28.4115678Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:28.4116563Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-10-04T09:52:28.4117322Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:28.4118108Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:28.4118796Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:28.4119579Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-10-04T09:52:28.4120457Z ##[endgroup]
+2026-10-04T09:52:28.6026247Z Python 3.12.14
+2026-10-04T09:52:28.6061171Z ##[group]Run python -m pip install -r requirements-research.txt
+2026-10-04T09:52:28.6061668Z [36;1mpython -m pip install -r requirements-research.txt[0m
+2026-10-04T09:52:28.6123592Z shell: /usr/bin/bash -e {0}
+2026-10-04T09:52:28.6123837Z env:
+2026-10-04T09:52:28.6124041Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:52:28.6124297Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:52:28.6124521Z   CARGO_TERM_COLOR: always
+2026-10-04T09:52:28.6124815Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:28.6125275Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-10-04T09:52:28.6125727Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:28.6126128Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:28.6126517Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:28.6126913Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-10-04T09:52:28.6127284Z ##[endgroup]
+2026-10-04T09:52:30.8217403Z Collecting mpmath==1.3.0 (from -r requirements-research.txt (line 1))
+2026-10-04T09:52:30.8653966Z   Downloading mpmath-1.3.0-py3-none-any.whl.metadata (8.6 kB)
+2026-10-04T09:52:30.8844594Z Collecting sympy==1.13.3 (from -r requirements-research.txt (line 2))
+2026-10-04T09:52:30.8872993Z   Downloading sympy-1.13.3-py3-none-any.whl.metadata (12 kB)
+2026-10-04T09:52:30.8951384Z Downloading mpmath-1.3.0-py3-none-any.whl (536 kB)
+2026-10-04T09:52:30.9227285Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 536.2/536.2 kB 51.0 MB/s  0:00:00
+2026-10-04T09:52:30.9262295Z Downloading sympy-1.13.3-py3-none-any.whl (6.2 MB)
+2026-10-04T09:52:30.9646674Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.2/6.2 MB 171.8 MB/s  0:00:00
+2026-10-04T09:52:31.1099189Z Installing collected packages: mpmath, sympy
+2026-10-04T09:52:37.3634648Z 
+2026-10-04T09:52:37.3645086Z Successfully installed mpmath-1.3.0 sympy-1.13.3
+2026-10-04T09:52:37.4152535Z ##[group]Run python -m py_compile tools/verify_math.py tools/symbolic_mu2.py tools/proof_ledger.py tools/riemann_research_agent.py tools/riemann_dual_research_agent.py tools/symbolic_mu2_agent_extension.py tools/riemann_symbolic_research_agent.py tools/riemann_dual_symbolic_research_agent.py tools/test_verify_math.py tools/test_symbolic_mu2.py tools/test_proof_ledger.py tools/test_symbolic_agent_extension.py tools/test_symbolic_dual_gate.py
+2026-10-04T09:52:37.4155523Z [36;1mpython -m py_compile tools/verify_math.py tools/symbolic_mu2.py tools/proof_ledger.py tools/riemann_research_agent.py tools/riemann_dual_research_agent.py tools/symbolic_mu2_agent_extension.py tools/riemann_symbolic_research_agent.py tools/riemann_dual_symbolic_research_agent.py tools/test_verify_math.py tools/test_symbolic_mu2.py tools/test_proof_ledger.py tools/test_symbolic_agent_extension.py tools/test_symbolic_dual_gate.py[0m
+2026-10-04T09:52:37.4218530Z shell: /usr/bin/bash -e {0}
+2026-10-04T09:52:37.4218804Z env:
+2026-10-04T09:52:37.4219004Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:52:37.4219268Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:52:37.4219488Z   CARGO_TERM_COLOR: always
+2026-10-04T09:52:37.4219780Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:37.4220455Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-10-04T09:52:37.4220905Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:37.4221302Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:37.4221682Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:37.4222059Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-10-04T09:52:37.4222373Z ##[endgroup]
+2026-10-04T09:52:37.4979021Z ##[group]Run python -m unittest -v tools/test_verify_math.py tools/test_symbolic_mu2.py tools/test_proof_ledger.py tools/test_symbolic_agent_extension.py tools/test_symbolic_dual_gate.py
+2026-10-04T09:52:37.4980565Z [36;1mpython -m unittest -v tools/test_verify_math.py tools/test_symbolic_mu2.py tools/test_proof_ledger.py tools/test_symbolic_agent_extension.py tools/test_symbolic_dual_gate.py[0m
+2026-10-04T09:52:37.5041327Z shell: /usr/bin/bash -e {0}
+2026-10-04T09:52:37.5041565Z env:
+2026-10-04T09:52:37.5041760Z   CARGO_HOME: /home/runner/.cargo
+2026-10-04T09:52:37.5042012Z   CARGO_INCREMENTAL: 0
+2026-10-04T09:52:37.5042225Z   CARGO_TERM_COLOR: always
+2026-10-04T09:52:37.5042511Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:37.5042942Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-10-04T09:52:37.5043365Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:37.5043767Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:37.5044137Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-04T09:52:37.5044509Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-10-04T09:52:37.5044838Z ##[endgroup]
+2026-10-04T09:52:37.8168372Z test_affine_index_transform_proves_staggered_coefficients (tools.test_verify_math.VerifyMathTests.test_affine_index_transform_proves_staggered_coefficients) ... ok
+2026-10-04T09:52:37.8871587Z test_asymptotic_power_prefers_half_power_for_blind_sequence (tools.test_verify_math.VerifyMathTests.test_asymptotic_power_prefers_half_power_for_blind_sequence) ... ok
+2026-10-04T09:52:37.9563233Z test_bad_first_order_candidate_is_rejected (tools.test_verify_math.VerifyMathTests.test_bad_first_order_candidate_is_rejected) ... ok
+2026-10-04T09:52:38.0263033Z test_expression_injection_is_rejected (tools.test_verify_math.VerifyMathTests.test_expression_injection_is_rejected) ... ok
+2026-10-04T09:52:38.1007406Z test_gamma_ratio_reduces_exactly (tools.test_verify_math.VerifyMathTests.test_gamma_ratio_reduces_exactly) ... ok
+2026-10-04T09:52:38.1701189Z test_perturbative_recurrence_extracts_second_order_forcing (tools.test_verify_math.VerifyMathTests.test_perturbative_recurrence_extracts_second_order_forcing) ... ok
+2026-10-04T09:52:38.2433650Z test_quarter_gamma_pair_is_closed_exactly (tools.test_verify_math.VerifyMathTests.test_quarter_gamma_pair_is_closed_exactly) ... ok
+2026-10-04T09:52:38.3122522Z test_rational_exact (tools.test_verify_math.VerifyMathTests.test_rational_exact) ... ok
+2026-10-04T09:52:38.6344945Z test_code_injection_is_rejected (tools.test_symbolic_mu2.SymbolicMu2Tests.test_code_injection_is_rejected) ... ok
+2026-10-04T09:52:38.9886109Z test_hypergeometric_ratio_and_terms_are_exact (tools.test_symbolic_mu2.SymbolicMu2Tests.test_hypergeometric_ratio_and_terms_are_exact) ... ok
+2026-10-04T09:52:39.3413390Z test_hypergeometric_series_is_recognized (tools.test_symbolic_mu2.SymbolicMu2Tests.test_hypergeometric_series_is_recognized) ... ok
+2026-10-04T09:52:39.6923064Z test_hypergeometric_wrong_ratio_is_refuted_fail_closed (tools.test_symbolic_mu2.SymbolicMu2Tests.test_hypergeometric_wrong_ratio_is_refuted_fail_closed) ... ok
+2026-10-04T09:52:40.1018849Z test_minus_variation_forcing_ratio_is_derived_exactly (tools.test_symbolic_mu2.SymbolicMu2Tests.test_minus_variation_forcing_ratio_is_derived_exactly) ... ok
+2026-10-04T09:52:40.5806058Z test_mu2_exact_component_assembly_proves_closed_form (tools.test_symbolic_mu2.SymbolicMu2Tests.test_mu2_exact_component_assembly_proves_closed_form) ... ok
+2026-10-04T09:52:41.0629390Z test_mu2_exact_component_assembly_refutes_wrong_closed_form (tools.test_symbolic_mu2.SymbolicMu2Tests.test_mu2_exact_component_assembly_refutes_wrong_closed_form) ... ok
+2026-10-04T09:52:41.4303937Z test_mu2_forcing_subsequence_a_k_is_exact_pochhammer_sequence (tools.test_symbolic_mu2.SymbolicMu2Tests.test_mu2_forcing_subsequence_a_k_is_exact_pochhammer_sequence) ... ok
+2026-10-04T09:53:00.6796123Z test_mu2_minus_generating_finite_part_is_exact (tools.test_symbolic_mu2.SymbolicMu2Tests.test_mu2_minus_generating_finite_part_is_exact) ... ok
+2026-10-04T09:53:16.2723940Z test_mu2_plus_generating_finite_part_is_exact (tools.test_symbolic_mu2.SymbolicMu2Tests.test_mu2_plus_generating_finite_part_is_exact) ... ok
+2026-10-04T09:53:16.8405290Z test_nested_radicals_are_supported (tools.test_symbolic_mu2.SymbolicMu2Tests.test_nested_radicals_are_supported) ... ok
+2026-10-04T09:53:17.2491529Z test_plus_variation_forcing_ratio_is_derived_exactly (tools.test_symbolic_mu2.SymbolicMu2Tests.test_plus_variation_forcing_ratio_is_derived_exactly) ... ok
+2026-10-04T09:53:17.7312433Z test_simple_puiseux_finite_part (tools.test_symbolic_mu2.SymbolicMu2Tests.test_simple_puiseux_finite_part) ... ok
+2026-10-04T09:53:18.3745313Z test_theta_operator_and_constant_extra_term (tools.test_symbolic_mu2.SymbolicMu2Tests.test_theta_operator_and_constant_extra_term) ... ok
+2026-10-04T09:53:18.7861751Z test_wrong_variation_forcing_ratio_is_refuted (tools.test_symbolic_mu2.SymbolicMu2Tests.test_wrong_variation_forcing_ratio_is_refuted) ... ok
+2026-10-04T09:53:18.7863464Z test_asymptotic_best_power_is_preserved (tools.test_proof_ledger.ProofLedgerTests.test_asymptotic_best_power_is_preserved) ... ok
+2026-10-04T09:53:18.7866165Z test_chain_without_final_assembly_fails_closed (tools.test_proof_ledger.ProofLedgerTests.test_chain_without_final_assembly_fails_closed) ... ok
+2026-10-04T09:53:18.7868510Z test_chain_without_forcing_provenance_fails_closed (tools.test_proof_ledger.ProofLedgerTests.test_chain_without_forcing_provenance_fails_closed) ... ok
+2026-10-04T09:53:18.7871454Z test_complete_symbolic_chain_satisfies_exact_gate (tools.test_proof_ledger.ProofLedgerTests.test_complete_symbolic_chain_satisfies_exact_gate) ... ok
+2026-10-04T09:53:18.7873587Z test_component_assembly_mismatch_is_refuted (tools.test_proof_ledger.ProofLedgerTests.test_component_assembly_mismatch_is_refuted) ... ok
+2026-10-04T09:53:18.7875557Z test_exact_mode_gate_accepts_proved_gamma (tools.test_proof_ledger.ProofLedgerTests.test_exact_mode_gate_accepts_proved_gamma) ... ok
+2026-10-04T09:53:18.7877536Z test_exact_mode_gate_rejects_unresolved_gamma (tools.test_proof_ledger.ProofLedgerTests.test_exact_mode_gate_rejects_unresolved_gamma) ... ok
+2026-10-04T09:53:18.7879634Z test_exact_perturbative_success_satisfies_gate (tools.test_proof_ledger.ProofLedgerTests.test_exact_perturbative_success_satisfies_gate) ... ok
+2026-10-04T09:53:18.7882037Z test_execution_identity_includes_fresh_run_nonce (tools.test_proof_ledger.ProofLedgerTests.test_execution_identity_includes_fresh_run_nonce) ... ok
+2026-10-04T09:53:18.7884106Z test_failed_first_order_candidate_is_refuted (tools.test_proof_ledger.ProofLedgerTests.test_failed_first_order_candidate_is_refuted) ... ok
+2026-10-04T09:53:18.7886085Z test_forcing_provenance_mismatch_is_refuted (tools.test_proof_ledger.ProofLedgerTests.test_forcing_provenance_mismatch_is_refuted) ... ok
+2026-10-04T09:53:18.7888222Z test_latest_proposition_supersedes_historical_mode_success (tools.test_proof_ledger.ProofLedgerTests.test_latest_proposition_supersedes_historical_mode_success) ... ok
+2026-10-04T09:53:18.7890681Z test_locked_gate_target_rejects_unrelated_later_success (tools.test_proof_ledger.ProofLedgerTests.test_locked_gate_target_rejects_unrelated_later_success) ... ok
+2026-10-04T09:53:18.7892792Z test_nonzero_exit_code_cannot_satisfy_exact_gate (tools.test_proof_ledger.ProofLedgerTests.test_nonzero_exit_code_cannot_satisfy_exact_gate) ... ok
+2026-10-04T09:53:18.7895006Z test_record_binds_all_evidence_identities_and_not_prooflab (tools.test_proof_ledger.ProofLedgerTests.test_record_binds_all_evidence_identities_and_not_prooflab) ... ok
+2026-10-04T09:53:18.7898823Z test_required_modes_fail_closed (tools.test_proof_ledger.ProofLedgerTests.test_required_modes_fail_closed) ... ok
+2026-10-04T09:53:18.7919476Z test_resume_without_source_sha_fails_closed (tools.test_proof_ledger.ProofLedgerTests.test_resume_without_source_sha_fails_closed) ... ok
+2026-10-04T09:53:18.7921949Z test_schema_mismatch_cannot_satisfy_exact_gate (tools.test_proof_ledger.ProofLedgerTests.test_schema_mismatch_cannot_satisfy_exact_gate) ... ok
+2026-10-04T09:53:18.7923790Z test_symbolic_ratio_mismatch_is_refuted (tools.test_proof_ledger.ProofLedgerTests.test_symbolic_ratio_mismatch_is_refuted) ... ok
+2026-10-04T09:53:18.7924822Z test_unresolved_gamma_is_not_exact (tools.test_proof_ledger.ProofLedgerTests.test_unresolved_gamma_is_not_exact) ... ok
+2026-10-04T09:53:19.2742488Z test_assembly_dispatch_proves_exact_closed_form (tools.test_symbolic_agent_extension.SymbolicAgentExtensionTests.test_assembly_dispatch_proves_exact_closed_form) ... ok
+2026-10-04T09:53:19.7629932Z test_assembly_dispatch_refutes_wrong_closed_form (tools.test_symbolic_agent_extension.SymbolicAgentExtensionTests.test_assembly_dispatch_refutes_wrong_closed_form) ... ok
+2026-10-04T09:53:20.2463392Z test_finite_part_dispatch_is_exact (tools.test_symbolic_agent_extension.SymbolicAgentExtensionTests.test_finite_part_dispatch_is_exact) ... ok
+2026-10-04T09:53:20.6622491Z test_forcing_ratio_dispatch_proves_recurrence_derived_candidate (tools.test_symbolic_agent_extension.SymbolicAgentExtensionTests.test_forcing_ratio_dispatch_proves_recurrence_derived_candidate) ... ok
+2026-10-04T09:53:21.0826882Z test_forcing_ratio_dispatch_refutes_wrong_candidate (tools.test_symbolic_agent_extension.SymbolicAgentExtensionTests.test_forcing_ratio_dispatch_refutes_wrong_candidate) ... ok
+2026-10-04T09:53:21.4515821Z test_hypergeometric_dispatch_proves_exact_candidate (tools.test_symbolic_agent_extension.SymbolicAgentExtensionTests.test_hypergeometric_dispatch_proves_exact_candidate) ... ok
+2026-10-04T09:53:21.8168282Z test_hypergeometric_dispatch_refutes_wrong_candidate (tools.test_symbolic_agent_extension.SymbolicAgentExtensionTests.test_hypergeometric_dispatch_refutes_wrong_candidate) ... ok
+2026-10-04T09:53:21.8169643Z test_hypergeometric_requires_candidate_ratio (tools.test_symbolic_agent_extension.SymbolicAgentExtensionTests.test_hypergeometric_requires_candidate_ratio) ... ok
+2026-10-04T09:53:21.8171115Z test_modes_are_registered (tools.test_symbolic_agent_extension.SymbolicAgentExtensionTests.test_modes_are_registered) ... ok
+2026-10-04T09:53:21.8172591Z test_gate_accepts_complete_exact_symbolic_chain (tools.test_symbolic_dual_gate.SymbolicDualGateTests.test_gate_accepts_complete_exact_symbolic_chain) ... ok
+2026-10-04T09:53:21.8175885Z test_gate_rejects_missing_final_assembly (tools.test_symbolic_dual_gate.SymbolicDualGateTests.test_gate_rejects_missing_final_assembly) ... ok
+2026-10-04T09:53:21.8178308Z test_gate_rejects_missing_symbolic_chain (tools.test_symbolic_dual_gate.SymbolicDualGateTests.test_gate_rejects_missing_symbolic_chain) ... ok
+2026-10-04T09:53:21.8182074Z test_gate_rejects_refuted_final_assembly (tools.test_symbolic_dual_gate.SymbolicDualGateTests.test_gate_rejects_refuted_final_assembly) ... ok
+2026-10-04T09:53:21.8185406Z test_gate_rejects_refuted_forcing_provenance (tools.test_symbolic_dual_gate.SymbolicDualGateTests.test_gate_rejects_refuted_forcing_provenance) ... ok
+2026-10-04T09:53:21.8189083Z test_gate_rejects_refuted_hypergeometric_candidate (tools.test_symbolic_dual_gate.SymbolicDualGateTests.test_gate_rejects_refuted_hypergeometric_candidate) ... ok
+2026-10-04T09:53:21.8190348Z test_symbolic_modes_are_required (tools.test_symbolic_dual_gate.SymbolicDualGateTests.test_symbolic_modes_are_required) ... ok
+2026-10-04T09:53:21.8190867Z 
+2026-10-04T09:53:21.8191029Z ----------------------------------------------------------------------
+2026-10-04T09:53:21.8191374Z Ran 59 tests in 44.082s
+2026-10-04T09:53:21.8191518Z 
+2026-10-04T09:53:21.8191596Z OK
+2026-10-04T09:53:21.8388746Z Post job cleanup.
+2026-10-04T09:53:21.9601201Z (node:6359) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-04T09:53:21.9602042Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-04T09:53:21.9809117Z Post job cleanup.
+2026-10-04T09:53:22.0764229Z [command]/usr/bin/git version
+2026-10-04T09:53:22.0813122Z git version 2.55.0
+2026-10-04T09:53:22.0859732Z Temporarily overriding HOME='/home/runner/work/_temp/4bc611cf-0cab-4bd7-8fb7-943192133728' before making global git config changes
+2026-10-04T09:53:22.0861346Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-04T09:53:22.0866930Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/riemann_ndim_bench/riemann_ndim_bench
+2026-10-04T09:53:22.0910558Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-04T09:53:22.0948643Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-04T09:53:22.1214324Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-04T09:53:22.1244169Z http.https://github.com/.extraheader
+2026-10-04T09:53:22.1257350Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-04T09:53:22.1292295Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-04T09:53:22.1687852Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-04T09:53:22.1737870Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-04T09:53:22.2174693Z Cleaning up orphan processes
+2026-10-04T09:53:22.2487923Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11d5960a326750d5838078e36cf38b85af677262, actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+

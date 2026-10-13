@@ -1,0 +1,54 @@
+name: Authenticated bench execution ingest
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: Memorithm/riemann_ndim_bench
+          ref: d7f0b70feb515a3f3a80cd681d820510bc2ed938
+          path: partners/riemann
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: Memorithm/SciRust-Verify
+          ref: 662a30dc774dd19c68a79bed3889036a91930123
+          path: partners/verify
+      - name: Install qualified Rust compiler
+        run: rustup toolchain install 1.98.1 --profile minimal
+      - name: Verify retained real producer bytes
+        run: sha256sum -c docs/evidence/bench-execution/riemann-ci-job.sha256
+      - name: Build existing owner authentication command
+        run: cargo +1.98.1 build --locked --manifest-path partners/verify/Cargo.toml -p scirust-verify-cli --bin scirust-verify
+      - name: Stage actual producer execution and independent qualification policy
+        run: |
+          cargo +1.98.1 run --locked -p prooflab-cli --example import_riemann_ci -- partners/riemann docs/evidence/bench-execution/riemann-ci-job.log "$RUNNER_TEMP/capture"
+          cp docs/evidence/bench-execution/scirust-verify.toml "$RUNNER_TEMP/capture/scirust-verify.toml"
+          mkdir -p "$RUNNER_TEMP/independent-qualification-trust"
+          ssh-keygen -q -t ed25519 -N '' -f "$RUNNER_TEMP/independent-qualification-trust/key"
+          printf 'prooflab-development-qualification ' > "$RUNNER_TEMP/independent-qualification-trust/allowed_signers"
+          cat "$RUNNER_TEMP/independent-qualification-trust/key.pub" >> "$RUNNER_TEMP/independent-qualification-trust/allowed_signers"
+      - name: Authenticate the owner dossier and import actual empirical bytes
+        run: |
+          cargo +1.98.1 run --locked -p prooflab-cli --example authenticate_riemann_ci -- "$GITHUB_WORKSPACE/partners/verify/target/debug/scirust-verify" "$RUNNER_TEMP/capture" "$RUNNER_TEMP/independent-qualification-trust/key" "$RUNNER_TEMP/independent-qualification-trust/allowed_signers"
+      - name: Retain source and consumer evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: bench-execution-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/capture/execution.json
+            ${{ runner.temp }}/capture/ingested.json
+            ${{ runner.temp }}/capture/owner-authentication.json
+            docs/evidence/bench-execution/riemann-ci-job.sha256
+          if-no-files-found: error
