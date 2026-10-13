@@ -11,6 +11,10 @@ readme = "README.md"
 name = "prooflab"
 path = "src/main.rs"
 
+[[bin]]
+name = "prooflab-ingest-execution"
+path = "src/bin/ingest_execution.rs"
+
 [dependencies]
 clap = { workspace = true }
 prooflab-core = { path = "../prooflab-core" }

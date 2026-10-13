@@ -1,0 +1,19 @@
+schema_version = 1
+
+[artifact]
+name = "prooflab-real-riemann-development-import"
+
+[verification]
+profile = "basic"
+timeout_secs = 30
+stdout_max_bytes = 262144
+stderr_max_bytes = 65536
+
+[cargo]
+enabled = false
+
+[[custom_checks]]
+id = "development-execution-record"
+program = "/usr/bin/cat"
+args = ["execution.json"]
+level = "required"

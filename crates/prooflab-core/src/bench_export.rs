@@ -55,6 +55,7 @@ impl Canonical for BenchSourceLabel {
 /// `payload_ref` says where the producer recorded it and `payload_digest` pins
 /// its exact bytes.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BenchExportEntry {
     pub entry_id: String,
     pub source_label: BenchSourceLabel,
@@ -124,6 +125,7 @@ impl Canonical for BenchExportManifestId {
 
 /// Deterministic offline export from one exact bench revision.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BenchExportManifest {
     pub bench: BenchKind,
     pub source_repository: String,
