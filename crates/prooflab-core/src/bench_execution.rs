@@ -467,5 +467,11 @@ mod tests {
         let mut json = serde_json::to_value(&manifest).unwrap();
         json["authenticated"] = serde_json::json!(true);
         assert!(serde_json::from_value::<BenchExecutionManifest>(json).is_err());
+        let mut json = serde_json::to_value(&manifest).unwrap();
+        json["export"]["authenticated"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<BenchExecutionManifest>(json).is_err());
+        let mut json = serde_json::to_value(&manifest).unwrap();
+        json["export"]["entries"][0]["authenticated"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<BenchExecutionManifest>(json).is_err());
     }
 }

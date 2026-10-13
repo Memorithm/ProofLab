@@ -11,6 +11,10 @@ unauthorized splits, final/test split labels, output substitution, wrong CI/run
 identity, oversized records and byte budgets. The command reads bounded snapshots
 and never launches producer code or fetches a network resource.
 
+Unknown fields are rejected at every export/entry nesting level. Producers that
+previously added undeclared JSON fields must remove them or publish a separately
+versioned contract; silently discarded authority hints are not supported.
+
 ```bash
 cargo run --locked -p prooflab-cli --bin prooflab-ingest-execution -- \
   --claim claim.json --manifest execution.json \
